@@ -1,0 +1,53 @@
+{
+  "name": "jeep-sqlite",
+  "version": "0.0.1-alpha.1",
+  "description": "Browser SQLite Stencil Component",
+  "main": "dist/index.cjs.js",
+  "module": "dist/custom-elements/index.js",
+  "es2015": "dist/esm/index.mjs",
+  "es2017": "dist/esm/index.mjs",
+  "types": "dist/custom-elements/index.d.ts",
+  "collection": "dist/collection/collection-manifest.json",
+  "collection:main": "dist/collection/index.js",
+  "unpkg": "dist/jeep-sqlite/jeep-sqlite.esm.js",
+  "files": [
+    "dist/",
+    "loader/"
+  ],
+  "scripts": {
+    "build": "stencil build --docs",
+    "start": "stencil build --dev --watch --serve",
+    "test": "stencil test --spec --e2e",
+    "test.watch": "stencil test --spec --e2e --watchAll",
+    "generate": "stencil generate"
+  },
+  "dependencies": {
+    "@stencil/core": "^2.0.1",
+    "@types/sql.js": "^1.4.2",
+    "localforage": "^1.9.0",
+    "sql.js": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^26.0.21",
+    "@types/puppeteer": "^5.4.3",
+    "jest": "^26.6.3",
+    "jest-cli": "^26.6.3",
+    "puppeteer": "^5.5.0",
+    "rollup-plugin-node-polyfills": "^0.2.1"
+  },
+  "keywords": [
+    "SQLite",
+    "SQLite in Browser",
+    "stencil",
+    "web component"
+  ],
+  "author": "Jean Pierre Quéau",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jepiqueau/jeep-sqlite.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jepiqueau/jeep-sqlite.git/issues"
+  }
+}

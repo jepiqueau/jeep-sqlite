@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Starter</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <body>
+    <jeep-sqlite></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    console.log("jeepSqlite " + JSON.stringify(jeepSqlite));
+      console.log("$$$ in script before createConnection");
+      let result = await jeepSqlite.echo("Hello World from Jeep");
+      console.log("from Echo " + result.value);
+      if(await jeepSqlite.isStoreOpen()) {
+          try {
+            await jeepSqlite.createConnection({
+                      database:"testNew",
+                      version: 1
+                  });
+            // open db testNew
+              await jeepSqlite.open({database: "testNew"});
+              const isDB = await jeepSqlite.isDBOpen({database: "testNew"})
+              console.log(`in script ${JSON.stringify(isDB)}`);
+              let sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY NOT NULL,email TEXT UNIQUE NOT NULL,name TEXT,company TEXT,size REAL,age INTEGER,last_modified INTEGER DEFAULT (strftime('%s', 'now')));";
+              sql += "CREATE INDEX IF NOT EXISTS users_index_name ON users (name);";
+              sql += "CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);";
+              sql += "CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified BEGIN UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id; END;";
+              sql += "PRAGMA user_version = 1;";
+              console.log("@@@ sql " + sql);
+              let ret = await jeepSqlite.execute({database: "testNew", statements: sql});
+              console.log(`after Execute 1 ${JSON.stringify(ret)}`);
+              // Insert some Users
+              const row = [["Whiteley","Whiteley.com",30,1.83],["Jones","Jones.com",44,1.75]];
+              let delUsers = `DELETE FROM users;`;
+              delUsers += `VACUUM;`;
+              ret = await jeepSqlite.execute({database: "testNew", statements: delUsers, transaction: false});
+              console.log(`after Execute 2 ${JSON.stringify(ret)}`);
+              let twoUsers = `INSERT INTO users (name,email,age,size) VALUES ("${row[0][0]}","${row[0][1]}",${row[0][2]},${row[0][3]});`;
+              twoUsers += `INSERT INTO users (name,email,age,size) VALUES ("${row[1][0]}","${row[1][1]}",${row[1][2]},${row[1][3]});`;
+              ret = await jeepSqlite.execute({database: "testNew", statements: twoUsers});
+              console.log(`after Execute 3 ${JSON.stringify(ret)}`);
+              if (ret.changes.changes !== 2) {
+                throw new Error("Execute 3 users failed");
+              }
+              // Select all users
+              ret = await jeepSqlite.query({database: "testNew",
+                                            statement: "SELECT * FROM users;"});
+              console.log(`after Query 1 ${JSON.stringify(ret)}`);
+              // Select users where size > 1.80
+              ret = await jeepSqlite.query({database: "testNew",
+                                            statement: "SELECT * FROM users where size > ?;",
+                                            values:[1.80]});
+              console.log(`after Query 2 ${JSON.stringify(ret)}`);
+              // add one user with statement and values
+              let sqlcmd = "INSERT INTO users (name,email,age,size,company) VALUES (?,?,?,?,?)";
+              let values = ["Simpson","Simpson@example.com",69,1.82,null];
+              ret = await jeepSqlite.run({database: "testNew",
+                                            statement: sqlcmd,
+                                            values: values});
+              console.log(`after run 1: ${JSON.stringify(ret)} `);
+              if(ret.changes.lastId !== 3) {
+                throw new Error("Run 1 user failed");
+              }
+              // add one user with statement
+              sqlcmd = `INSERT INTO users (name,email,age,size,company) VALUES ` +
+                                `("Brown","Brown@example.com",15,1.75,null)`;
+              ret = await jeepSqlite.run({database: "testNew",
+                          statement: sqlcmd});
+              if(ret.changes.lastId !== 4) {
+                throw new Error("Run 2 user failed");
+              }
+              // Select all users
+              ret = await jeepSqlite.query({database: "testNew",
+                                            statement: "SELECT * FROM users;"});
+              console.log(`after Query 3 ${JSON.stringify(ret)}`);
+              if(ret.values.length != 4) {
+                throw new Error("Query 3 user failed");
+              }
+
+
+              await jeepSqlite.closeConnection({database:"testNew"});
+              console.log("db success");
+          } catch (err) {
+            console.log(`Error ${err}`);
+          }
+      } else {
+        console.log("store creation failed")
+      }
+  })();
+</script>
