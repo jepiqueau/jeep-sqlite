@@ -23,7 +23,7 @@ export const config: Config = {
       type: 'www',
       serviceWorker: null, // disable service workers
       copy: [
-        { src: '../node_modules/sql.js/dist/sql-wasm.wasm', dest: 'sql-wasm.wasm' },
+        { src: '../node_modules/sql.js/dist/sql-wasm.wasm', dest: 'src/assets/sql-wasm.wasm' },
       ]
     },
   ],

@@ -21,7 +21,9 @@ export class Database {
   public async open(): Promise<void> {
     console.log(`&&& in open database ${this.dbName} version ${this.version}`);
     try {
-      const SQL = await initSqlJs();
+      const SQL = await initSqlJs({
+        locateFile: file => `src/assets/${file}`
+      });
       // retrieve the database if stored on localforage
       const retDB: Uint8Array = await getDBFromStore(this.dbName, this.store);
       if(retDB != null) {
