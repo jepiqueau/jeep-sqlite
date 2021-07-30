@@ -2,8 +2,8 @@ import { Component, Method } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
 import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
-         SQLiteRunOptions,
-         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues } from '../../interfaces/interfaces'
+         SQLiteRunOptions, SQLiteSetOptions, SQLiteSet,
+         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues } from '../../interfaces/interfaces';
 
 @Component({
   tag: 'jeep-sqlite',
@@ -11,6 +11,10 @@ import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOpti
   shadow: true,
 })
 export class JeepSqlite {
+
+  //**********************
+  //* Method Definitions *
+  //**********************
 
   @Method()
   async echo(value: string): Promise<EchoResult> {
@@ -95,6 +99,26 @@ export class JeepSqlite {
     }
   }
   @Method()
+  async executeSet(options: SQLiteSetOptions): Promise<SQLiteChanges> {
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    if (!keys.includes('set') || options.set.length === 0) {
+      return Promise.reject('Must provide a non-empty set of SQL statements');
+    }
+    const dbName: string = options.database;
+    const setOfStatements: SQLiteSet[] = options.set;
+    let transaction: boolean= true;
+    if (keys.includes('transaction')) transaction = options.transaction;
+    try {
+      const changes: SQLiteChanges = await this._executeSet(dbName, setOfStatements, transaction);
+      return Promise.resolve(changes);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
   async run(options: SQLiteRunOptions): Promise<SQLiteChanges> {
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
@@ -173,9 +197,14 @@ export class JeepSqlite {
     }
   }
   @Method()
-  async deleteDatabase(database: string): Promise<void> {
+  async deleteDatabase(options: SQLiteOptions): Promise<void> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
     try {
-      return await this._deleteDatabase(database);
+      return await this._deleteDatabase(dbName);
     }
     catch (err) {
       return Promise.reject(err);
@@ -191,10 +220,19 @@ export class JeepSqlite {
   private isStore: boolean = false;
   private _dbDict: any = {};
 
+  //*******************************
+  //* Component Lifecycle Methods *
+  //*******************************
+
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
     console.log(`&&& isStore ${this.isStore}`);
   }
+
+  //******************************
+  //* Private Method Definitions *
+  //******************************
+
   private async _createConnection(database: string, version: number): Promise<void> {
     console.log(`in _createConnection ${database}`);
     try {
@@ -208,7 +246,7 @@ export class JeepSqlite {
   private async _closeConnection(database: string): Promise<void> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
-      return Promise.reject(`Open: No available connection for ${database}`);
+      return Promise.reject(`CloseConnection: No available connection for ${database}`);
     }
 
     const mDB = this._dbDict[database];
@@ -226,7 +264,7 @@ export class JeepSqlite {
       delete this._dbDict[database];
       return Promise.resolve();
     } catch (err) {
-      return Promise.reject(`Delete: ${err.message}`);
+      return Promise.reject(`CloseConnection: ${err.message}`);
     }
 
   }
@@ -261,7 +299,7 @@ export class JeepSqlite {
   private async _execute(database:string, statements: string, transaction: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
-      return Promise.reject(`Close: No available connection for ${database}`);
+      return Promise.reject(`Execute: No available connection for ${database}`);
     }
 
     const mDB = this._dbDict[database];
@@ -270,13 +308,35 @@ export class JeepSqlite {
       const changes: SQLiteChanges = {changes: {changes: ret}};
       return Promise.resolve(changes);
     } catch (err) {
-      return Promise.reject(`Close: ${err.message}`);
+      return Promise.reject(`Execute: ${err.message}`);
     }
   }
-  private async _run(database: string, statement: string, values: any[], transaction: boolean): Promise<SQLiteChanges> {
+  private async _executeSet(database:string, setOfStatements: SQLiteSet[], transaction: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
-      return Promise.reject(`Close: No available connection for ${database}`);
+      return Promise.reject(`ExecuteSet: No available connection for ${database}`);
+    }
+
+    const mDB = this._dbDict[database];
+    for (const sStmt of setOfStatements) {
+      if (!('statement' in sStmt) || !('values' in sStmt)) {
+        return Promise.reject(
+          'ExecuteSet: Must provide a set as ' + 'Array of {statement,values}',
+        );
+      }
+    }
+    try {
+      const ret: any = await mDB.execSet(setOfStatements, transaction);
+      const changes: SQLiteChanges = {changes: {changes: ret.changes, lastId: ret.lastId}};
+      return Promise.resolve(changes);
+    } catch (err) {
+      return Promise.reject(`ExecuteSet: ${err.message}`);
+    }
+  }
+    private async _run(database: string, statement: string, values: any[], transaction: boolean): Promise<SQLiteChanges> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(`Run: No available connection for ${database}`);
     }
 
     const mDB = this._dbDict[database];
@@ -305,38 +365,38 @@ export class JeepSqlite {
   private async _isDBExists(database:string,): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
-      return Promise.reject(`Close: No available connection for ${database}`);
+      return Promise.reject(`IsDBExists: No available connection for ${database}`);
     }
 
     const mDB = this._dbDict[database];
     try {
-      const ret: boolean = await mDB.isDBExists(database);
+      const ret: boolean = await mDB.isDBExists(database + 'SQLite.db');
       const result: SQLiteResult = {result: ret};
       return Promise.resolve(result);
     } catch (err) {
-      return Promise.reject(`isDBExists: ${err.message}`);
+      return Promise.reject(`IsDBExists: ${err.message}`);
     }
 
   }
   private async _isDBOpen(database:string,): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
-      return Promise.reject(`Close: No available connection for ${database}`);
+      return Promise.reject(`IsDBOpen: No available connection for ${database}`);
     }
 
     const mDB = this._dbDict[database];
     try {
-      const ret: boolean = mDB.isDBOpen(database);
+      const ret: boolean = mDB.isDBOpen(database + 'SQLite.db');
       const result = {result: ret};
       return Promise.resolve(result);
     } catch (err) {
-      return Promise.reject(`isDBOpen: ${err.message}`);
+      return Promise.reject(`IsDBOpen: ${err.message}`);
     }
   }
   private async _deleteDatabase(database: string): Promise<void> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
-      return Promise.reject(`Open: No available connection for ${database}`);
+      return Promise.reject(`DeleteDatabase: No available connection for ${database}`);
     }
 
     const mDB = this._dbDict[database];
@@ -344,7 +404,7 @@ export class JeepSqlite {
       await mDB.deleteDB(database + 'SQLite.db');
       return Promise.resolve();
     } catch (err) {
-      return Promise.reject(`Delete: ${err.message}`);
+      return Promise.reject(`DeleteDatabase: ${err.message}`);
     }
   }
   private async openStore(dbName: string, tableName: string): Promise<boolean> {

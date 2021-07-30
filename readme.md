@@ -62,6 +62,7 @@ in the head of your index.html
 | open (non-encrypted DB)     | ✅      |
 | close                       | ✅      |
 | execute                     | ✅      |
+| executeSet                  | ✅      |
 | run                         | ✅      |
 | query                       | ✅      |
 | deleteDatabase              | ✅      |
@@ -71,6 +72,7 @@ in the head of your index.html
 
 
 ## Usage
+
 
 ```html
 <!DOCTYPE html>
@@ -160,9 +162,62 @@ in the head of your index.html
               if(ret.values.length != 4) {
                 throw new Error("Query 3 user failed");
               }
+              // Test executeSet
+              await jeepSqlite.createConnection({
+                      database:"testSet",
+                      version: 1
+              });
+              ret = await jeepSqlite.isDBExists({database:"testSet"});
+              console.log(`is "testSet" database exist : ${ret.result}`);
+              if (ret.result) {
+                await jeepSqlite.deleteDatabase({database:"testSet"});
+              }
+              const createSchemaContacts = `
+                CREATE TABLE IF NOT EXISTS contacts (
+                  id INTEGER PRIMARY KEY NOT NULL,
+                  email TEXT UNIQUE NOT NULL,
+                  name TEXT,
+                  FirstName TEXT,
+                  company TEXT,
+                  size REAL,
+                  age INTEGER,
+                  MobileNumber TEXT
+                );
+                CREATE INDEX IF NOT EXISTS contacts_index_name ON contacts (name);
+                CREATE INDEX IF NOT EXISTS contacts_index_email ON contacts (email);
+                PRAGMA user_version = 1;
+              `;
+              // open db testSet
+              await jeepSqlite.open({database: "testSet"});
+              const isDBSet = await jeepSqlite.isDBOpen({database: "testSet"})
+              const setContacts = [
+                { statement:"INSERT INTO contacts (name,FirstName,email,company,age,MobileNumber) VALUES (?,?,?,?,?,?);",
+                  values:["Simpson","Tom","Simpson@example.com",null,69,"4405060708"]
+                },
+                { statement:"INSERT INTO contacts (name,FirstName,email,company,age,MobileNumber) VALUES (?,?,?,?,?,?);",
+                  values:[
+                    ["Jones","David","Jones@example.com",,42.1,"4404030201"],
+                    ["Whiteley","Dave","Whiteley@example.com",,45.3,"4405162732"],
+                    ["Brown","John","Brown@example.com",null,35,"4405243853"]
+                  ]
+                },
+                { statement:"UPDATE contacts SET age = ? , MobileNumber = ? WHERE id = ?;",
+                  values:[51.4,"4404030202",2]
+                }
+              ];
+              // Create testSet schema
+              ret = await jeepSqlite.execute({database: "testSet", statements: createSchemaContacts});
+              console.log(`after Contact Execute 1 ${JSON.stringify(ret)}`);
+              // Create testSet contact
+              ret = await jeepSqlite.executeSet({database: "testSet", set: setContacts});
+              console.log(`after Contact Execute 1 ${JSON.stringify(ret)}`);
+              if (ret.changes.changes !== 5) {
+                return Promise.reject(new Error("ExecuteSet 5 contacts failed"));
+              }
 
 
               await jeepSqlite.closeConnection({database:"testNew"});
+              await jeepSqlite.closeConnection({database:"testSet"});
               console.log("db success");
           } catch (err) {
             console.log(`Error ${err}`);

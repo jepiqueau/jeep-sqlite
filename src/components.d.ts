@@ -5,15 +5,16 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { ConnectionOptions, EchoResult, SQLiteChanges, SQLiteExecuteOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteValues } from "./interfaces/interfaces";
+import { ConnectionOptions, EchoResult, SQLiteChanges, SQLiteExecuteOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteValues } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
         "createConnection": (options: ConnectionOptions) => Promise<void>;
-        "deleteDatabase": (database: string) => Promise<void>;
+        "deleteDatabase": (options: SQLiteOptions) => Promise<void>;
         "echo": (value: string) => Promise<EchoResult>;
         "execute": (options: SQLiteExecuteOptions) => Promise<SQLiteChanges>;
+        "executeSet": (options: SQLiteSetOptions) => Promise<SQLiteChanges>;
         "isDBExists": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDBOpen": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isStoreOpen": () => Promise<boolean>;

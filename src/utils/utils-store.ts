@@ -3,7 +3,7 @@ export const getDBFromStore = async (dbName: string, store: LocalForage): Promis
     const retDb: Uint8Array = await store.getItem(dbName);
     return Promise.resolve(retDb);
   } catch (err) {
-    return Promise.reject(`in getDBFromStore ${err}`);
+    return Promise.reject(`in getDBFromStore ${err.message}`);
   }
 }
 export const setInitialDBToStore = async (dbName: string, store: LocalForage): Promise<void> => {
@@ -14,7 +14,7 @@ export const setInitialDBToStore = async (dbName: string, store: LocalForage): P
     await store.setItem(dbName, data);
     return Promise.resolve();
   } catch (err) {
-    return Promise.reject(`in setDBToStore ${err}`);
+    return Promise.reject(`in setDBToStore ${err.message}`);
   }
 }
 export const setDBToStore = async (mDb: any, dbName: string, store: LocalForage): Promise<void> => {
@@ -25,7 +25,7 @@ export const setDBToStore = async (mDb: any, dbName: string, store: LocalForage)
     await store.setItem(dbName, data);
     return Promise.resolve();
   } catch (err) {
-    return Promise.reject(`in setDBToStore ${err}`);
+    return Promise.reject(`in setDBToStore ${err.message}`);
   }
 }
 export const removeDBFromStore = async (dbName: string, store: LocalForage): Promise<void> => {
@@ -33,7 +33,7 @@ export const removeDBFromStore = async (dbName: string, store: LocalForage): Pro
     await store.removeItem(dbName);
     return Promise.resolve();
   } catch (err) {
-    return Promise.reject(`in getDBFromStore ${err}`);
+    return Promise.reject(`in removeDBFromStore ${err.message}`);
   }
 }
 export const isDBInStore = async (dbName: string, store: LocalForage): Promise<boolean> => {

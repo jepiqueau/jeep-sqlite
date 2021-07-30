@@ -74,6 +74,39 @@ export const execute = async (db: any, sql: string): Promise<number> => {
     return Promise.reject(new Error(`Execute: ${err.message}`));
   }
 }
+export const executeSet = async (db: any, set: any): Promise<number> =>  {
+  let lastId = -1;
+  for (let i = 0; i < set.length; i++) {
+    const statement = 'statement' in set[i] ? set[i].statement : null;
+    const values =
+      'values' in set[i] && set[i].values.length > 0 ? set[i].values : null;
+    if (statement == null || values == null) {
+      let msg = 'ExecuteSet: Error statement';
+      msg += ` or values are null for index ${i}`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      if (Array.isArray(values[0])) {
+        for (const val of values) {
+          const mVal: any[] = await replaceUndefinedByNull(val);
+          console.log(`in executeSet: i ${i} statement ${statement} val ${mVal}`);
+          await db.exec(statement, mVal);
+        }
+      } else {
+        console.log(`in executeSet: i ${i} statement ${statement} values ${values}`);
+        const mVal: any[] = await replaceUndefinedByNull(values);
+        const res = await db.exec(statement, mVal);
+        console.log(`in executeSet: ${JSON.stringify(res)}`);
+      }
+      lastId = await getLastId(db);
+      console.log(`in executeSet: i ${i} lastId ${lastId}`);
+    } catch (err) {
+      return Promise.reject(new Error(`ExecuteSet: ${err.message}`));
+    }
+  }
+  return Promise.resolve(lastId);
+
+}
 export const queryAll = async (db: any, sql: string, values: any[]): Promise<any[]> => {
   const result: any[] = [];
   try {
@@ -99,7 +132,8 @@ export const run = async (db: any, statement: string, values: any[]): Promise<nu
   let lastId: number = -1;
   try {
     if(values != null && values.length > 0) {
-      await db.exec(statement, values);
+      const mVal: any[] = await replaceUndefinedByNull(values);
+      await db.exec(statement, mVal);
     } else {
       await db.exec(statement);
     }
@@ -109,4 +143,13 @@ export const run = async (db: any, statement: string, values: any[]): Promise<nu
   } catch (err) {
     return Promise.reject(new Error(`run: ${err.message}`));
   }
+}
+export const replaceUndefinedByNull = async (values: any[]): Promise<any[]> => {
+  const retValues: any[] = [];
+  for( const val of values) {
+    let mVal: any = val;
+    if( typeof val === 'undefined') mVal = null;
+    retValues.push(mVal);
+  }
+  return Promise.resolve(retValues);
 }

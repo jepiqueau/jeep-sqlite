@@ -37,7 +37,7 @@ Type: `Promise<void>`
 
 
 
-### `deleteDatabase(database: string) => Promise<void>`
+### `deleteDatabase(options: SQLiteOptions) => Promise<void>`
 
 
 
@@ -58,6 +58,16 @@ Type: `Promise<EchoResult>`
 
 
 ### `execute(options: SQLiteExecuteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
+### `executeSet(options: SQLiteSetOptions) => Promise<SQLiteChanges>`
 
 
 

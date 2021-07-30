@@ -1,9 +1,11 @@
 import initSqlJs from 'sql.js';
 
+import { SQLiteSet } from '../interfaces/interfaces';
+
 import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
-         execute, run, queryAll } from './utils-sqlite';
+         execute, executeSet, run, queryAll } from './utils-sqlite';
 export class Database {
   private _isDBOpen: boolean;
   private dbName: string;
@@ -73,8 +75,10 @@ export class Database {
   }
   public async deleteDB(database: string): Promise<void> {
     try {
+      console.log(`in deleteDB ${database}`)
       // test if file exists
       const isExists: boolean = await this.isDBExists(database);
+      console.log(`in deleteDB ${database} ${isExists}`);
       if (isExists && !this._isDBOpen) {
         // open the database
           await this.open();
@@ -83,6 +87,7 @@ export class Database {
       await this.close();
       // delete the database
       if (isExists) {
+        console.log(`in deleteDB ${database} going to remove`);
         await removeDBFromStore(database, this.store);
       }
       return Promise.resolve();
@@ -113,6 +118,37 @@ export class Database {
         msg += ` : ${err.message}`;
       }
       return Promise.reject(new Error(`ExecuteSQL: ${msg}`));
+    }
+  }
+  public async execSet(set: SQLiteSet[], transaction: boolean = true): Promise<any> {
+    if (!this._isDBOpen) {
+      let msg = `ExecSet: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    console.log(`in execSet set ${set} ${transaction}`);
+    const retRes: any = { changes: -1, lastId: -1 };
+    let initChanges = -1;
+    try {
+      initChanges = await dbChanges(this.mDb);
+      if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
+      const lastId = await executeSet(this.mDb, set);
+      if (lastId < 0) {
+        return Promise.reject(new Error('ExecSet: changes < 0'));
+      }
+      if(transaction) await commitTransaction(this.mDb, this._isDBOpen);
+      const changes = (await dbChanges(this.mDb)) - initChanges;
+      retRes.changes = changes;
+      retRes.lastId = lastId;
+      return Promise.resolve(retRes);
+    } catch (err) {
+      let msg = `ExecSet: ${err.message}`;
+      try {
+        if(transaction) await rollbackTransaction(this.mDb, this._isDBOpen);
+      } catch (err) {
+        msg += ` : ${err.message}`;
+      }
+      return Promise.reject(new Error(`ExecSet: ${msg}`));
     }
   }
   public async selectSQL(sql: string, values: string[]): Promise<any[]> {
