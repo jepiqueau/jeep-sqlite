@@ -1,11 +1,12 @@
 import initSqlJs from 'sql.js';
 
-import { SQLiteSet } from '../interfaces/interfaces';
+import { SQLiteSet, JsonSQLite } from '../interfaces/interfaces';
 
 import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
-         execute, executeSet, run, queryAll } from './utils-sqlite';
+         execute, executeSet, run, queryAll, isTableExists } from './utils-sqlite';
+import { createDatabaseSchema, createTablesData} from './utils-importJson';
 export class Database {
   private _isDBOpen: boolean;
   private dbName: string;
@@ -37,7 +38,6 @@ export class Database {
         await setInitialDBToStore( this.dbName, this.store);
       }
       this._isDBOpen = true;
-      console.log(`isDBOpen: ${this._isDBOpen}`);
       return Promise.resolve();
     } catch (err) {
       this._isDBOpen = false;
@@ -75,10 +75,8 @@ export class Database {
   }
   public async deleteDB(database: string): Promise<void> {
     try {
-      console.log(`in deleteDB ${database}`)
       // test if file exists
       const isExists: boolean = await this.isDBExists(database);
-      console.log(`in deleteDB ${database} ${isExists}`);
       if (isExists && !this._isDBOpen) {
         // open the database
           await this.open();
@@ -87,7 +85,6 @@ export class Database {
       await this.close();
       // delete the database
       if (isExists) {
-        console.log(`in deleteDB ${database} going to remove`);
         await removeDBFromStore(database, this.store);
       }
       return Promise.resolve();
@@ -126,7 +123,6 @@ export class Database {
       msg += `not opened`;
       return Promise.reject(new Error(msg));
     }
-    console.log(`in execSet set ${set} ${transaction}`);
     const retRes: any = { changes: -1, lastId: -1 };
     let initChanges = -1;
     try {
@@ -194,6 +190,99 @@ export class Database {
       return Promise.reject(new Error(`RunSQL: ${msg}`));
     }
   }
-
-
+  async isTable(tableName: string): Promise<boolean> {
+    if (!this._isDBOpen) {
+      let msg = `isTable: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      const retB = await isTableExists(this.mDb, tableName);
+      return Promise.resolve(retB);
+    } catch (err) {
+      const msg = `IsTable: ${err.message}`;
+      return Promise.reject(new Error(msg));
+    }
+  }
+  async createSyncTable(): Promise<number> {
+    if (!this._isDBOpen) {
+      let msg = `createSyncTable: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    let changes = -1;
+    try {
+      const retB = await isTableExists(this.mDb, 'sync_table');
+      if(!retB) {
+        const date: number = Math.round(new Date().getTime() / 1000);
+        let stmts = `
+                        CREATE TABLE IF NOT EXISTS sync_table (
+                            id INTEGER PRIMARY KEY NOT NULL,
+                            sync_date INTEGER
+                            );`;
+        stmts += `INSERT INTO sync_table (sync_date) VALUES (
+                            "${date}");`;
+        changes = await execute(this.mDb, stmts);
+        return Promise.resolve(changes);
+      } else {
+        return Promise.resolve(0);
+      }
+    } catch (err) {
+      const msg = `CreateSyncTable: ${err.message}`;
+      return Promise.reject(new Error(msg));
+    }
+  }
+  async getSyncDate(): Promise<number> {
+    if (!this._isDBOpen) {
+      let msg = `getSyncDate: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      const stmt = `SELECT sync_date FROM sync_table;`;
+      const res = await queryAll(this.mDb,stmt,[]);
+      return Promise.resolve(res[0]["sync_date"]);
+    } catch (err) {
+      const msg = `getSyncDate: ${err.message}`;
+      return Promise.reject(new Error(msg));
+    }
+  }
+  async setSyncDate(syncDate: string): Promise<any> {
+    if (!this._isDBOpen) {
+      let msg = `SetSyncDate: Database ${this.dbName} `;
+      msg += `not opened`;
+      return { result: false, message: msg };
+    }
+    try {
+      const sDate: number = Math.round(new Date(syncDate).getTime() / 1000);
+      let stmt = `UPDATE sync_table SET sync_date = `;
+      stmt += `${sDate} WHERE id = 1;`;
+      const changes: number = await this.executeSQL(stmt);
+      if (changes < 0) {
+        return { result: false, message: 'setSyncDate failed' };
+      } else {
+        return { result: true };
+      }
+    } catch (err) {
+      return { result: false, message: `setSyncDate failed: ${err.message}` };
+    }
+  }
+  async importJson(jsonData: JsonSQLite): Promise<any> {
+    let changes = -1;
+    if (this._isDBOpen) {
+      try {
+        // create the database schema
+        changes = await createDatabaseSchema(this.mDb, jsonData);
+        if (changes != -1) {
+          // create the tables data
+          changes = await createTablesData(this.mDb, jsonData);
+        }
+        return Promise.resolve(changes);
+      } catch (err) {
+        return Promise.reject(new Error(`ImportJson: ${err.message}`));
+      }
+    } else {
+      return Promise.reject(new Error(`ImportJson: database is closed`));
+    }
+  }
 }

@@ -62,6 +62,37 @@ export const getLastId = async (db: any): Promise<number> => {
     }
 
 }
+export const setForeignKeyConstraintsEnabled = async (db: any, toggle: boolean): Promise<void> => {
+  let key = 'OFF';
+  if (toggle) {
+    key = 'ON';
+  }
+  try {
+    await db.exec(`PRAGMA foreign_keys = '${key}'`);
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(new Error(`SetForeignKey: ${err.message}`));
+  }
+}
+export const getVersion = async (db: any): Promise<number> => {
+  let version = 0;
+  try {
+    const res = await db.exec('PRAGMA user_version;');
+    version = res[0].values[0][0];
+    return Promise.resolve(version);
+  } catch (err) {
+    return Promise.reject(new Error(`GetVersion: ${err.message}`));
+  }
+}
+export const setVersion = async (db: any, version: number): Promise<void> => {
+  try {
+    await db.exec(`PRAGMA user_version = ${version}`);
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(new Error(`SetVersion: ${err.message}`));
+  }
+}
+
 export const execute = async (db: any, sql: string): Promise<number> => {
   let changes = -1;
   let initChanges = -1;
@@ -89,17 +120,13 @@ export const executeSet = async (db: any, set: any): Promise<number> =>  {
       if (Array.isArray(values[0])) {
         for (const val of values) {
           const mVal: any[] = await replaceUndefinedByNull(val);
-          console.log(`in executeSet: i ${i} statement ${statement} val ${mVal}`);
           await db.exec(statement, mVal);
         }
       } else {
-        console.log(`in executeSet: i ${i} statement ${statement} values ${values}`);
         const mVal: any[] = await replaceUndefinedByNull(values);
-        const res = await db.exec(statement, mVal);
-        console.log(`in executeSet: ${JSON.stringify(res)}`);
+        await db.exec(statement, mVal);
       }
       lastId = await getLastId(db);
-      console.log(`in executeSet: i ${i} lastId ${lastId}`);
     } catch (err) {
       return Promise.reject(new Error(`ExecuteSet: ${err.message}`));
     }
@@ -116,6 +143,7 @@ export const queryAll = async (db: any, sql: string, values: any[]): Promise<any
     } else {
       retArr = await db.exec(sql);
     }
+    if(retArr.length == 0) return Promise.resolve([]);
     for( const valRow of retArr[0].values) {
       const row: any = {};
       for (let i = 0; i < retArr[0].columns.length; i++) {
@@ -142,6 +170,17 @@ export const run = async (db: any, statement: string, values: any[]): Promise<nu
 
   } catch (err) {
     return Promise.reject(new Error(`run: ${err.message}`));
+  }
+}
+export const isTableExists = async (db: any, tableName: string): Promise<boolean> => {
+  try {
+    let statement = 'SELECT name FROM sqlite_master WHERE ';
+    statement += `type='table' AND name='${tableName}';`;
+    const res = await queryAll(db,statement,[]);
+    const ret: boolean = res.length > 0 ? true : false;
+    return Promise.resolve(ret);
+  } catch (err) {
+    return Promise.reject(new Error(`isTableExists: ${err.message}`));
   }
 }
 export const replaceUndefinedByNull = async (values: any[]): Promise<any[]> => {

@@ -1,16 +1,23 @@
-import { Component, Method } from '@stencil/core';
+import { Component, Method, h, State, Element, getAssetPath } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
 import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
-         SQLiteRunOptions, SQLiteSetOptions, SQLiteSet,
-         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues } from '../../interfaces/interfaces';
+         SQLiteRunOptions, SQLiteSetOptions, SQLiteSet, SQLiteTableOptions,
+         SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
+         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues, SQLiteSyncDate } from '../../interfaces/interfaces';
+import { databaseList } from '../../assets/databases/databases.json';
+import { isJsonSQLite } from '../../utils/utils-json';
 
 @Component({
   tag: 'jeep-sqlite',
   styleUrl: 'jeep-sqlite.css',
+  assetsDirs: ['assets'],
   shadow: true,
 })
 export class JeepSqlite {
+  @Element() el!: HTMLJeepSqliteElement;
+
+  @State() dbAssetName: string;
 
   //**********************
   //* Method Definitions *
@@ -28,7 +35,6 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const version: number = options.version ? options.version : 1;
-    console.log(`in createConnection database ${dbName}`);
     try {
       await this._createConnection(dbName, version);
       return Promise.resolve();
@@ -190,7 +196,6 @@ export class JeepSqlite {
     const dbName: string = options.database;
     try {
       const ret: SQLiteResult = await this._isDBOpen(dbName);
-      console.log(`in method isDBOpen ${ret}`);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -214,19 +219,134 @@ export class JeepSqlite {
   async isStoreOpen(): Promise<boolean> {
     return Promise.resolve(this.isStore);
   }
+  @Method()
+  async copyFromAssets(): Promise<void> {
+    try {
+      await this._copyFromAssets();
+      return Promise.resolve();
+    }
+    catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async isTableExists(options: SQLiteTableOptions): Promise<SQLiteResult> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    if (!keys.includes('table')) {
+      return Promise.reject('Must provide a table name');
+    }
+    const tableName: string = options.table;
+    try {
+      const ret: SQLiteResult = await this._isTableExists(dbName, tableName);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+
+  }
+  @Method()
+  async createSyncTable(options: SQLiteOptions): Promise<SQLiteChanges> {
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      const ret: SQLiteChanges = await this._createSyncTable(dbName);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+
+  }
+  @Method()
+  async getSyncDate(options: SQLiteSyncDateOptions): Promise<SQLiteSyncDate> {
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      const ret: SQLiteSyncDate = await this._getSyncDate(dbName);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async setSyncDate(options: SQLiteSyncDateOptions): Promise<void> {
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    if (!keys.includes('syncdate')) {
+      return Promise.reject('Must provide a synchronization date');
+    }
+    const dbName: string = options.database;
+    const syncDate: string = options.syncdate;
+    try {
+      await this._setSyncDate(dbName, syncDate);
+      return Promise.resolve();
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async isJsonValid(options: SQLiteImportOptions): Promise<SQLiteResult> {
+    const keys = Object.keys(options);
+    if (!keys.includes('jsonstring')) {
+      return Promise.reject('Must provide a json object');
+    }
+    const jsonStrObj: string = options.jsonstring;
+    try {
+      const ret = await this._isJsonValid(jsonStrObj);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async importFromJson(options: SQLiteImportOptions): Promise<SQLiteChanges> {
+    const keys = Object.keys(options);
+    if (!keys.includes('jsonstring')) {
+      return Promise.reject('Must provide a json object');
+    }
+    const jsonStrObj: string = options.jsonstring;
+    try {
+      const ret = await this._importFromJson(jsonStrObj);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
 
   private store: LocalForage;
   private storeName: string;
   private isStore: boolean = false;
   private _dbDict: any = {};
+  private dbInputELM: HTMLInputElement;
+  private _element: any;
+
 
   //*******************************
   //* Component Lifecycle Methods *
   //*******************************
 
   async componentWillLoad() {
+    this._element = this.el.shadowRoot;
     this.isStore = await this.openStore("jeepSqliteStore","databases");
-    console.log(`&&& isStore ${this.isStore}`);
+//    const pathJson = getAssetPath(`assets/database/databases.json`);
+//    console.log(`##### pathJson  ${pathJson} #####`);
+
+//    const response = await fetch(`${pathJson}`);
+//    console.log(`response ${JSON.stringify(databaseList)}`)
+  }
+  componentDidLoad() {
+//    this.dbInputELM = this._element.querySelector('#db-input');
   }
 
   //******************************
@@ -234,7 +354,6 @@ export class JeepSqlite {
   //******************************
 
   private async _createConnection(database: string, version: number): Promise<void> {
-    console.log(`in _createConnection ${database}`);
     try {
       const mDB: Database = new Database(database + 'SQLite.db', version, this.store);
       this._dbDict[database] = mDB;
@@ -386,7 +505,7 @@ export class JeepSqlite {
 
     const mDB = this._dbDict[database];
     try {
-      const ret: boolean = mDB.isDBOpen(database + 'SQLite.db');
+      const ret: boolean = await mDB.isDBOpen(database + 'SQLite.db');
       const result = {result: ret};
       return Promise.resolve(result);
     } catch (err) {
@@ -407,6 +526,116 @@ export class JeepSqlite {
       return Promise.reject(`DeleteDatabase: ${err.message}`);
     }
   }
+  private async _copyFromAssets(): Promise<void> {
+    try {
+
+      return Promise.resolve();
+    } catch (err) {
+      return Promise.reject(`DeleteDatabase: ${err.message}`);
+    }
+  }
+  private async _isTableExists(database: string, table: string): Promise<SQLiteResult> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(`IsTableExists: No available connection for ${database}`);
+    }
+
+    const mDB = this._dbDict[database];
+    try {
+      const ret: boolean = await mDB.isTable(table);
+      const result = {result: ret};
+      return Promise.resolve(result);
+    } catch (err) {
+      return Promise.reject(`IsTableExists: ${err.message}`);
+    }
+  }
+  private async _createSyncTable(database: string): Promise<SQLiteChanges> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(
+        'CreateSyncTable: No available connection for ' + `${database}`,
+      );
+    }
+
+    const mDB = this._dbDict[database];
+    try {
+      const ret: number = await mDB.createSyncTable();
+      return Promise.resolve({ changes: { changes: ret } });
+    } catch (err) {
+      return Promise.reject(`CreateSyncTable: ${err.message}`);
+    }
+  }
+  private async _getSyncDate(database: string): Promise<SQLiteSyncDate>  {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(
+        'GetSyncDate: No available connection for ' + `${database}`,
+      );
+    }
+
+    const mDB = this._dbDict[database];
+    try {
+      const ret: number = await mDB.getSyncDate();
+      return Promise.resolve({syncDate:ret});
+    } catch (err) {
+      return Promise.reject(`GetSyncDate: ${err.message}`);
+    }
+
+  }
+  private async _setSyncDate(database: string, syncDate: string): Promise<void> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(
+        'SetSyncDate: No available connection for ' + `${database}`,
+      );
+    }
+
+    const mDB = this._dbDict[database];
+    try {
+      const ret = await mDB.setSyncDate(syncDate);
+      if(ret.result) {
+        return Promise.resolve();
+      } else {
+        return Promise.reject(`SetSyncDate: ${ret.message}`);
+      }
+    } catch (err) {
+      return Promise.reject(`SetSyncDate: ${err.message}`);
+    }
+
+  }
+  async _isJsonValid(jsonStrObj: string): Promise<SQLiteResult> {
+    const jsonObj = JSON.parse(jsonStrObj);
+    const isValid = await isJsonSQLite(jsonObj);
+    if (!isValid) {
+      return Promise.reject('IsJsonValid: Stringify Json Object not Valid');
+    } else {
+      return Promise.resolve({ result: true });
+    }
+  }
+  async _importFromJson(jsonStrObj: string): Promise<SQLiteChanges> {
+    const jsonObj = JSON.parse(jsonStrObj);
+    const isValid = await isJsonSQLite(jsonObj);
+    if (!isValid) {
+      return Promise.reject('ImportFromJson: Stringify Json Object not Valid');
+    }
+    const vJsonObj: JsonSQLite = jsonObj;
+    const dbName = `${vJsonObj.database}SQLite.db`;
+    const dbVersion: number = vJsonObj.version ?? 1;
+    // Create the database
+    const mDb: Database = new Database(dbName, dbVersion, this.store);
+    try {
+      // Open the database
+      await mDb.open();
+      // Import the JsonSQLite Object
+      const changes = await mDb.importJson(vJsonObj);
+      // Close the database
+      await mDb.close();
+      return Promise.resolve({ changes: { changes: changes } });
+    } catch (err) {
+      return Promise.reject(`ImportFromJson: ${err.message}`);
+    }
+  }
+
   private async openStore(dbName: string, tableName: string): Promise<boolean> {
     let ret = false;
     const config: any = this.setConfig(dbName, tableName);
@@ -428,7 +657,20 @@ export class JeepSqlite {
     };
     return config;
   }
+/*  handleChange(event) {
+    this.dbAssetName = event.target.value;
+    const f = this.dbInputELM.files[0];
+    const r = new FileReader();
+    r.onload = () => {
+      const Uints = new Uint8Array(r.result)
+    }
+    r.readAsArrayBuffer(f);
+  }
+*/
   render() {
-    return ;
+    return /*(
+      <input id="db-input" type="text" value={this.dbAssetName} onInput={(event) => this.handleChange(event)} />
+
+    );*/
   }
 }

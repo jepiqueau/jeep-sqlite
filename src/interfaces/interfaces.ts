@@ -109,6 +109,46 @@ export interface SQLiteSyncDateOptions {
    */
   syncdate?: string;
 }
+export interface SQLiteTableOptions {
+  /**
+   * The database name
+   */
+  database?: string;
+  /**
+   * The table name
+   */
+  table?: string;
+}
+export interface SQLiteSyncDateOptions {
+  /**
+   * The database name
+   */
+  database?: string;
+  /**
+   * Set the synchronization date
+   * Format yyyy-MM-dd'T'HH:mm:ss.SSSZ
+   */
+  syncdate?: string;
+}
+export interface SQLiteImportOptions {
+  /**
+   * Set the JSON object to import
+   *
+   */
+  jsonstring?: string;
+}
+export interface SQLiteExportOptions {
+  /**
+   * The database name
+   */
+  database?: string;
+  /**
+   * Set the mode to export JSON Object:
+   * "full" or "partial"
+   *
+   */
+  jsonexportmode?: string;
+}
 export interface SQLiteSet {
   /**
    * A statement
@@ -152,4 +192,113 @@ export interface SQLiteValues {
    * the data values list as an Array
    */
   values?: any[];
+}
+export interface SQLiteSyncDate {
+  /**
+   * the synchronization date
+   */
+  syncDate?: number;
+}
+/* JSON Types */
+export interface JsonSQLite {
+  /**
+   * The database name
+   */
+  database: string;
+  /**
+   *  The database version
+   */
+  version: number;
+  /**
+   * Set to true (database encryption) / false
+   */
+  encrypted: boolean;
+  /***
+   * Set the mode
+   * ["full", "partial"]
+   */
+  mode: string;
+  /***
+   * Array of Table (JsonTable)
+   */
+  tables: JsonTable[];
+}
+export interface JsonTable {
+  /**
+   * The database name
+   */
+  name: string;
+  /***
+   * Array of Schema (JsonColumn)
+   */
+  schema?: JsonColumn[];
+  /***
+   * Array of Index (JsonIndex)
+   */
+  indexes?: JsonIndex[];
+  /***
+   * Array of Trigger (JsonTrigger)
+   */
+  triggers?: JsonTrigger[];
+  /***
+   * Array of Table data
+   */
+  values?: any[][];
+}
+export interface JsonColumn {
+  /**
+   * The column name
+   */
+  column?: string;
+  /**
+   * The column data (type, unique, ...)
+   */
+  value: string;
+  /**
+   * The column foreign key constraints
+   */
+  foreignkey?: string;
+  /**
+   * the column constraint
+   */
+  constraint?: string;
+}
+export interface JsonTrigger {
+  /**
+   * The trigger name
+   */
+  name: string;
+  /**
+   * The trigger time event fired
+   */
+  timeevent: string;
+
+  /**
+   * The trigger condition
+   */
+  condition?: string;
+
+  /**
+   * The logic of the trigger
+   */
+  logic: string;
+}
+export interface JsonIndex {
+  /**
+   * The index name
+   */
+  name: string;
+  /**
+   * The value of the index can have the following formats:
+   * email
+   * email ASC
+   * email, MobileNumber
+   * email ASC, MobileNumber DESC
+   */
+  value: string;
+  /**
+   * the mode (Optional)
+   * UNIQUE
+   */
+  mode?: string;
 }

@@ -27,6 +27,16 @@ Type: `Promise<void>`
 
 
 
+### `copyFromAssets() => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `createConnection(options: ConnectionOptions) => Promise<void>`
 
 
@@ -34,6 +44,16 @@ Type: `Promise<void>`
 #### Returns
 
 Type: `Promise<void>`
+
+
+
+### `createSyncTable(options: SQLiteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
 
 
 
@@ -77,6 +97,26 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+### `getSyncDate(options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteSyncDate>`
+
+
+
+### `importFromJson(options: SQLiteImportOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
 ### `isDBExists(options: SQLiteOptions) => Promise<SQLiteResult>`
 
 
@@ -97,6 +137,16 @@ Type: `Promise<SQLiteResult>`
 
 
 
+### `isJsonValid(options: SQLiteImportOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
 ### `isStoreOpen() => Promise<boolean>`
 
 
@@ -104,6 +154,16 @@ Type: `Promise<SQLiteResult>`
 #### Returns
 
 Type: `Promise<boolean>`
+
+
+
+### `isTableExists(options: SQLiteTableOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
 
 
 
@@ -134,6 +194,16 @@ Type: `Promise<SQLiteValues>`
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
+
+
+
+### `setSyncDate(options: SQLiteSyncDateOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
 
 
 

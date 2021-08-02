@@ -2,6 +2,7 @@
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
     "allowUnreachableCode": false,
+    "resolveJsonModule": true,
     "declaration": false,
     "experimentalDecorators": true,
     "lib": [

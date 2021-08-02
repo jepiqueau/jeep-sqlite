@@ -38,6 +38,22 @@
               console.log("@@@ sql " + sql);
               let ret = await jeepSqlite.execute({database: "testNew", statements: sql});
               console.log(`after Execute 1 ${JSON.stringify(ret)}`);
+              ret = await jeepSqlite.isTableExists({database: "testNew", table: "users"});
+              console.log(`isTable users ${ret.result}`);
+              ret = await jeepSqlite.isTableExists({database: "testNew", table: "contact"});
+              console.log(`isTable contact ${ret.result}`);
+              // create synchronization table
+              ret = await jeepSqlite.createSyncTable({database: "testNew"});
+              console.log('$$$ createSyncTable ret.changes.changes in db ' + ret.changes.changes)
+
+              // set the synchronization date
+              const syncDate = "2021-08-01T08:42:25.000Z";
+              await await jeepSqlite.setSyncDate({database: "testNew", syncdate: syncDate});
+              // get the synchronization date
+              ret = await jeepSqlite.getSyncDate({database: "testNew"});
+              if(ret.syncDate !== 1627807345) {
+                throw new Error("Get the synchronization date failed");
+              }
               // Insert some Users
               const row = [["Whiteley","Whiteley.com",30,1.83],["Jones","Jones.com",44,1.75]];
               let delUsers = `DELETE FROM users;`;
@@ -137,10 +153,202 @@
               if (ret.changes.changes !== 5) {
                 return Promise.reject(new Error("ExecuteSet 5 contacts failed"));
               }
+              const dataToImport = {
+                database : "db-from-json",
+                version : 1,
+                encrypted : false,
+                mode : "full",
+                tables :[
+                  {
+                    name: "users",
+                    schema: [
+                        {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                        {column:"email", value:"TEXT UNIQUE NOT NULL"},
+                        {column:"name", value:"TEXT"},
+                        {column:"age", value:"REAL"},
+                        {column:"last_modified", value:"INTEGER"}
+                    ],
+                    indexes: [
+                        {name: "index_user_on_name",value: "name"},
+                        {name: "index_user_on_last_modified",value: "last_modified DESC"},
+                        {name: "index_user_on_email_name", value: "email ASC, name", mode: "UNIQUE"}
+                    ],
+                    values: [
+                        [1,"Whiteley.com","Whiteley",30.5,1582536810],
+                        [2,"Jones.com","Jones",44.2,1582812800],
+                        [3,"Simpson@example.com","Simpson",69,1583570630],
+                        [4,"Brown@example.com","Brown",15,1590383895]
+                    ]
+                  },
+                  {
+                    name: "messages",
+                    schema: [
+                      {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                      {column:"title", value:"TEXT NOT NULL"},
+                      {column:"body", value:"TEXT NOT NULL"},
+                      {column:"last_modified", value:"INTEGER"}
+                    ],
+                    values: [
+                        [1,"test post 1","content test post 1",1587310030],
+                        [2,"test post 2","content test post 2",1590388125]
+                    ]
+                  },
+                ]
+              };
+              // test Json object validity
+              result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImport)});
+              if(!result.result) {
+                return Promise.reject(new Error("IsJsonValid failed"));
+              }
+              console.log("$$$ dataToImport Json Object is valid $$$")
+              // full import
+              result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImport)});
+              console.log(`full import result ${result.changes.changes}`);
+              if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'full' dataToImport failed"));
+              // create the connection to the database
+              await jeepSqlite.createConnection({database:"db-from-json", version: 1});
+              // open db testNew
+              await jeepSqlite.open({database: "db-from-json"});
+              const isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json"})
+              if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-from-json' failed"));
+              // create synchronization table
+              ret = await jeepSqlite.createSyncTable({database: "db-from-json"});
+              console.log('$$$ createSyncTable ret.changes.changes in db ' + ret.changes.changes)
+              if (result.changes.changes < 0) return Promise.reject(new Error("CreateSyncTable failed"));
+              ret = await jeepSqlite.getSyncDate({database: "db-from-json"});
+              if(result.length === 0) return Promise.reject(new Error("GetSyncDate failed"));
+              console.log("$$ syncDate db-from-json " + result);
+              // Select all users
+              ret = await jeepSqlite.query({database: "db-from-json",
+                                            statement: "SELECT * FROM users;"});
+              console.log(`after Query 1 db-from-json ${JSON.stringify(ret)}`);
+              if(ret.values.length !== 4 ||
+                    ret.values[0].name !== "Whiteley" ||
+                    ret.values[1].name !== "Jones" ||
+                    ret.values[2].name !== "Simpson" ||
+                    ret.values[3].name !== "Brown"  ) {
+                return Promise.reject(new Error("Query 1 db-from-json Users failed"));
+              }
+              await jeepSqlite.closeConnection({database:"db-from-json"});
 
+              const partialImport1 = {
+                database : "db-from-json",
+                version : 1,
+                encrypted : false,
+                mode : "partial",
+                tables :[
+                  {
+                      name: "users",
+                      values: [
+                          [5,"Addington.com","Addington",22.7,1590388335],
+                          [6,"Bannister.com","Bannister",59,1590393015],
+                          [2,"Jones@example.com","Jones",45,1590393325]
+
+                      ]
+                  },
+                ]
+              };
+              // test Json object validity
+              result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(partialImport1)});
+              if(!result.result) {
+                return Promise.reject(new Error("IsJsonValid failed"));
+              }
+              console.log("$$$ dataToImport Json Object is valid $$$")
+              // partial import
+              result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport1)});
+              console.log(`'partial1' import result ${result.changes.changes}`);
+              if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial1' dataToImport failed"));
+
+
+              const partialImport2 = {
+                database : "db-from-json",
+                version : 1,
+                encrypted : false,
+                mode : "partial",
+                tables :[
+                  {
+                    name: "messages",
+
+                    indexes: [
+                      {name: "index_messages_on_title",value: "title"},
+                      {name: "index_messages_on_last_modified",value: "last_modified DESC"}
+
+                    ],
+                    values: [
+                        [3,"test post 3","content test post 3",1590396146],
+                        [4,"test post 4","content test post 4",1590396288]
+                    ]
+                  }
+                ]
+              };
+              result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport2)});
+              console.log(`'partial2' import result ${result.changes.changes}`);
+              if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial2' dataToImport failed"));
+
+              const partialImport3 = {
+                database : "db-from-json",
+                version : 1,
+                encrypted : false,
+                mode : "partial",
+                tables :[
+                  {
+                    name: "test113",
+                    schema: [
+                      {column:"id", value: "TEXT PRIMARY KEY NOT NULL"},
+                      {column:"name", value:"TEXT UNIQUE NOT NULL"},
+                      {column:"code", value:"TEXT"},
+                      {column:"last_modified", value:"INTEGER"}
+                    ],
+                    indexes: [
+                      {name: "index_test113_on_title",value: "name"},
+                      {name: "index_test113_on_last_modified",value: "last_modified DESC"}
+
+                    ],
+                    values: [
+                        ["ef5c57d5-b885-49a9-9c4d-8b340e4abdbc","valve","BV50",1590396146],
+                        ["bced3262-5d42-470a-9585-d3fd12c45452","pipe","PIPE100",1590396288],
+                        ["ef5c57d5-b885-49a9-9c4d-8b340e4abdbc","valve","BV100",1590396300],
+                    ]
+                  }
+                ]
+              };
+              result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport3)});
+              console.log(`'partial3' import result ${result.changes.changes}`);
+              if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial3' dataToImport failed"));
+
+              // create the connection to the database
+              await jeepSqlite.createConnection({database:"db-from-json", version: 1});
+              // open db testNew
+              await jeepSqlite.open({database: "db-from-json"});
+              // Select all users
+              ret = await jeepSqlite.query({database: "db-from-json",
+                                            statement: "SELECT * FROM users;"});
+              console.log(`after Query 2 db-from-json ${JSON.stringify(ret)}`);
+              if(ret.values.length !== 6 ||
+                    ret.values[0].name !== "Whiteley" ||
+                    ret.values[1].name !== "Jones" ||
+                    ret.values[2].name !== "Simpson" ||
+                    ret.values[3].name !== "Brown" ||
+                    ret.values[4].name !== "Addington" ||
+                    ret.values[5].name !== "Bannister" ) {
+                return Promise.reject(new Error("Query 2 db-from-json Users failed"));
+              }
+
+              // Select all messages
+              ret = await jeepSqlite.query({database: "db-from-json",
+                                            statement: "SELECT * FROM messages;"});
+              console.log(`after Query 3 db-from-json ${JSON.stringify(ret)}`);
+              if(ret.values.length !== 4 ||
+                    ret.values[0].title !== "test post 1" ||
+                    ret.values[1].title !== "test post 2" ||
+                    ret.values[2].title !== "test post 3" ||
+                    ret.values[3].title !== "test post 4" ) {
+                return Promise.reject(new Error("Query 3 db-from-json Messages failed"));
+              }
 
               await jeepSqlite.closeConnection({database:"testNew"});
               await jeepSqlite.closeConnection({database:"testSet"});
+              await jeepSqlite.closeConnection({database:"db-from-json"});
               console.log("db success");
           } catch (err) {
             console.log(`Error ${err}`);

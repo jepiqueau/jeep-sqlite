@@ -5,22 +5,29 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { ConnectionOptions, EchoResult, SQLiteChanges, SQLiteExecuteOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteValues } from "./interfaces/interfaces";
+import { ConnectionOptions, EchoResult, SQLiteChanges, SQLiteExecuteOptions, SQLiteImportOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteValues } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
+        "copyFromAssets": () => Promise<void>;
         "createConnection": (options: ConnectionOptions) => Promise<void>;
+        "createSyncTable": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "deleteDatabase": (options: SQLiteOptions) => Promise<void>;
         "echo": (value: string) => Promise<EchoResult>;
         "execute": (options: SQLiteExecuteOptions) => Promise<SQLiteChanges>;
         "executeSet": (options: SQLiteSetOptions) => Promise<SQLiteChanges>;
+        "getSyncDate": (options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>;
+        "importFromJson": (options: SQLiteImportOptions) => Promise<SQLiteChanges>;
         "isDBExists": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDBOpen": (options: SQLiteOptions) => Promise<SQLiteResult>;
+        "isJsonValid": (options: SQLiteImportOptions) => Promise<SQLiteResult>;
         "isStoreOpen": () => Promise<boolean>;
+        "isTableExists": (options: SQLiteTableOptions) => Promise<SQLiteResult>;
         "open": (options: SQLiteOptions) => Promise<void>;
         "query": (options: SQLiteQueryOptions) => Promise<SQLiteValues>;
         "run": (options: SQLiteRunOptions) => Promise<SQLiteChanges>;
+        "setSyncDate": (options: SQLiteSyncDateOptions) => Promise<void>;
     }
 }
 declare global {
