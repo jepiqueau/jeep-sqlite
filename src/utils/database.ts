@@ -7,6 +7,9 @@ import { getDBFromStore, setInitialDBToStore, setDBToStore,
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
          execute, executeSet, run, queryAll, isTableExists } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData} from './utils-importJson';
+import { isJsonSQLite } from './utils-json';
+import { createExportObject, getSynchroDate } from './utils-exportJson';
+
 export class Database {
   private _isDBOpen: boolean;
   private dbName: string;
@@ -22,7 +25,6 @@ export class Database {
     this._isDBOpen = false;
   }
   public async open(): Promise<void> {
-    console.log(`&&& in open database ${this.dbName} version ${this.version}`);
     try {
       const SQL = await initSqlJs({
         locateFile: file => `assets/${file}`
@@ -239,9 +241,8 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      const stmt = `SELECT sync_date FROM sync_table;`;
-      const res = await queryAll(this.mDb,stmt,[]);
-      return Promise.resolve(res[0]["sync_date"]);
+      const res = await getSynchroDate(this.mDb);
+      return Promise.resolve(res);
     } catch (err) {
       const msg = `getSyncDate: ${err.message}`;
       return Promise.reject(new Error(msg));
@@ -257,7 +258,7 @@ export class Database {
       const sDate: number = Math.round(new Date(syncDate).getTime() / 1000);
       let stmt = `UPDATE sync_table SET sync_date = `;
       stmt += `${sDate} WHERE id = 1;`;
-      const changes: number = await this.executeSQL(stmt);
+      const changes: number = await execute(this.mDb,stmt);
       if (changes < 0) {
         return { result: false, message: 'setSyncDate failed' };
       } else {
@@ -283,6 +284,28 @@ export class Database {
       }
     } else {
       return Promise.reject(new Error(`ImportJson: database is closed`));
+    }
+  }
+  async exportJson(mode: string): Promise<any> {
+    const inJson: JsonSQLite = {} as JsonSQLite;
+    inJson.database = this.dbName.slice(0, -9);
+    inJson.version = this.version;
+    inJson.encrypted = false;
+    inJson.mode = mode;
+    if (this._isDBOpen) {
+      try {
+        const retJson: JsonSQLite = await createExportObject(this.mDb, inJson);
+        const isValid = isJsonSQLite(retJson);
+        if (isValid) {
+          return Promise.resolve(retJson);
+        } else {
+          return Promise.reject(new Error(`ExportJson: retJson not valid`));
+        }
+      } catch (err) {
+        return Promise.reject(new Error(`ExportJson: ${err.message}`));
+      }
+    } else {
+      return Promise.reject(new Error(`ExportJson: database is closed`));
     }
   }
 }

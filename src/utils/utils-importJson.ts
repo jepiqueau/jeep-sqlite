@@ -3,6 +3,7 @@ import { setForeignKeyConstraintsEnabled, setVersion, beginTransaction,
   rollbackTransaction, commitTransaction, execute, dbChanges,
   run, queryAll, isTableExists } from './utils-sqlite';
 import { dropAll } from './utils-drop';
+import { getTableColumnNamesTypes } from './utils-json';
 
 export const createDatabaseSchema = async (db: any, jsonData: JsonSQLite): Promise<number> => {
   let changes = -1;
@@ -301,26 +302,6 @@ export const isIdExists = async (db: any, dbName: string, firstColumnName: strin
     return Promise.resolve(ret);
   } catch (err) {
     return Promise.reject(new Error(`IsIdExists: ${err.message}`));
-  }
-}
-export const getTableColumnNamesTypes = async (db: any, tableName: string): Promise<any> => {
-  let resQuery: any[] = [];
-  const retNames: string[] = [];
-  const retTypes: string[] = [];
-  const query = `PRAGMA table_info('${tableName}');`;
-  try {
-    resQuery = await queryAll(db, query, []);
-    if (resQuery.length > 0) {
-      for (const query of resQuery) {
-        retNames.push(query.name);
-        retTypes.push(query.type);
-      }
-    }
-    return Promise.resolve({ names: retNames, types: retTypes });
-  } catch (err) {
-    return Promise.reject(
-      new Error('GetTableColumnNamesTypes: ' + `${err.message}`),
-    );
   }
 }
 export const isType = async (type: string, value: any): Promise<void> => {

@@ -1,11 +1,12 @@
-import { Component, Method, h, State, Element, getAssetPath } from '@stencil/core';
+import { Component, Method, State, Element,/* h, getAssetPath*/ } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
 import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
          SQLiteRunOptions, SQLiteSetOptions, SQLiteSet, SQLiteTableOptions,
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
-         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues, SQLiteSyncDate } from '../../interfaces/interfaces';
-import { databaseList } from '../../assets/databases/databases.json';
+         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues, SQLiteSyncDate,
+         SQLiteJson } from '../../interfaces/interfaces';
+//import { databaseList } from '../../assets/databases/databases.json';
 import { isJsonSQLite } from '../../utils/utils-json';
 
 @Component({
@@ -219,7 +220,7 @@ export class JeepSqlite {
   async isStoreOpen(): Promise<boolean> {
     return Promise.resolve(this.isStore);
   }
-  @Method()
+/*  @Method()
   async copyFromAssets(): Promise<void> {
     try {
       await this._copyFromAssets();
@@ -229,6 +230,7 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
+*/
   @Method()
   async isTableExists(options: SQLiteTableOptions): Promise<SQLiteResult> {
     const keys = Object.keys(options);
@@ -323,13 +325,34 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
+  @Method()
+  async exportToJson(options: SQLiteExportOptions): Promise<SQLiteJson> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    if (!keys.includes('jsonexportmode')) {
+      return Promise.reject('Must provide a json export mode');
+    }
+    const dbName: string = options.database;
+    const exportMode: string = options.jsonexportmode;
+    try {
+      const ret = await this._exportToJson(dbName, exportMode);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  //********************************
+  //* Component Internal Variables *
+  //********************************
 
   private store: LocalForage;
   private storeName: string;
   private isStore: boolean = false;
   private _dbDict: any = {};
-  private dbInputELM: HTMLInputElement;
-  private _element: any;
+//  private dbInputELM: HTMLInputElement;
+//  private _element: any;
 
 
   //*******************************
@@ -337,13 +360,14 @@ export class JeepSqlite {
   //*******************************
 
   async componentWillLoad() {
-    this._element = this.el.shadowRoot;
     this.isStore = await this.openStore("jeepSqliteStore","databases");
-//    const pathJson = getAssetPath(`assets/database/databases.json`);
-//    console.log(`##### pathJson  ${pathJson} #####`);
+/*    this._element = this.el.shadowRoot;
+    const pathJson = getAssetPath(`assets/database/databases.json`);
+    console.log(`##### pathJson  ${pathJson} #####`);
 
-//    const response = await fetch(`${pathJson}`);
-//    console.log(`response ${JSON.stringify(databaseList)}`)
+    const response = await fetch(`${pathJson}`);
+    console.log(`response ${JSON.stringify(databaseList)}`)
+*/
   }
   componentDidLoad() {
 //    this.dbInputELM = this._element.querySelector('#db-input');
@@ -526,6 +550,7 @@ export class JeepSqlite {
       return Promise.reject(`DeleteDatabase: ${err.message}`);
     }
   }
+/*
   private async _copyFromAssets(): Promise<void> {
     try {
 
@@ -534,6 +559,7 @@ export class JeepSqlite {
       return Promise.reject(`DeleteDatabase: ${err.message}`);
     }
   }
+*/
   private async _isTableExists(database: string, table: string): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
@@ -635,7 +661,27 @@ export class JeepSqlite {
       return Promise.reject(`ImportFromJson: ${err.message}`);
     }
   }
+  async _exportToJson(database: string, exportMode: string): Promise<SQLiteJson> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(
+        'ExportToJson: No available connection for ' + `${database}`,
+      );
+    }
+    const mDb = this._dbDict[database];
+    try {
+      const ret: any = await mDb.exportJson(exportMode);
+      const keys = Object.keys(ret);
+      if (keys.includes('message')) {
+        return Promise.reject(`ExportToJson: ${ret.message}`);
+      } else {
+        return Promise.resolve({ export: ret });
+      }
+    } catch (err) {
+      return Promise.reject(`ExportToJson: ${err.message}`);
+    }
 
+  }
   private async openStore(dbName: string, tableName: string): Promise<boolean> {
     let ret = false;
     const config: any = this.setConfig(dbName, tableName);

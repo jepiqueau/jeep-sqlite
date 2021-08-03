@@ -1,3 +1,6 @@
+import { JsonColumn, JsonIndex, JsonTrigger } from '../interfaces/interfaces';
+import { queryAll } from './utils-sqlite';
+
 export const isJsonSQLite = async (obj: any): Promise<boolean> => {
   const keyFirstLevel: string[] = [
     'database',
@@ -151,4 +154,98 @@ export const isTriggers = async (obj: any): Promise<boolean> => {
   return true;
 }
 
+export const checkSchemaValidity = async (schema: JsonColumn[]): Promise<void> => {
+  for (let i = 0; i < schema.length; i++) {
+    const sch: JsonColumn = {} as JsonColumn;
+    const keys: string[] = Object.keys(schema[i]);
+    if (keys.includes('column')) {
+      sch.column = schema[i].column;
+    }
+    if (keys.includes('value')) {
+      sch.value = schema[i].value;
+    }
+    if (keys.includes('foreignkey')) {
+      sch.foreignkey = schema[i].foreignkey;
+    }
+    if (keys.includes('constraint')) {
+      sch.constraint = schema[i].constraint;
+    }
+    const isValid: boolean = await isSchema(sch);
+    if (!isValid) {
+      return Promise.reject(
+        new Error(`CheckSchemaValidity: schema[${i}] not valid`),
+      );
+    }
+  }
+  return Promise.resolve();
+}
 
+export const checkIndexesValidity = async (indexes: JsonIndex[]): Promise<void> => {
+  for (let i = 0; i < indexes.length; i++) {
+    const index: JsonIndex = {} as JsonIndex;
+    const keys: string[] = Object.keys(indexes[i]);
+    if (keys.includes('value')) {
+      index.value = indexes[i].value;
+    }
+    if (keys.includes('name')) {
+      index.name = indexes[i].name;
+    }
+    if (keys.includes('mode')) {
+      index.mode = indexes[i].mode;
+    }
+
+    const isValid: boolean = await isIndexes(index);
+    if (!isValid) {
+      return Promise.reject(
+        new Error(`CheckIndexesValidity: indexes[${i}] not valid`),
+      );
+    }
+  }
+  return Promise.resolve();
+}
+export const checkTriggersValidity = async (triggers: JsonTrigger[]): Promise<void> => {
+  for (let i = 0; i < triggers.length; i++) {
+    const trigger: JsonTrigger = {} as JsonTrigger;
+    const keys: string[] = Object.keys(triggers[i]);
+    if (keys.includes('logic')) {
+      trigger.logic = triggers[i].logic;
+    }
+    if (keys.includes('name')) {
+      trigger.name = triggers[i].name;
+    }
+    if (keys.includes('timeevent')) {
+      trigger.timeevent = triggers[i].timeevent;
+    }
+    if (keys.includes('condition')) {
+      trigger.condition = triggers[i].condition;
+    }
+
+    const isValid: boolean = await isTriggers(trigger);
+    if (!isValid) {
+      return Promise.reject(
+        new Error(`CheckTriggersValidity: triggers[${i}] not valid`),
+      );
+    }
+  }
+  return Promise.resolve();
+}
+export const getTableColumnNamesTypes = async (db: any, tableName: string): Promise<any> => {
+  let resQuery: any[] = [];
+  const retNames: string[] = [];
+  const retTypes: string[] = [];
+  const query = `PRAGMA table_info('${tableName}');`;
+  try {
+    resQuery = await queryAll(db, query, []);
+    if (resQuery.length > 0) {
+      for (const query of resQuery) {
+        retNames.push(query.name);
+        retTypes.push(query.type);
+      }
+    }
+    return Promise.resolve({ names: retNames, types: retTypes });
+  } catch (err) {
+    return Promise.reject(
+      new Error('GetTableColumnNamesTypes: ' + `${err.message}`),
+    );
+  }
+}

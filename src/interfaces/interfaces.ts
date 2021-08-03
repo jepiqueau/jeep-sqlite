@@ -199,6 +199,12 @@ export interface SQLiteSyncDate {
    */
   syncDate?: number;
 }
+export interface SQLiteJson {
+  /**
+   * an export JSON object
+   */
+  export?: JsonSQLite;
+}
 /* JSON Types */
 export interface JsonSQLite {
   /**

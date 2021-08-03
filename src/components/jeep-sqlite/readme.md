@@ -27,16 +27,6 @@ Type: `Promise<void>`
 
 
 
-### `copyFromAssets() => Promise<void>`
-
-
-
-#### Returns
-
-Type: `Promise<void>`
-
-
-
 ### `createConnection(options: ConnectionOptions) => Promise<void>`
 
 
@@ -94,6 +84,16 @@ Type: `Promise<SQLiteChanges>`
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
+
+
+
+### `exportToJson(options: SQLiteExportOptions) => Promise<SQLiteJson>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteJson>`
 
 
 

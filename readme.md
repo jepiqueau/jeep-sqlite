@@ -69,6 +69,13 @@ in the head of your index.html
 | isDBExists                  | ✅      | 
 | isDBOpen                    | ✅      |
 | isStoreOpen                 | ✅      |
+| isTableExists               | ✅      |
+| createSyncTable             | ✅      |
+| getSyncDate                 | ✅      |
+| setSyncDate                 | ✅      |
+| isJsonValid                 | ✅      |
+| importFromJson              | ✅      |
+| isJsonValid                 | ✅      |
 
 
 ## Usage
