@@ -20,7 +20,16 @@ export const setInitialDBToStore = async (dbName: string, store: LocalForage): P
 export const setDBToStore = async (mDb: any, dbName: string, store: LocalForage): Promise<void> => {
   try {
     // export the database
-    const data = mDb.export();
+    const data: Uint8Array = mDb.export();
+    // store the database
+    await saveDBToStore(dbName, data, store);
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(`in setDBToStore ${err.message}`);
+  }
+}
+export const saveDBToStore = async (dbName: string, data: Uint8Array, store: LocalForage): Promise<void> => {
+  try {
     // store the database
     await store.setItem(dbName, data);
     return Promise.resolve();

@@ -1,4 +1,4 @@
-import { Component, Method, State, Element,/* h, getAssetPath*/ } from '@stencil/core';
+import { Component, Method } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
 import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
@@ -6,8 +6,8 @@ import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOpti
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
          EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues, SQLiteSyncDate,
          SQLiteJson } from '../../interfaces/interfaces';
-//import { databaseList } from '../../assets/databases/databases.json';
 import { isJsonSQLite } from '../../utils/utils-json';
+import { saveDBToStore } from '../../utils/utils-store';
 
 @Component({
   tag: 'jeep-sqlite',
@@ -16,9 +16,6 @@ import { isJsonSQLite } from '../../utils/utils-json';
   shadow: true,
 })
 export class JeepSqlite {
-  @Element() el!: HTMLJeepSqliteElement;
-
-  @State() dbAssetName: string;
 
   //**********************
   //* Method Definitions *
@@ -148,9 +145,7 @@ export class JeepSqlite {
     } catch(err) {
       return Promise.reject(err);
     }
-
   }
-
   @Method()
   async query(options: SQLiteQueryOptions): Promise<SQLiteValues> {
     let keys = Object.keys(options);
@@ -172,7 +167,6 @@ export class JeepSqlite {
     } catch(err) {
       return Promise.reject(err);
     }
-
   }
   @Method()
   async isDBExists(options: SQLiteOptions): Promise<SQLiteResult> {
@@ -220,7 +214,7 @@ export class JeepSqlite {
   async isStoreOpen(): Promise<boolean> {
     return Promise.resolve(this.isStore);
   }
-/*  @Method()
+  @Method()
   async copyFromAssets(): Promise<void> {
     try {
       await this._copyFromAssets();
@@ -230,7 +224,6 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
-*/
   @Method()
   async isTableExists(options: SQLiteTableOptions): Promise<SQLiteResult> {
     const keys = Object.keys(options);
@@ -248,7 +241,6 @@ export class JeepSqlite {
     } catch(err) {
       return Promise.reject(err);
     }
-
   }
   @Method()
   async createSyncTable(options: SQLiteOptions): Promise<SQLiteChanges> {
@@ -263,7 +255,6 @@ export class JeepSqlite {
     } catch(err) {
       return Promise.reject(err);
     }
-
   }
   @Method()
   async getSyncDate(options: SQLiteSyncDateOptions): Promise<SQLiteSyncDate> {
@@ -351,8 +342,7 @@ export class JeepSqlite {
   private storeName: string;
   private isStore: boolean = false;
   private _dbDict: any = {};
-//  private dbInputELM: HTMLInputElement;
-//  private _element: any;
+  private databaseList: any;
 
 
   //*******************************
@@ -361,16 +351,10 @@ export class JeepSqlite {
 
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
-/*    this._element = this.el.shadowRoot;
-    const pathJson = getAssetPath(`assets/database/databases.json`);
-    console.log(`##### pathJson  ${pathJson} #####`);
-
-    const response = await fetch(`${pathJson}`);
-    console.log(`response ${JSON.stringify(databaseList)}`)
-*/
+    const res = await this.loadJSON('assets/databases/databases.json');
+    this.databaseList = JSON.parse(res).databaseList;
   }
   componentDidLoad() {
-//    this.dbInputELM = this._element.querySelector('#db-input');
   }
 
   //******************************
@@ -550,16 +534,6 @@ export class JeepSqlite {
       return Promise.reject(`DeleteDatabase: ${err.message}`);
     }
   }
-/*
-  private async _copyFromAssets(): Promise<void> {
-    try {
-
-      return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`DeleteDatabase: ${err.message}`);
-    }
-  }
-*/
   private async _isTableExists(database: string, table: string): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
@@ -682,6 +656,54 @@ export class JeepSqlite {
     }
 
   }
+  async _copyFromAssets(): Promise<void> {
+    try {
+      for( const dbName of this.databaseList) {
+        await this.copyDatabase(`assets/databases/${dbName}`);
+      }
+      return Promise.resolve();
+    } catch (err) {
+      return Promise.reject(`CopyFromAssets: ${err.message}`);
+    }
+  }
+  private async copyDatabase(dbAssetName: string): Promise<void> {
+    return new Promise ((resolve,reject) => {
+      var xhr = new XMLHttpRequest();
+      var uInt8Array: Uint8Array;
+      xhr.open('GET', dbAssetName, true);
+      xhr.responseType = 'arraybuffer';
+      xhr.onerror = () => {
+        reject(`CopyDatabase: failed`);
+      }
+      xhr.onload =  () => {
+          uInt8Array = new Uint8Array(xhr.response);
+      };
+      xhr.onloadend= async () => {
+        const dbName = this.setPathSuffix(dbAssetName);
+        await saveDBToStore(dbName, uInt8Array, this.store);
+        resolve();
+      };
+      xhr.send();
+    });
+  }
+  private async loadJSON(jsonFileName: string): Promise<string> {
+    return new Promise ((resolve,reject) => {
+      var xobj = new XMLHttpRequest();
+      xobj.overrideMimeType("application/json");
+      xobj.open('GET', jsonFileName, true);
+      xobj.onerror = () => {
+        reject(`LoadJSON: failed`);
+      }
+
+      xobj.onreadystatechange = function () {
+        if (xobj.readyState == 4 && xobj.status == 200) {
+        // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
+        resolve(xobj.responseText);
+        }
+      };
+      xobj.send(null);
+    });
+  }
   private async openStore(dbName: string, tableName: string): Promise<boolean> {
     let ret = false;
     const config: any = this.setConfig(dbName, tableName);
@@ -703,20 +725,19 @@ export class JeepSqlite {
     };
     return config;
   }
-/*  handleChange(event) {
-    this.dbAssetName = event.target.value;
-    const f = this.dbInputELM.files[0];
-    const r = new FileReader();
-    r.onload = () => {
-      const Uints = new Uint8Array(r.result)
+  private setPathSuffix(db: string): string {
+    let toDb: string = db.slice(db.lastIndexOf("/") + 1);
+    if (db.length > 9) {
+      const last9: string = db.slice(-9);
+      if (last9 != 'SQLite.db') {
+        toDb = db.slice(db.lastIndexOf("/") + 1, -3) + 'SQLite.db';
+      }
+    } else {
+      toDb = toDb + 'SQLite.db';
     }
-    r.readAsArrayBuffer(f);
+    return toDb;
   }
-*/
   render() {
-    return /*(
-      <input id="db-input" type="text" value={this.dbAssetName} onInput={(event) => this.handleChange(event)} />
-
-    );*/
+    return ;
   }
 }

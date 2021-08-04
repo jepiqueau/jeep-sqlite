@@ -27,6 +27,16 @@ Type: `Promise<void>`
 
 
 
+### `copyFromAssets() => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `createConnection(options: ConnectionOptions) => Promise<void>`
 
 

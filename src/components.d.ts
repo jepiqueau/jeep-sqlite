@@ -10,6 +10,7 @@ export namespace Components {
     interface JeepSqlite {
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
+        "copyFromAssets": () => Promise<void>;
         "createConnection": (options: ConnectionOptions) => Promise<void>;
         "createSyncTable": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "deleteDatabase": (options: SQLiteOptions) => Promise<void>;

@@ -35,8 +35,7 @@ Stencil components are just Web Components, so they work in any major framework 
 - Put a script tag similar to this 
 
 ```html
-<script type="module" src="https://unpkg.com/jeep-sqlite/dist/jeep-sqlite.esm.js"></script>
-<script nomodule src="https://unpkg.com/jeep-sqlite/dist/jeep-sqlite.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/jeep-sqlite@latest/dist/jeep-sqlite/jeep-sqlite.esm.js"></script>
 ```
 in the head of your index.html
 - Then you can use the element anywhere in your template, JSX, html etc
@@ -75,8 +74,22 @@ in the head of your index.html
 | setSyncDate                 | ✅      |
 | isJsonValid                 | ✅      |
 | importFromJson              | ✅      |
-| isJsonValid                 | ✅      |
+| exportToJson                | ✅      |
+| copyFromAssets              | ✅      |
 
+
+The `copyFromAssets` required to have a `databases.json`file having the name of the databases in the `assets/databases` 
+
+The `databases.json` file is for example
+```json
+{
+  "databaseList" : [
+    "dbForCopy.db",
+    "myDBSQLite.db"
+  ]
+}
+```
+if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/databases` folder.
 
 ## Usage
 
@@ -89,8 +102,8 @@ in the head of your index.html
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
     <title>Stencil Component Starter</title>
 
-    <script type="module" src="https://unpkg.com/jeep-sqlite/dist/jeep-sqlite.esm.js"></script>
-    <script nomodule src="https://unpkg.com/jeep-sqlite/dist/jeep-sqlite.js"></script>
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
   </head>
   <body>
     <jeep-sqlite></jeep-sqlite>

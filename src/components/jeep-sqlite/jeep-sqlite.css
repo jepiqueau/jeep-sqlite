@@ -1,6 +1,8 @@
 :host {
   display: block;
 }
-#db-input {
+
+#fileElem {
   display: none;
 }
+
