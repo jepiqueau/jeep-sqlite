@@ -385,6 +385,54 @@ export class AppHome {
           await jeepSqlite.closeConnection({database:"testNew"});
           await jeepSqlite.closeConnection({database:"testSet"});
           await jeepSqlite.closeConnection({database:"db-from-json"});
+          // test copy from asset
+          await jeepSqlite.copyFromAssets();
+          // create connection to myDB
+          await jeepSqlite.createConnection({database:"myDB",version: 1});
+          // open db myDB
+          await jeepSqlite.open({database: "myDB"});
+          let statement = `SELECT name FROM sqlite_master WHERE type='table';`;
+          // Select all tables
+          retValues = await jeepSqlite.query({database: "myDB",
+                                            statement: statement});
+          if(retValues.values.length !== 3 ||
+              retValues.values[0].name !== "users" ||
+              retValues.values[1].name !== "messages" ||
+              retValues.values[2].name !== "sync_table"
+          ) {
+            throw new Error("Query MyDB Tables failed");
+          }
+
+          // Select all users
+          retValues = await jeepSqlite.query({database: "myDB",
+                                            statement: "SELECT * FROM users;"});
+          if(retValues.values.length != 7 ||
+              retValues.values[0].name !== "Whiteley" ||
+              retValues.values[1].name !== "Jones" ||
+              retValues.values[2].name !== "Simpson" ||
+              retValues.values[3].name !== "Brown" ||
+              retValues.values[4].name !== "Jackson" ||
+              retValues.values[5].name !== "Kennedy" ||
+              retValues.values[6].name !== "Bush"
+          ) {
+            throw new Error("Query MyDB Users failed");
+          }
+          await jeepSqlite.closeConnection({database:"myDB"});
+          // create connection to dbForCopy
+          await jeepSqlite.createConnection({database:"dbForCopy",version: 1});
+          // open db myDB
+          await jeepSqlite.open({database: "dbForCopy"});
+          // Select all users
+          retValues = await jeepSqlite.query({database: "dbForCopy",
+                                        statement: "SELECT * FROM areas;"});
+          if(retValues.values.length != 3 ||
+              retValues.values[0].name !== "Access road" ||
+              retValues.values[1].name !== "Accessway" ||
+              retValues.values[2].name !== "Air handling system"              ) {
+            throw new Error("Query dbForCopy Areas failed");
+          }
+          await jeepSqlite.closeConnection({database:"dbForCopy"});
+
           console.log("db success");
         } catch (err) {
           console.log(`Error ${err}`);
