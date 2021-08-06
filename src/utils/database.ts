@@ -1,14 +1,15 @@
 import initSqlJs from 'sql.js';
 
-import { SQLiteSet, JsonSQLite } from '../interfaces/interfaces';
+import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade } from '../interfaces/interfaces';
 
 import { getDBFromStore, setInitialDBToStore, setDBToStore,
-         removeDBFromStore, isDBInStore } from './utils-store';
+         removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
-         execute, executeSet, run, queryAll, isTableExists } from './utils-sqlite';
+         execute, executeSet, run, queryAll, isTableExists, getVersion, setVersion } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
 import { createExportObject, getSynchroDate } from './utils-exportJson';
+import { onUpgrade }  from './utils-upgrade';
 
 export class Database {
   private _isDBOpen: boolean;
@@ -16,12 +17,14 @@ export class Database {
   private store: any;
   private version: number;
   private mDb: any;
+  private vUpgDict: Record<number, SQLiteVersionUpgrade> = {};
 
-  constructor(databaseName: string, version: number, store: LocalForage) {
+  constructor(databaseName: string, version: number, upgDict: Record<number, SQLiteVersionUpgrade>, store: LocalForage) {
     this.dbName = databaseName;
     this.store = store;
     this.version = version;
     this.mDb = null;
+    this.vUpgDict = upgDict;
     this._isDBOpen = false;
   }
   public async open(): Promise<void> {
@@ -39,7 +42,44 @@ export class Database {
         this.mDb = new SQL.Database();
         await setInitialDBToStore( this.dbName, this.store);
       }
+      // get the current version
+      let curVersion: number = await getVersion(this.mDb);
+      if(curVersion === 0) {
+        await setVersion(this.mDb, 1);
+        curVersion = await getVersion(this.mDb);
+      }
       this._isDBOpen = true;
+      if (this.version > curVersion) {
+        try {
+          // execute the upgrade flow process
+          const changes: number = await onUpgrade(
+                                  this.mDb,
+                                  this.vUpgDict,
+                                  this.dbName,
+                                  curVersion,
+                                  this.version,
+                                  this.store
+          );
+          if(changes === -1) {
+            // restore the database from backup
+            try {
+              await restoreDBFromStore(this.dbName, 'backup',this.store);
+            } catch (err) {
+              return Promise.reject(new Error(`Open: ${err.message}`));
+            }
+          }
+          // delete the backup database
+          await removeDBFromStore(`backup-${this.dbName}`,this.store);
+        } catch (err) {
+          // restore the database from backup
+          try {
+            await restoreDBFromStore(this.dbName, 'backup',this.store);
+          } catch (err) {
+            return Promise.reject(new Error(`Open: ${err.message}`));
+          }
+        }
+      }
+
       return Promise.resolve();
     } catch (err) {
       this._isDBOpen = false;

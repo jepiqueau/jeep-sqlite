@@ -149,6 +149,24 @@ export interface SQLiteExportOptions {
    */
   jsonexportmode?: string;
 }
+export interface SQLiteUpgradeOptions {
+  /**
+   * The database name
+   */
+  database?: string;
+  /**
+   * The upgrade options for version upgrade
+   * Array of length 1 to easiest the iOS plugin
+   */
+  upgrade?: SQLiteVersionUpgrade[];
+}
+export interface SQLiteVersionUpgrade {
+  fromVersion: number;
+  toVersion: number;
+  statement: string;
+  set?: SQLiteSet[];
+}
+
 export interface SQLiteSet {
   /**
    * A statement

@@ -4,8 +4,8 @@ import localForage from 'localforage';
 import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
          SQLiteRunOptions, SQLiteSetOptions, SQLiteSet, SQLiteTableOptions,
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
-         EchoResult, SQLiteChanges, SQLiteResult, SQLiteValues, SQLiteSyncDate,
-         SQLiteJson } from '../../interfaces/interfaces';
+         SQLiteUpgradeOptions, SQLiteVersionUpgrade, EchoResult, SQLiteChanges,
+         SQLiteResult, SQLiteValues, SQLiteSyncDate, SQLiteJson } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore } from '../../utils/utils-store';
 
@@ -334,6 +334,36 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
+  @Method()
+  async addUpgradeStatement(options: SQLiteUpgradeOptions): Promise<void> {
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    if (!keys.includes('upgrade')) {
+      return Promise.reject('Must provide an upgrade statement');
+    }
+    const dbName: string = options.database;
+    const upgrade = options.upgrade[0];
+    keys = Object.keys(upgrade);
+    if (
+      !keys.includes('fromVersion') ||
+      !keys.includes('toVersion') ||
+      !keys.includes('statement')
+    ) {
+      return Promise.reject(
+        'Must provide an upgrade capSQLiteVersionUpgrade Object',
+      );
+    }
+    if (typeof upgrade.fromVersion != 'number') {
+      return Promise.reject('ugrade.fromVersion must be a number');
+    }
+    const upgVDict: Record<number, SQLiteVersionUpgrade> = {};
+    upgVDict[upgrade.fromVersion] = upgrade;
+    this._versionUpgrades[dbName] = upgVDict;
+    return Promise.resolve();
+  }
+
   //********************************
   //* Component Internal Variables *
   //********************************
@@ -343,6 +373,7 @@ export class JeepSqlite {
   private isStore: boolean = false;
   private _dbDict: any = {};
   private databaseList: any;
+  private _versionUpgrades: Record<string, Record<number, SQLiteVersionUpgrade>> = {};
 
 
   //*******************************
@@ -362,8 +393,13 @@ export class JeepSqlite {
   //******************************
 
   private async _createConnection(database: string, version: number): Promise<void> {
+    let upgDict: Record<number, SQLiteVersionUpgrade> = {};
+    const vUpgKeys: string[] = Object.keys(this._versionUpgrades);
+    if (vUpgKeys.length !== 0 && vUpgKeys.includes(database)) {
+      upgDict = this._versionUpgrades[database];
+    }
     try {
-      const mDB: Database = new Database(database + 'SQLite.db', version, this.store);
+      const mDB: Database = new Database(database + 'SQLite.db', version, upgDict, this.store);
       this._dbDict[database] = mDB;
       return Promise.resolve();
     } catch(err) {
@@ -622,7 +658,7 @@ export class JeepSqlite {
     const dbName = `${vJsonObj.database}SQLite.db`;
     const dbVersion: number = vJsonObj.version ?? 1;
     // Create the database
-    const mDb: Database = new Database(dbName, dbVersion, this.store);
+    const mDb: Database = new Database(dbName, dbVersion, {}, this.store);
     try {
       // Open the database
       await mDb.open();

@@ -7,6 +7,16 @@
 
 ## Methods
 
+### `addUpgradeStatement(options: SQLiteUpgradeOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `close(options: SQLiteOptions) => Promise<void>`
 
 

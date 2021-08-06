@@ -1,4 +1,4 @@
-import { queryAll, run } from './utils-sqlite';
+import { queryAll, run, execute } from './utils-sqlite';
 
 export const getTablesNames = async (db: any): Promise<string[]> => {
   let sql = 'SELECT name FROM sqlite_master WHERE ';
@@ -73,3 +73,22 @@ export const dropAll = async (db: any): Promise<void> => {
     return Promise.reject(new Error(`DropAll: ${err.message}`));
   }
 }
+export const dropTempTables = async (db: any, alterTables: Record<string, string[]>): Promise<void> => {
+  const tempTables: string[] = Object.keys(alterTables);
+  const statements: string[] = [];
+  for (const tTable of tempTables) {
+    let stmt = 'DROP TABLE IF EXISTS ';
+    stmt += `_temp_${tTable};`;
+    statements.push(stmt);
+  }
+  try {
+    const changes: number = await execute(db, statements.join('\n'));
+    if (changes < 0) {
+      return Promise.reject(new Error('DropTempTables: changes < 0'));
+    }
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(new Error(`DropTempTables: ${err.message}`));
+  }
+}
+

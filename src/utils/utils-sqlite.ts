@@ -1,3 +1,5 @@
+import { getTablesNames } from '../utils/utils-drop';
+
 export const beginTransaction = async (db: any, isOpen: boolean): Promise<void> => {
     const msg = 'BeginTransaction: ';
     if (!isOpen) {
@@ -191,4 +193,144 @@ export const replaceUndefinedByNull = async (values: any[]): Promise<any[]> => {
     retValues.push(mVal);
   }
   return Promise.resolve(retValues);
+}
+export const backupTables = async (db: any): Promise<Record<string, string[]>> => {
+  const msg = 'BackupTables: ';
+  let alterTables: Record<string, string[]> = {};
+  try {
+    const tables: string[] = await getTablesNames(db);
+    for (const table of tables) {
+      try {
+        const colNames: string[] = await backupTable(db, table);
+        alterTables[`${table}`] = colNames;
+      } catch (err) {
+        return Promise.reject(
+          new Error(`${msg}table ${table}: ` + `${err.message}`),
+        );
+      }
+    }
+    return Promise.resolve(alterTables);
+  } catch (err) {
+    return Promise.reject(new Error(`BackupTables: ${err.message}`));
+  }
+}
+export const backupTable = async (db: any, table: string): Promise<string[]> => {
+  try {
+    // start a transaction
+    await beginTransaction(db, true);
+    // get the table's column names
+    const colNames: string[] = await getTableColumnNames(db, table);
+    // prefix the table with _temp_
+    let stmt = `ALTER TABLE ${table} RENAME `;
+    stmt += `TO _temp_${table};`;
+    const lastId: number = await run(db, stmt, []);
+    if (lastId < 0) {
+      let msg = 'BackupTable: lastId < 0';
+      try {
+        await rollbackTransaction(db, true);
+      } catch (err) {
+        msg += `: ${err.message}`;
+      }
+      return Promise.reject(new Error(`${msg}`));
+    } else {
+      try {
+        await commitTransaction(db, true);
+        return Promise.resolve(colNames);
+      } catch (err) {
+        return Promise.reject(new Error('BackupTable: ' + `${err.message}`));
+      }
+    }
+  } catch (err) {
+    return Promise.reject(new Error(`BackupTable: ${err.message}`));
+  }
+}
+export const getTableColumnNames = async (db: any, tableName: string): Promise<string[]> => {
+  let resQuery: any[] = [];
+  const retNames: string[] = [];
+  const query = `PRAGMA table_info('${tableName}');`;
+  try {
+    resQuery = await queryAll(db, query, []);
+    if (resQuery.length > 0) {
+      for (const query of resQuery) {
+        retNames.push(query.name);
+      }
+    }
+    return Promise.resolve(retNames);
+  } catch (err) {
+    return Promise.reject(
+      new Error('GetTableColumnNames: ' + `${err.message}`),
+    );
+  }
+}
+export const findCommonColumns = async (db: any, alterTables: Record<string, string[]> ): Promise<Record<string, string[]>> => {
+  let commonColumns : Record<string, string[]> = {};
+  try {
+    // Get new table list
+    const tables: any[] = await getTablesNames(db);
+    if (tables.length === 0) {
+      return Promise.reject(
+        new Error('FindCommonColumns: get ' + "table's names failed"),
+      );
+    }
+    for (const table of tables) {
+      // get the column's name
+      const tableNames: any = await getTableColumnNames(db, table);
+      // find the common columns
+      const keys: string[] = Object.keys(alterTables);
+      if (keys.includes(table)) {
+        commonColumns[table] = arraysIntersection(alterTables[table], tableNames);
+      }
+    }
+    return Promise.resolve(commonColumns);
+  } catch (err) {
+    return Promise.reject(new Error(`FindCommonColumns: ${err.message}`));
+  }
+}
+const arraysIntersection = (a1: any[], a2: any[]): any[] => {
+  if (a1 != null && a2 != null) {
+    const first = new Set(a1);
+    const second = new Set(a2);
+    return [...first].filter(item => second.has(item));
+  } else {
+    return [];
+  }
+}
+export const updateNewTablesData = async (db: any, commonColumns: Record<string, string[]> ): Promise<void> => {
+  try {
+    // start a transaction
+    await beginTransaction(db, true);
+
+    const statements: string[] = [];
+    const keys: string[] = Object.keys(commonColumns);
+    keys.forEach(key => {
+      const columns = commonColumns[key].join(',');
+      let stmt = `INSERT INTO ${key} `;
+      stmt += `(${columns}) `;
+      stmt += `SELECT ${columns} FROM _temp_${key};`;
+      statements.push(stmt);
+    });
+    const changes: number = await execute(db, statements.join('\n'));
+    if (changes < 0) {
+      let msg: string = 'updateNewTablesData: ' + 'changes < 0';
+      try {
+        await rollbackTransaction(db, true);
+      } catch (err) {
+        msg += `: ${err.message}`;
+      }
+      return Promise.reject(new Error(`${msg}`));
+    } else {
+      try {
+        await commitTransaction(db, true);
+        return Promise.resolve();
+      } catch (err) {
+        return Promise.reject(
+          new Error('updateNewTablesData: ' + `${err.message}`),
+        );
+      }
+    }
+  } catch (err) {
+    return Promise.reject(
+      new Error('updateNewTablesData: ' + `${err.message}`),
+    );
+  }
 }
