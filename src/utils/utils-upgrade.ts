@@ -13,7 +13,7 @@ export const onUpgrade = async (
   targetVersion: number,
   store: any
 ): Promise<number> => {
-  const changes: number = -1;
+  let changes: number = -1;
   const upgrade: SQLiteVersionUpgrade = vUpgDict[curVersion];
   if (upgrade != null) {
     const keys: string[] = Object.keys(upgrade);
@@ -65,7 +65,7 @@ export const onUpgrade = async (
         }
         // set Foreign Keys On
         await setForeignKeyConstraintsEnabled(mDb, true);
-        const changes = (await dbChanges(mDb)) - initChanges;
+        changes = (await dbChanges(mDb)) - initChanges;
         // save the database to store
         await setDBToStore(mDb, dbName, store);
         return Promise.resolve(changes);
