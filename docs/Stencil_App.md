@@ -61,7 +61,7 @@ export class AppHome {
                     database:"testNew",
                     version: 1
                 });
-        // open db testNew
+          // open db testNew
           await jeepSqlite.open({database: "testNew"});
           const isDB = await jeepSqlite.isDBOpen({database: "testNew"})
           console.log(`in script ${JSON.stringify(isDB)}`);
@@ -73,13 +73,13 @@ export class AppHome {
           console.log("@@@ sql " + sql);
           let ret = await jeepSqlite.execute({database: "testNew", statements: sql});
           console.log(`after Execute 1 ${JSON.stringify(ret)}`);
-          // Delete all users
+          // Delete users
           let delUsers = `DELETE FROM users;`;
           delUsers += `VACUUM;`;
           ret = await jeepSqlite.execute({database: "testNew", statements: delUsers, transaction: false});
           console.log(`after Execute 2 ${JSON.stringify(ret)}`);
           // Insert some Users
-          const row = [["Whiteley","Whiteley.com",30,1.83],["Jones","Jones.com",44,1.75]];            
+          const row = [["Whiteley","Whiteley.com",30,1.83],["Jones","Jones.com",44,1.75]];
           let twoUsers = `INSERT INTO users (name,email,age,size) VALUES ("${row[0][0]}","${row[0][1]}",${row[0][2]},${row[0][3]});`;
           twoUsers += `INSERT INTO users (name,email,age,size) VALUES ("${row[1][0]}","${row[1][1]}",${row[1][2]},${row[1][3]});`;
           ret = await jeepSqlite.execute({database: "testNew", statements: twoUsers});
@@ -126,7 +126,7 @@ export class AppHome {
               database:"testSet",
               version: 1
           });
-          const isDBSetExists = await jeepSqlite.isDBExists({database:"testSet"});
+          let isDBSetExists = await jeepSqlite.isDBExists({database:"testSet"});
           console.log(`is "testSet" database exist : ${isDBSetExists.result}`);
           if (isDBSetExists.result) {
             await jeepSqlite.deleteDatabase({database:"testSet"});
@@ -281,7 +281,7 @@ export class AppHome {
             version : 1,
             encrypted : false,
             mode : "partial",
-              tables :[
+            tables :[
               {
                 name: "messages",
 
@@ -432,6 +432,161 @@ export class AppHome {
             throw new Error("Query dbForCopy Areas failed");
           }
           await jeepSqlite.closeConnection({database:"dbForCopy"});
+
+              // *** test upgrade version ***
+              // create database version 1
+              await jeepSqlite.createConnection({
+                database:"test-updversion",
+                version: 1
+          });
+          // delete the database if exists (multiple runs)
+          isDBSetExists = await jeepSqlite.isDBExists({database:"test-updversion"});
+          if (isDBSetExists.result) {
+            await jeepSqlite.deleteDatabase({database:"test-updversion"});
+          }
+          // open db test-updversion
+          await jeepSqlite.open({database: "test-updversion"});
+          const createSchemaVersion1 = `
+            CREATE TABLE IF NOT EXISTS users (
+              id INTEGER PRIMARY KEY NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              name TEXT,
+              company TEXT,
+              size REAL,
+              age INTEGER,
+              last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+            );
+            CREATE INDEX IF NOT EXISTS users_index_name ON users (name);
+            CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);
+            CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
+              AFTER UPDATE ON users
+              FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+              BEGIN
+                  UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
+              END;
+          `;
+          // Create test-updversion schema
+          ret = await jeepSqlite.execute({database: "test-updversion", statements: createSchemaVersion1});
+          if (ret.changes.changes < 0) {
+            throw new Error("Execute createSchemaVersion1 failed");
+          }
+          // Insert some Users
+          const rowU = [["Whiteley","Whiteley.com",30.5],["Jones","Jones.com",44]];
+          const twoUsersU = `
+            DELETE FROM users;
+            INSERT INTO users (name,email,age) VALUES ("${rowU[0][0]}","${rowU[0][1]}",${rowU[0][2]});
+            INSERT INTO users (name,email,age) VALUES ("${rowU[1][0]}","${rowU[1][1]}",${rowU[1][2]});
+          `;
+          ret = await jeepSqlite.execute({database: "test-updversion", statements: twoUsersU});
+          if (ret.changes.changes !== 2) {
+            throw new Error("Execute twoUsers failed");
+          }
+          // Select all users
+          retValues = await jeepSqlite.query({database: "test-updversion",
+                                        statement: "SELECT * FROM users;"});
+          if(retValues.values.length !== 2 ||
+              retValues.values[0].name !== "Whiteley" ||
+              retValues.values[1].name !== "Jones") {
+            throw new Error("Query 2 Users failed");
+          }
+          await jeepSqlite.closeConnection({database:"test-updversion"});
+          // create version 2 of test-updversion
+          const createSchemaVersion2 = `
+            CREATE TABLE users (
+              id INTEGER PRIMARY KEY NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              name TEXT,
+              company TEXT,
+              country TEXT,
+              age INTEGER,
+              last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+            );
+            CREATE TABLE messages (
+              id INTEGER PRIMARY KEY NOT NULL,
+              userid INTEGER,
+              title TEXT NOT NULL,
+              body TEXT NOT NULL,
+              last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+              FOREIGN KEY (userid) REFERENCES users(id) ON DELETE SET DEFAULT
+            );
+            CREATE INDEX users_index_name ON users (name);
+            CREATE INDEX users_index_last_modified ON users (last_modified);
+            CREATE INDEX messages_index_title ON messages (title);
+            CREATE INDEX messages_index_last_modified ON messages (last_modified);
+            CREATE TRIGGER users_trigger_last_modified
+              AFTER UPDATE ON users
+              FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+              BEGIN
+                  UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
+              END;
+            CREATE TRIGGER messages_trigger_last_modified
+              AFTER UPDATE ON messages
+              FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+              BEGIN
+                  UPDATE messages SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
+              END;
+          `;
+          const setArrayVersion2 = [
+            { statement:"INSERT INTO messages (userid,title,body) VALUES (?,?,?);",
+              values:[
+                [1,"test message 1","content test message 1"],
+                [2,"test message 2","content test message 2"],
+                [1,"test message 3","content test message 3"]
+              ]
+            },
+            { statement:"UPDATE users SET country = ?  WHERE id = ?;",
+              values:["United Kingdom",1]
+            },
+            { statement:"UPDATE users SET country = ?  WHERE id = ?;",
+              values:["Australia",2]
+            },
+
+          ];
+          await jeepSqlite.addUpgradeStatement({database: "test-updversion",
+            upgrade: [{fromVersion: 1, toVersion: 2, statement: createSchemaVersion2,
+                      set: setArrayVersion2}]
+            });
+
+          await jeepSqlite.createConnection({
+                  database:"test-updversion",
+                  version: 2
+          });
+          await jeepSqlite.open({database: "test-updversion"});
+          // select all user's country in db
+          retValues = await jeepSqlite.query({database: "test-updversion",
+                                        statement: "SELECT country FROM users;"});
+          if(retValues.values.length !== 2 ||
+                retValues.values[0].country !== "United Kingdom" ||
+                retValues.values[1].country !== "Australia") {
+            throw new Error("Query Version 2 Users failed");
+          }
+          // select all messages for user 1
+          const userMessages = `
+            SELECT users.name,messages.title,messages.body FROM users
+            INNER JOIN messages ON users.id = messages.userid
+            WHERE users.id = ?;
+          `;
+          retValues = await jeepSqlite.query({database: "test-updversion",
+                                        statement: userMessages,
+                                        values : [1]});
+          if(retValues.values.length !== 2 ||
+              retValues.values[0].name !== "Whiteley" ||
+              retValues.values[0].title !== "test message 1" ||
+              retValues.values[1].name !== "Whiteley" ||
+              retValues.values[1].title !== "test message 3") {
+            return Promise.reject(new Error("Query Messages User 1 Version 2 failed"));
+          }
+          // select all messages for user 2
+          retValues = await jeepSqlite.query({database: "test-updversion",
+                                        statement: userMessages,
+                                        values : [2]});
+          if(retValues.values.length !== 1 ||
+              retValues.values[0].name !== "Jones" ||
+              retValues.values[0].title !== "test message 2") {
+            return Promise.reject(new Error("Query Messages User 2 Version 2 failed"));
+          }
+          // close the connection test-updversion
+          await jeepSqlite.closeConnection({database:"test-updversion"});
 
           console.log("db success");
         } catch (err) {
