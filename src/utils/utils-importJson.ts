@@ -1,4 +1,6 @@
-import { JsonSQLite } from '../interfaces/interfaces';
+import { EventEmitter } from '@stencil/core';
+
+import { JsonSQLite, JsonProgressListener } from '../interfaces/interfaces';
 import { setForeignKeyConstraintsEnabled, setVersion, beginTransaction,
   rollbackTransaction, commitTransaction, execute, dbChanges,
   run, queryAll, isTableExists } from './utils-sqlite';
@@ -34,7 +36,7 @@ export const createSchema = async (db: any, jsonData: any): Promise<number> => {
     // start a transaction
     await beginTransaction(db, true);
   } catch (err) {
-    return Promise.reject(new Error(`CreateDatabaseSchema: ${err.message}`));
+    return Promise.reject(new Error(`CreateSchema: ${err.message}`));
   }
 
   const stmts = await createSchemaStatement(jsonData);
@@ -139,8 +141,12 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
       if (jTable.triggers != null && jTable.triggers.length >= 1) {
         for (const jTrg of jTable.triggers) {
           const tableName = jTable.name;
+          if (jTrg.timeevent.toUpperCase().endsWith(" ON")) {
+            jTrg.timeevent = jTrg.timeevent.substring(0, jTrg.timeevent.length - 3);
+        }
+
           let stmt = `CREATE TRIGGER IF NOT EXISTS `;
-          stmt += `${jTrg.name} ${jTrg.timeevent} ${tableName} `;
+          stmt += `${jTrg.name} ${jTrg.timeevent} ON ${tableName} `;
           if (jTrg.condition) stmt += `${jTrg.condition} `;
           stmt += `${jTrg.logic};`;
           statements.push(stmt);
@@ -152,7 +158,8 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
     return Promise.reject(err);
   }
 }
-export const createTablesData = async (db: any, jsonData: JsonSQLite): Promise<number> => {
+export const createTablesData = async (db: any, jsonData: JsonSQLite,
+                                       importProgress: EventEmitter<JsonProgressListener>): Promise<number> => {
   let changes = 0;
   let isValue = false;
   let lastId = -1;
@@ -170,6 +177,8 @@ export const createTablesData = async (db: any, jsonData: JsonSQLite): Promise<n
       // Create the table's data
       try {
         lastId = await createDataTable(db, jTable, jsonData.mode);
+        const msg: string = `create table data ${jTable.name}`;
+        importProgress.emit({progress: msg});
         if (lastId < 0) break;
         isValue = true;
       } catch (err) {
@@ -234,18 +243,12 @@ export const createDataTable = async (db: any, table: any, mode: string): Promis
         );
       }
       // Check the column's type before proceeding
-      const isColumnTypes: boolean = await checkColumnTypes(
+      // remove type checking for allowing RDBMS Types
+      /*await checkColumnTypes(
         tableColumnTypes,
         table.values[j],
       );
-      if (!isColumnTypes) {
-        return Promise.reject(
-          new Error(
-            `CreateDataTable: Table ${table.name} ` +
-              `values row ${j} not correct types`,
-          ),
-        );
-      }
+      */
       const retisIdExists: boolean = await isIdExists(db, table.name, tableColumnNames[0], table.values[j][0]);
       let stmt: string;
       if (mode === 'full' || (mode === 'partial' && !retisIdExists)) {
@@ -317,10 +320,9 @@ export const isType = async (type: string, value: any): Promise<void> => {
     return Promise.reject(new Error('IsType: not a SQL Type'));
   }
 }
-export const checkColumnTypes = async (tableTypes: any[], rowValues: any[]): Promise<boolean> => {
-  const isTypeCorrect = true;
+export const checkColumnTypes = async (tableTypes: any[], rowValues: any[]): Promise<void> => {
   for (let i = 0; i < rowValues.length; i++) {
-    if (rowValues[i].toString().toUpperCase() != 'NULL') {
+    if (rowValues[i] != null) {
       try {
         await isType(tableTypes[i], rowValues[i]);
       } catch (err) {
@@ -328,7 +330,7 @@ export const checkColumnTypes = async (tableTypes: any[], rowValues: any[]): Pro
       }
     }
   }
-  return Promise.resolve(isTypeCorrect);
+  return Promise.resolve();
 }
 export const createQuestionMarkString = async (length: number): Promise<string> => {
   let retString = '';

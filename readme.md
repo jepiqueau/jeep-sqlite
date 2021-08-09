@@ -67,6 +67,10 @@ in the head of your index.html
 | exportToJson                | ✅      |
 | copyFromAssets              | ✅      |
 | addUpgradeStatement         | ✅      |
+| isDatabase                  | ✅      |
+| getDatabaseList             | ✅      |
+| checkConnectionsConsistency | ✅      |
+
 
 The database is saved when you run the methods `close`or `closeConnection`, in the Browser Storage `IndexedDB` as a `localforage` store under the `jeepSqliteStore` name and `databases`table name.
 
@@ -82,6 +86,15 @@ The `databases.json` file is for example
 }
 ```
 if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/databases` folder.
+
+## Supported Events
+
+| Name                        | Web     |
+| :-------------------------- | :------ |
+| jeepSqliteImportProgress    | ✅      |
+| jeepSqliteExportProgress    | ✅      |
+
+
 
 ## Usage
 

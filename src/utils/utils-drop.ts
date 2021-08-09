@@ -4,7 +4,9 @@ export const getTablesNames = async (db: any): Promise<string[]> => {
   let sql = 'SELECT name FROM sqlite_master WHERE ';
   sql += "type='table' AND name NOT LIKE 'sync_table' ";
   sql += "AND name NOT LIKE '_temp_%' ";
-  sql += "AND name NOT LIKE 'sqlite_%';";
+  sql += "AND name NOT LIKE 'sqlite_%' ";
+  sql += "ORDER BY rootpage DESC;";
+
   const retArr: string[] = [];
   try {
     const retQuery: any[] = await queryAll(db, sql, []);

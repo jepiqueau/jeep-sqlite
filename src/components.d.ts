@@ -5,24 +5,27 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { ConnectionOptions, EchoResult, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersionUpgrade } from "./interfaces/interfaces";
+import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersionUpgrade } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "addUpgradeStatement": (options: SQLiteUpgradeOptions) => Promise<void>;
+        "checkConnectionsConsistency": (options: AllConnectionsOptions) => Promise<SQLiteResult>;
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
         "copyFromAssets": () => Promise<void>;
         "createConnection": (options: ConnectionOptions) => Promise<void>;
         "createSyncTable": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "deleteDatabase": (options: SQLiteOptions) => Promise<void>;
-        "echo": (value: string) => Promise<EchoResult>;
+        "echo": (options: EchoOptions) => Promise<EchoResult>;
         "execute": (options: SQLiteExecuteOptions) => Promise<SQLiteChanges>;
         "executeSet": (options: SQLiteSetOptions) => Promise<SQLiteChanges>;
         "exportToJson": (options: SQLiteExportOptions) => Promise<SQLiteJson>;
+        "getDatabaseList": () => Promise<SQLiteValues>;
         "getSyncDate": (options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>;
         "importFromJson": (options: SQLiteImportOptions) => Promise<SQLiteChanges>;
         "isDBExists": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDBOpen": (options: SQLiteOptions) => Promise<SQLiteResult>;
+        "isDatabase": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isJsonValid": (options: SQLiteImportOptions) => Promise<SQLiteResult>;
         "isStoreOpen": () => Promise<boolean>;
         "isTableExists": (options: SQLiteTableOptions) => Promise<SQLiteResult>;
@@ -45,6 +48,8 @@ declare global {
 }
 declare namespace LocalJSX {
     interface JeepSqlite {
+        "onJeepSqliteExportProgress"?: (event: CustomEvent<JsonProgressListener>) => void;
+        "onJeepSqliteImportProgress"?: (event: CustomEvent<JsonProgressListener>) => void;
     }
     interface IntrinsicElements {
         "jeep-sqlite": JeepSqlite;

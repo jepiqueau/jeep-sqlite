@@ -1,6 +1,7 @@
 import initSqlJs from 'sql.js';
+import { EventEmitter } from '@stencil/core';
 
-import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade } from '../interfaces/interfaces';
+import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade, JsonProgressListener} from '../interfaces/interfaces';
 
 import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
@@ -79,7 +80,6 @@ export class Database {
           }
         }
       }
-
       return Promise.resolve();
     } catch (err) {
       this._isDBOpen = false;
@@ -308,16 +308,21 @@ export class Database {
       return { result: false, message: `setSyncDate failed: ${err.message}` };
     }
   }
-  async importJson(jsonData: JsonSQLite): Promise<any> {
+  async importJson(jsonData: JsonSQLite, importProgress: EventEmitter<JsonProgressListener>): Promise<any> {
     let changes = -1;
     if (this._isDBOpen) {
       try {
         // create the database schema
         changes = await createDatabaseSchema(this.mDb, jsonData);
+        let msg = `Schema creation completed changes: ${changes}`;
+        importProgress.emit({progress:msg});
+
         if (changes != -1) {
           // create the tables data
-          changes = await createTablesData(this.mDb, jsonData);
-        }
+          changes = await createTablesData(this.mDb, jsonData, importProgress);
+          let msg = `Tables data creation completed changes: ${changes}`;
+          importProgress.emit({progress:msg});
+          }
         return Promise.resolve(changes);
       } catch (err) {
         return Promise.reject(new Error(`ImportJson: ${err.message}`));
@@ -326,7 +331,7 @@ export class Database {
       return Promise.reject(new Error(`ImportJson: database is closed`));
     }
   }
-  async exportJson(mode: string): Promise<any> {
+  async exportJson(mode: string, exportProgress: EventEmitter<JsonProgressListener>): Promise<any> {
     const inJson: JsonSQLite = {} as JsonSQLite;
     inJson.database = this.dbName.slice(0, -9);
     inJson.version = this.version;
@@ -334,7 +339,7 @@ export class Database {
     inJson.mode = mode;
     if (this._isDBOpen) {
       try {
-        const retJson: JsonSQLite = await createExportObject(this.mDb, inJson);
+        const retJson: JsonSQLite = await createExportObject(this.mDb, inJson, exportProgress);
         const isValid = isJsonSQLite(retJson);
         if (isValid) {
           return Promise.resolve(retJson);

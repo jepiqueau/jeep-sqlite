@@ -43,6 +43,7 @@ export const onUpgrade = async (
         // copy the db
 
         await copyDBToStore(dbName, `backup-${dbName}`, store);
+
         const initChanges = await dbChanges(mDb);
 
         // Here we assume that all table schemas are given

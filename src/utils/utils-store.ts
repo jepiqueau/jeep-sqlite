@@ -97,3 +97,11 @@ export const copyDBToStore = async (dbName: string, toDb: string, store: LocalFo
     return Promise.reject(`CopyDBToStore: ${err.message}`);
   }
 }
+export const getDBListFromStore = async (store: LocalForage): Promise<string[]> => {
+  try {
+    const retDbList: string[] = await store.keys();
+    return Promise.resolve(retDbList);
+  } catch (err) {
+    return Promise.reject(`GetDBListFromStore: ${err.message}`);
+  }
+}

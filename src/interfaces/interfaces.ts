@@ -326,3 +326,9 @@ export interface JsonIndex {
    */
   mode?: string;
 }
+export interface JsonProgressListener {
+  /**
+   * Progress message
+   */
+  progress?: string;
+}

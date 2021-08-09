@@ -1,13 +1,14 @@
-import { Component, Method } from '@stencil/core';
+import { Component, Method, Event, EventEmitter } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
-import { ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
+import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
          SQLiteRunOptions, SQLiteSetOptions, SQLiteSet, SQLiteTableOptions,
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
-         SQLiteUpgradeOptions, SQLiteVersionUpgrade, EchoResult, SQLiteChanges,
-         SQLiteResult, SQLiteValues, SQLiteSyncDate, SQLiteJson } from '../../interfaces/interfaces';
+         SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
+         EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
+         SQLiteJson, JsonProgressListener } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
-import { saveDBToStore } from '../../utils/utils-store';
+import { saveDBToStore, isDBInStore, getDBListFromStore } from '../../utils/utils-store';
 
 @Component({
   tag: 'jeep-sqlite',
@@ -16,14 +17,28 @@ import { saveDBToStore } from '../../utils/utils-store';
   shadow: true,
 })
 export class JeepSqlite {
+  //*********************
+  //* Event Definitions *
+  //*********************
+
+  @Event({eventName:'jeepSqliteImportProgress',
+      composed: true,
+      cancelable: true,
+      bubbles: true,
+  }) importProgress: EventEmitter<JsonProgressListener>;
+  @Event({eventName:'jeepSqliteExportProgress',
+      composed: true,
+      cancelable: true,
+      bubbles: true,
+  }) exportProgress: EventEmitter<JsonProgressListener>;
 
   //**********************
   //* Method Definitions *
   //**********************
 
   @Method()
-  async echo(value: string): Promise<EchoResult> {
-    return {value: value};
+  async echo(options: EchoOptions): Promise<EchoResult> {
+    return options;
   }
   @Method()
   async createConnection(options: ConnectionOptions): Promise<void> {
@@ -363,6 +378,43 @@ export class JeepSqlite {
     this._versionUpgrades[dbName] = upgVDict;
     return Promise.resolve();
   }
+  @Method()
+  async isDatabase(options: SQLiteOptions): Promise<SQLiteResult> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      const ret: SQLiteResult = await this._isDatabase(dbName);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async getDatabaseList(): Promise<SQLiteValues> {
+    try {
+      const ret: SQLiteValues = await this._getDatabaseList();
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async checkConnectionsConsistency(options: AllConnectionsOptions): Promise<SQLiteResult> {
+    const keys = Object.keys(options);
+    if (!keys.includes('dbNames')) {
+      return Promise.reject(`Must provide a list of connection's name`);
+    }
+    const dbNames: string[] = options.dbNames;
+    try {
+      const ret = await this._checkConnectionsConsistency(dbNames);
+      return Promise.resolve(ret);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
 
   //********************************
   //* Component Internal Variables *
@@ -386,6 +438,7 @@ export class JeepSqlite {
     this.databaseList = JSON.parse(res).databaseList;
   }
   componentDidLoad() {
+    console.log(`StoreName: ${this.storeName}`);
   }
 
   //******************************
@@ -429,7 +482,6 @@ export class JeepSqlite {
     } catch (err) {
       return Promise.reject(`CloseConnection: ${err.message}`);
     }
-
   }
   private async _open(database: string): Promise<void> {
     const keys = Object.keys(this._dbDict);
@@ -525,7 +577,7 @@ export class JeepSqlite {
       return Promise.reject(`Query failed: ${err.message}`);
     }
   }
-  private async _isDBExists(database:string,): Promise<SQLiteResult> {
+  private async _isDBExists(database:string): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
       return Promise.reject(`IsDBExists: No available connection for ${database}`);
@@ -541,7 +593,7 @@ export class JeepSqlite {
     }
 
   }
-  private async _isDBOpen(database:string,): Promise<SQLiteResult> {
+  private async _isDBOpen(database:string): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
       return Promise.reject(`IsDBOpen: No available connection for ${database}`);
@@ -663,7 +715,7 @@ export class JeepSqlite {
       // Open the database
       await mDb.open();
       // Import the JsonSQLite Object
-      const changes = await mDb.importJson(vJsonObj);
+      const changes = await mDb.importJson(vJsonObj, this.importProgress);
       // Close the database
       await mDb.close();
       return Promise.resolve({ changes: { changes: changes } });
@@ -680,7 +732,7 @@ export class JeepSqlite {
     }
     const mDb = this._dbDict[database];
     try {
-      const ret: any = await mDb.exportJson(exportMode);
+      const ret: any = await mDb.exportJson(exportMode, this.exportProgress);
       const keys = Object.keys(ret);
       if (keys.includes('message')) {
         return Promise.reject(`ExportToJson: ${ret.message}`);
@@ -702,6 +754,85 @@ export class JeepSqlite {
       return Promise.reject(`CopyFromAssets: ${err.message}`);
     }
   }
+  async _isDatabase(database:string): Promise<SQLiteResult> {
+    try {
+      const ret: boolean = await isDBInStore(database + 'SQLite.db', this.store);
+      const result: SQLiteResult = {result: ret};
+      return Promise.resolve(result);
+    } catch (err) {
+      return Promise.reject(`IsDatabase: ${err.message}`);
+    }
+
+  }
+  async _getDatabaseList(): Promise<SQLiteValues> {
+    try {
+      const ret: string[] = await getDBListFromStore(this.store);
+      const result: SQLiteValues = {values: ret};
+      return Promise.resolve(result);
+    } catch (err) {
+      return Promise.reject(`GetDatabaseList: ${err.message}`);
+    }
+  }
+  async _checkConnectionsConsistency(dbNames: string[]): Promise<SQLiteResult> {
+    const ret: SQLiteResult = {} as SQLiteResult;
+    ret.result = false;
+    try {
+      let inConnectionsSet: Set<string> = new Set(Object.keys(this._dbDict));
+      const outConnectionSet: Set<string> = new Set(dbNames);
+      if(outConnectionSet.size === 0 ) {
+        await this._resetDbDict(Object.keys(this._dbDict));
+        return Promise.resolve(ret);
+      }
+      if(inConnectionsSet.size < outConnectionSet.size) {
+        await this._resetDbDict(Object.keys(this._dbDict));
+        return Promise.resolve(ret);
+      }
+      if(inConnectionsSet.size > outConnectionSet.size) {
+        for ( const key of inConnectionsSet) {
+          if(!Array.from(outConnectionSet.keys()).includes(key) ) {
+            await this._closeConnection(key);
+          }
+        }
+      }
+      inConnectionsSet = new Set(Object.keys(this._dbDict));
+      if(inConnectionsSet.size === outConnectionSet.size) {
+        const symDiffSet = await this.symmetricDifference(inConnectionsSet,outConnectionSet);
+        if(symDiffSet.size === 0) {
+          ret.result = true;
+          return Promise.resolve(ret);
+        } else {
+          await this._resetDbDict(Object.keys(this._dbDict));
+          return Promise.resolve(ret);
+          }
+      } else {
+        await this._resetDbDict(Object.keys(this._dbDict));
+        return Promise.resolve(ret);
+      }
+    } catch (err) {
+      return Promise.reject(`CheckConnectionsConsistency: ${err.message}`);
+    }
+  }
+  private async _resetDbDict(keys: string[]): Promise<void> {
+    try {
+      for (const key of keys) {
+        await this._closeConnection(key);
+      }
+    } catch (err) {
+      return Promise.reject(`ResetDbDict: ${err.message}`);
+    }
+
+  }
+  private async symmetricDifference(setA: Set<string>, setB: Set<string>): Promise<Set<string>> {
+    let _difference: Set<string> = new Set(setA)
+    for (const elem of setB) {
+        if (_difference.has(elem)) {
+            _difference.delete(elem)
+        } else {
+            _difference.add(elem)
+        }
+    }
+    return _difference
+}
   private async copyDatabase(dbAssetName: string): Promise<void> {
     return new Promise ((resolve,reject) => {
       var xhr = new XMLHttpRequest();
@@ -746,7 +877,6 @@ export class JeepSqlite {
     this.store = localForage.createInstance(config);
     if (this.store != null) {
       this.storeName = dbName;
-      console.log(`this.storeName ${JSON.stringify(this.storeName)}`);
       ret = true;
     }
     return ret;

@@ -1,7 +1,10 @@
-import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger } from '../interfaces/interfaces';
+import { EventEmitter } from '@stencil/core';
+
+import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger, JsonProgressListener } from '../interfaces/interfaces';
 import { queryAll } from './utils-sqlite';
 import { checkSchemaValidity, checkIndexesValidity, checkTriggersValidity, getTableColumnNamesTypes } from './utils-json';
-export const createExportObject = async (db: any, sqlObj: JsonSQLite): Promise<JsonSQLite> => {
+export const createExportObject = async (db: any, sqlObj: JsonSQLite,
+  exportProgress: EventEmitter<JsonProgressListener>): Promise<JsonSQLite> => {
   const retObj: JsonSQLite = {} as JsonSQLite;
   let tables: JsonTable[] = [];
   let errmsg = '';
@@ -15,11 +18,11 @@ export const createExportObject = async (db: any, sqlObj: JsonSQLite): Promise<J
     } else {
       switch (sqlObj.mode) {
         case 'partial': {
-          tables = await getTablesPartial(db, resTables);
+          tables = await getTablesPartial(db, resTables, exportProgress);
           break;
         }
         case 'full': {
-          tables = await getTablesFull(db, resTables);
+          tables = await getTablesFull(db, resTables, exportProgress);
           break;
         }
         default: {
@@ -56,7 +59,8 @@ export const getTablesNameSQL = async (db: any): Promise<any[]> => {
     return Promise.reject(new Error(`getTablesNames: ${err.message}`));
   }
 }
-export const getTablesFull = async (db: any, resTables: any[]): Promise<JsonTable[]> => {
+export const getTablesFull = async (db: any, resTables: any[],
+  exportProgress: EventEmitter<JsonProgressListener>): Promise<JsonTable[]> => {
   const tables: JsonTable[] = [];
   let errmsg = '';
   try {
@@ -79,7 +83,7 @@ export const getTablesFull = async (db: any, resTables: any[]): Promise<JsonTabl
       }
       const table: JsonTable = {} as JsonTable;
       // create Table's Schema
-      const schema: JsonColumn[] = await getSchema(sqlStmt, tableName);
+      const schema: JsonColumn[] = await getSchema(sqlStmt/*, tableName*/);
       if (schema.length === 0) {
         errmsg = 'GetTablesFull: no Schema returned';
         break;
@@ -98,6 +102,8 @@ export const getTablesFull = async (db: any, resTables: any[]): Promise<JsonTabl
         // check triggers validity
         await checkTriggersValidity(triggers);
       }
+      let msg: string = `Full: Table ${tableName} schema export completed ...`
+      exportProgress.emit({progress: msg});
       // create Table's Data
       const query = `SELECT * FROM ${tableName};`;
       const values: any[] = await getValues(db, query, tableName);
@@ -121,6 +127,8 @@ export const getTablesFull = async (db: any, resTables: any[]): Promise<JsonTabl
         errmsg = `GetTablesFull: table ${tableName} is not a jsonTable`;
         break;
       }
+      msg = `Full: Table ${tableName} table data export completed ...`
+      exportProgress.emit({progress: msg});
 
       tables.push(table);
     }
@@ -132,54 +140,49 @@ export const getTablesFull = async (db: any, resTables: any[]): Promise<JsonTabl
     return Promise.reject(new Error(`GetTablesFull: ${err.message}`));
   }
 }
-export const getSchema = (sqlStmt: string, tableName: string): Promise<JsonColumn[]> => {
+export const getSchema = async (sqlStmt: string/*, tableName: string*/): Promise<JsonColumn[]> => {
   const schema: JsonColumn[] = [];
   // take the substring between parenthesis
   const openPar: number = sqlStmt.indexOf('(');
   const closePar: number = sqlStmt.lastIndexOf(')');
-  const sstr: string = sqlStmt.substring(openPar + 1, closePar);
-  let errmsg = '';
-  let isStrfTime = false;
-  if (sstr.includes('strftime')) isStrfTime = true;
-  let sch: string[] = sstr.replace(/\n/g, '').split(',');
-  if (isStrfTime) {
-    const nSch: string[] = [];
-    for (let j = 0; j < sch.length; j++) {
-      if (sch[j].includes('strftime')) {
-        nSch.push(sch[j] + ',' + sch[j + 1]);
-        j++;
+  let sstr: string = sqlStmt.substring(openPar + 1, closePar);
+  // check if there is other parenthesis and replace the ',' by '§'
+  try {
+    sstr = await modEmbeddedParentheses(sstr);
+    const sch: string[]  = sstr.split(",");
+    // for each element of the array split the
+    // first word as key
+    for (let j: number = 0; j < sch.length; j++) {
+      let row: string[] = [];
+      const scht: string = sch[j].trim();
+      row[0] = scht.substring(0, scht.indexOf(" "));
+      row[1] = scht.substring(scht.indexOf(" ") + 1);
+
+      const jsonRow: JsonColumn = {} as JsonColumn;
+      if (row[0].toUpperCase() === "FOREIGN") {
+        const oPar: number = sch[j].indexOf("(");
+        const cPar: number = sch[j].indexOf(")");
+        row[0] = sch[j].substring(oPar + 1, cPar);
+        row[1] = sch[j].substring(cPar + 2);
+        jsonRow['foreignkey'] = row[0];
+      } else if (row[0].toUpperCase() === "CONSTRAINT") {
+        let tRow: string[] = [];
+        const row1t: string = row[1].trim();
+        tRow[0] = row1t.substring(0, row1t.indexOf(" "));
+        tRow[1] = row1t.substring(row1t.indexOf(" ") + 1);
+        row[0] = tRow[0];
+        jsonRow['constraint'] = row[0];
+        row[1] = tRow[1];
       } else {
-        nSch.push(sch[j]);
+        jsonRow['column'] =row[0];
       }
+      jsonRow['value'] = row[1].replace(/§/g, ",");
+      schema.push(jsonRow);
     }
-    sch = [...nSch];
+    return Promise.resolve(schema);
+  } catch (err) {
+    return Promise.reject(new Error(err.message));
   }
-  for (const rSch of sch) {
-    const rstr = rSch.trim();
-    const idx = rstr.indexOf(' ');
-    //find the index of the first
-    let row: string[] = [rstr.slice(0, idx), rstr.slice(idx + 1)];
-    if (row.length != 2) {
-      errmsg = `GetSchema: table ${tableName} row length != 2`;
-      break;
-    }
-    if (row[0].toUpperCase() != 'FOREIGN') {
-      schema.push({ column: row[0], value: row[1] });
-    } else {
-      const oPar: number = rstr.indexOf('(');
-      const cPar: number = rstr.indexOf(')');
-      row = [rstr.slice(oPar + 1, cPar), rstr.slice(cPar + 2)];
-      if (row.length != 2) {
-        errmsg = `GetSchema: table ${tableName} row length != 2`;
-        break;
-      }
-      schema.push({ foreignkey: row[0], value: row[1] });
-    }
-  }
-  if (errmsg.length > 0) {
-    return Promise.reject(new Error(errmsg));
-  }
-  return Promise.resolve(schema);
 }
 export const getIndexes = async (db: any, tableName: string): Promise<JsonIndex[]> => {
   const indexes: JsonIndex[] = [];
@@ -330,7 +333,8 @@ export const getValues = async (db: any, query: string, tableName: string): Prom
     return Promise.reject(new Error(`GetValues: ${err.message}`));
   }
 }
-export const getTablesPartial = async (db: any, resTables: any[]): Promise<JsonTable[]> => {
+export const getTablesPartial = async (db: any, resTables: any[],
+  exportProgress: EventEmitter<JsonProgressListener>): Promise<JsonTable[]> => {
   const tables: JsonTable[] = [];
   let modTables: any = {};
   let syncDate = 0;
@@ -376,7 +380,7 @@ export const getTablesPartial = async (db: any, resTables: any[]): Promise<JsonT
       table.name = rTable;
       if (modTables[table.name] === 'Create') {
         // create Table's Schema
-        schema = await getSchema(sqlStmt, tableName);
+        schema = await getSchema(sqlStmt/*, tableName*/);
         if (schema.length > 0) {
           // check schema validity
           await checkSchemaValidity(schema);
@@ -394,6 +398,8 @@ export const getTablesPartial = async (db: any, resTables: any[]): Promise<JsonT
           await checkTriggersValidity(triggers);
         }
       }
+      let msg: string = `Partial: Table ${tableName} schema export completed ...`
+      exportProgress.emit({progress: msg});
       // create Table's Data
       let query = '';
       if (modTables[tableName] === 'Create') {
@@ -423,6 +429,8 @@ export const getTablesPartial = async (db: any, resTables: any[]): Promise<JsonT
         errmsg = `GetTablesPartial: table ${tableName} is not a jsonTable`;
         break;
       }
+      msg = `Partial: Table ${tableName} table data export completed ...`
+      exportProgress.emit({progress: msg});
       tables.push(table);
     }
     if (errmsg.length > 0) {
@@ -504,4 +512,41 @@ export const getSynchroDate = async (db: any): Promise<number> => {
     const msg = `getSyncDate: ${err.message}`;
     return Promise.reject(new Error(msg));
   }
+}
+const modEmbeddedParentheses = async (sstr: string): Promise<string> => {
+  const oParArray: number[] = indexOfChar(sstr, '(');
+  const cParArray: number[] = indexOfChar(sstr, ')');
+  if (oParArray.length != cParArray.length) {
+    return Promise.reject("ModEmbeddedParentheses: Not same number of '(' & ')'");
+  }
+  if (oParArray.length === 0) {
+    return Promise.resolve(sstr);
+  }
+  let resStmt = sstr.substring(0, oParArray[0] - 1);
+  for (let i: number = 0; i < oParArray.length; i++) {
+    let str: string;
+    if (i < oParArray.length - 1) {
+        if (oParArray[i + 1] < cParArray[i]) {
+            str = sstr.substring(oParArray[i] - 1, cParArray[i + 1]);
+            i++;
+        } else {
+            str = sstr.substring(oParArray[i] - 1, cParArray[i]);
+        }
+    } else {
+        str = sstr.substring(oParArray[i] - 1, cParArray[i]);
+    }
+    const newS = str.replace(/,/g, "§");
+    resStmt += newS;
+    if (i < oParArray.length - 1) {
+        resStmt += sstr.substring(cParArray[i], oParArray[i + 1] - 1);
+    }
+  }
+  resStmt += sstr.substring(cParArray[cParArray.length - 1], sstr.length);
+  return Promise.resolve(resStmt);
+}
+const indexOfChar = (str: string, char: string): number[] => {
+  let tmpArr: string[] = [...str];
+  char = char.toLowerCase();
+  return tmpArr.reduce((results: number[], elem: string, idx: number) =>
+    elem.toLowerCase() === char ? [...results, idx] : results, []);
 }
