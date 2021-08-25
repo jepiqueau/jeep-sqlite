@@ -148,7 +148,7 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const statement: string = options.statement;
-    let values: string[]  = [];
+    let values: any[]  = [];
     if (keys.includes('values')) {
       values = options.values.length > 0 ? options.values : [];
     }
@@ -170,7 +170,7 @@ export class JeepSqlite {
     if (!keys.includes('statement') || options.statement.length === 0) {
       return Promise.reject('Must provide a query statement');
     }
-    let values: string[]  = [];
+    let values: any[]  = [];
     if (keys.includes('values')) {
       values = options.values.length > 0 ? options.values : [];
     }

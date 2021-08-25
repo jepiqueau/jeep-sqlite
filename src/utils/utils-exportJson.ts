@@ -323,7 +323,7 @@ export const getValues = async (db: any, query: string, tableName: string): Prom
         if (Object.keys(rValue).includes(rName)) {
           row.push(rValue[rName]);
         } else {
-          row.push('NULL');
+          row.push(null);
         }
       }
       values.push(row);
