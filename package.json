@@ -1,6 +1,6 @@
 {
   "name": "jeep-sqlite",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Browser SQLite Stencil Component",
   "main": "dist/index.cjs.js",
   "module": "dist/custom-elements/index.js",
@@ -25,7 +25,7 @@
     "@stencil/core": "^2.7.0",
     "@types/sql.js": "^1.4.2",
     "localforage": "^1.9.0",
-    "sql.js": "^1.6.1"
+    "sql.js": "~1.5.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.21",
@@ -35,6 +35,10 @@
     "puppeteer": "^5.5.0",
     "rollup-plugin-node-polyfills": "^0.2.1"
   },
+  "peerDependencies": {
+    "sql.js": "~1.5.0"
+  },
+
   "keywords": [
     "SQLite",
     "SQLite in Browser",
