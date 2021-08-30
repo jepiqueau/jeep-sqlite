@@ -1,6 +1,6 @@
 {
   "name": "jeep-sqlite",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Browser SQLite Stencil Component",
   "main": "dist/index.cjs.js",
   "module": "dist/custom-elements/index.js",
@@ -38,7 +38,6 @@
   "peerDependencies": {
     "sql.js": "~1.5.0"
   },
-
   "keywords": [
     "SQLite",
     "SQLite in Browser",

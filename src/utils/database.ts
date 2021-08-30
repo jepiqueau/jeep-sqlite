@@ -51,17 +51,30 @@ export class Database {
       }
       this._isDBOpen = true;
       if (this.version > curVersion) {
-        try {
-          // execute the upgrade flow process
-          const changes: number = await onUpgrade(
-                                  this.mDb,
-                                  this.vUpgDict,
-                                  this.dbName,
-                                  curVersion,
-                                  this.version,
-                                  this.store
-          );
-          if(changes === -1) {
+        const keys: string[] = Object.keys(this.vUpgDict);
+
+        if (keys.length > 0) {
+          try {
+            // execute the upgrade flow process
+            const changes: number = await onUpgrade(
+                                    this.mDb,
+                                    this.vUpgDict,
+                                    this.dbName,
+                                    curVersion,
+                                    this.version,
+                                    this.store
+            );
+            if(changes === -1) {
+              // restore the database from backup
+              try {
+                await restoreDBFromStore(this.dbName, 'backup',this.store);
+              } catch (err) {
+                return Promise.reject(new Error(`Open: ${err.message}`));
+              }
+            }
+            // delete the backup database
+            await removeDBFromStore(`backup-${this.dbName}`,this.store);
+          } catch (err) {
             // restore the database from backup
             try {
               await restoreDBFromStore(this.dbName, 'backup',this.store);
@@ -69,16 +82,16 @@ export class Database {
               return Promise.reject(new Error(`Open: ${err.message}`));
             }
           }
-          // delete the backup database
-          await removeDBFromStore(`backup-${this.dbName}`,this.store);
-        } catch (err) {
-          // restore the database from backup
+        } else {
           try {
-            await restoreDBFromStore(this.dbName, 'backup',this.store);
+            await setVersion(this.mDb, this.version);
           } catch (err) {
-            return Promise.reject(new Error(`Open: ${err.message}`));
+            return Promise.reject(
+              new Error(`SetVersion: ${this.version} ${err.message}`),
+            );
           }
         }
+
       }
       return Promise.resolve();
     } catch (err) {

@@ -199,15 +199,20 @@ export const createTablesData = async (db: any, jsonData: JsonSQLite,
       );
     }
   } else {
-    try {
-      await rollbackTransaction(db, true);
-      return Promise.reject(new Error(`CreateTablesData: ${msg}`));
-    } catch (err) {
-      return Promise.reject(
-        new Error('CreateTablesData: ' + `${err.message}: ${msg}`),
-      );
+    if(msg.length > 0) {
+      try {
+        await rollbackTransaction(db, true);
+        return Promise.reject(new Error(`CreateTablesData: ${msg}`));
+      } catch (err) {
+        return Promise.reject(
+          new Error('CreateTablesData: ' + `${err.message}: ${msg}`),
+        );
+      }
+    } else {
+      // case were no values given
+      return Promise.resolve(0);
     }
-  }
+}
 }
 export const createDataTable = async (db: any, table: any, mode: string): Promise<number> => {
   let lastId = -1;
