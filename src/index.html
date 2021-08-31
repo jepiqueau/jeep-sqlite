@@ -94,6 +94,8 @@
             if(ret.values.length != 4) {
               throw new Error("Query 3 user failed");
             }
+            ret = await jeepSqlite.getVersion({database: "testNew"});
+            console.log(`$$$$$ version: ${ret.version}`);
 
             // *** test ExecuteSet
             await jeepSqlite.createConnection({

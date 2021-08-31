@@ -119,6 +119,18 @@ export class Database {
     }
     return Promise.resolve();
   }
+  public async getVersion(): Promise<number> {
+    if (this.mDb != null && this._isDBOpen) {
+      try {
+        // save the database to store
+        const curVersion: number = await getVersion(this.mDb)
+        return Promise.resolve(curVersion);
+      } catch (err) {
+        this._isDBOpen = false;
+        return Promise.reject(`in getVersion ${err}`);
+      }
+    }
+  }
 
   public async isDBExists(database: string): Promise<boolean> {
     try {

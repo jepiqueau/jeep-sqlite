@@ -341,6 +341,16 @@ Type: `Promise<SQLiteSyncDate>`
 
 
 
+### `getVersion(options: SQLiteOptions) => Promise<SQLiteVersion>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteVersion>`
+
+
+
 ### `importFromJson(options: SQLiteImportOptions) => Promise<SQLiteChanges>`
 
 

@@ -5,7 +5,7 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersionUpgrade } from "./interfaces/interfaces";
+import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "addUpgradeStatement": (options: SQLiteUpgradeOptions) => Promise<void>;
@@ -22,6 +22,7 @@ export namespace Components {
         "exportToJson": (options: SQLiteExportOptions) => Promise<SQLiteJson>;
         "getDatabaseList": () => Promise<SQLiteValues>;
         "getSyncDate": (options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>;
+        "getVersion": (options: SQLiteOptions) => Promise<SQLiteVersion>;
         "importFromJson": (options: SQLiteImportOptions) => Promise<SQLiteChanges>;
         "isDBExists": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDBOpen": (options: SQLiteOptions) => Promise<SQLiteResult>;

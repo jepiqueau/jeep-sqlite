@@ -6,7 +6,7 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
          SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
-         SQLiteJson, JsonProgressListener } from '../../interfaces/interfaces';
+         SQLiteJson, JsonProgressListener, SQLiteVersion } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore, isDBInStore, getDBListFromStore } from '../../utils/utils-store';
 
@@ -93,6 +93,20 @@ export class JeepSqlite {
     try {
       await this._close(dbName);
       return Promise.resolve();
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async getVersion(options: SQLiteOptions): Promise<SQLiteVersion> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      const res: SQLiteVersion = await this._getVersion(dbName);
+      return Promise.resolve(res);
     } catch(err) {
       return Promise.reject(err);
     }
@@ -511,6 +525,23 @@ export class JeepSqlite {
       return Promise.reject(`Close: ${err.message}`);
     }
   }
+  private async _getVersion(database: string): Promise<SQLiteVersion> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(`Open: No available connection for ${database}`);
+    }
+
+    const mDB = this._dbDict[database];
+    try {
+      const version: number = await mDB.getVersion();
+      const ret: SQLiteVersion = {} as SQLiteVersion;
+      ret.version = version;
+      return Promise.resolve(ret);
+    } catch (err) {
+      return Promise.reject(`Open: ${err.message}`);
+    }
+  }
+
   private async _execute(database:string, statements: string, transaction: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {

@@ -189,6 +189,13 @@ export interface SQLiteResult {
    */
   result?: boolean;
 }
+export interface SQLiteVersion {
+  /**
+   * the returned database version
+   */
+  version?: number;
+}
+
 export interface SQLiteChanges {
   /**
    * a returned Changes
