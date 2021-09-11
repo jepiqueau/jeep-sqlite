@@ -1,4 +1,4 @@
-import { JsonColumn, JsonIndex, JsonTrigger } from '../interfaces/interfaces';
+import { JsonColumn, JsonIndex, JsonTrigger, JsonView } from '../interfaces/interfaces';
 import { queryAll } from './utils-sqlite';
 
 export const isJsonSQLite = async (obj: any): Promise<boolean> => {
@@ -8,6 +8,7 @@ export const isJsonSQLite = async (obj: any): Promise<boolean> => {
     'encrypted',
     'mode',
     'tables',
+    'views'
   ];
   if (
     obj == null ||
@@ -27,6 +28,14 @@ export const isJsonSQLite = async (obj: any): Promise<boolean> => {
         if (!retTable) return false;
       }
     }
+    if (key === 'views' && typeof obj[key] != 'object') return false;
+    if (key === 'views') {
+      for (const oKey of obj[key]) {
+        const retView: boolean = await isView(oKey);
+        if (!retView) return false;
+      }
+    }
+
   }
   return true;
 }
@@ -153,7 +162,20 @@ export const isTriggers = async (obj: any): Promise<boolean> => {
   }
   return true;
 }
-
+export const isView = async (obj: any): Promise<boolean> => {
+  const keyViewLevel: string[] = ['name', 'value'];
+  if (
+    obj == null ||
+    (Object.keys(obj).length === 0 && obj.constructor === Object)
+  )
+    return false;
+  for (const key of Object.keys(obj)) {
+    if (keyViewLevel.indexOf(key) === -1) return false;
+    if (key === 'name' && typeof obj[key] != 'string') return false;
+    if (key === 'value' && typeof obj[key] != 'string') return false;
+  }
+  return true;
+}
 export const checkSchemaValidity = async (schema: JsonColumn[]): Promise<void> => {
   for (let i = 0; i < schema.length; i++) {
     const sch: JsonColumn = {} as JsonColumn;
@@ -224,6 +246,26 @@ export const checkTriggersValidity = async (triggers: JsonTrigger[]): Promise<vo
     if (!isValid) {
       return Promise.reject(
         new Error(`CheckTriggersValidity: triggers[${i}] not valid`),
+      );
+    }
+  }
+  return Promise.resolve();
+}
+export const checkViewsValidity = async (views: JsonView[]): Promise<void> => {
+  for (let i = 0; i < views.length; i++) {
+    const view: JsonView = {} as JsonView;
+    const keys: string[] = Object.keys(views[i]);
+    if (keys.includes('value')) {
+      view.value = views[i].value;
+    }
+    if (keys.includes('name')) {
+      view.name = views[i].name;
+    }
+
+    const isValid: boolean = await isView(view);
+    if (!isValid) {
+      return Promise.reject(
+        new Error(`CheckViewsValidity: views[${i}] not valid`),
       );
     }
   }

@@ -1,14 +1,19 @@
 import { EventEmitter } from '@stencil/core';
 
-import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger, JsonProgressListener } from '../interfaces/interfaces';
+import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger, JsonView, JsonProgressListener } from '../interfaces/interfaces';
 import { queryAll } from './utils-sqlite';
 import { checkSchemaValidity, checkIndexesValidity, checkTriggersValidity, getTableColumnNamesTypes } from './utils-json';
+
 export const createExportObject = async (db: any, sqlObj: JsonSQLite,
   exportProgress: EventEmitter<JsonProgressListener>): Promise<JsonSQLite> => {
   const retObj: JsonSQLite = {} as JsonSQLite;
   let tables: JsonTable[] = [];
+  let views: JsonView[] = [];
   let errmsg = '';
   try {
+    // get View's name
+    views = await getViewsName(db);
+
     // get Table's name
     const resTables: any[] = await getTablesNameSQL(db);
     if (resTables.length === 0) {
@@ -40,6 +45,10 @@ export const createExportObject = async (db: any, sqlObj: JsonSQLite,
         retObj.encrypted = sqlObj.encrypted;
         retObj.mode = sqlObj.mode;
         retObj.tables = tables;
+        if (views.length > 0) {
+          retObj.views = views;
+        }
+
       }
       return Promise.resolve(retObj);
     }
@@ -59,6 +68,25 @@ export const getTablesNameSQL = async (db: any): Promise<any[]> => {
     return Promise.reject(new Error(`getTablesNames: ${err.message}`));
   }
 }
+export const getViewsName = async (mDb: any): Promise<JsonView[]> => {
+  const views: JsonView[] = [];
+  let sql = 'SELECT name,sql FROM sqlite_master WHERE ';
+  sql += "type='view' AND name NOT LIKE 'sqlite_%';";
+  let retQuery: any[] = [];
+  try {
+    retQuery = await queryAll(mDb, sql, []);
+    for (const query of retQuery) {
+      const view: JsonView = {} as JsonView;
+      view.name = query.name;
+      view.value = query.sql.substring(query.sql.indexOf('AS ') + 3);
+      views.push(view);
+    }
+    return Promise.resolve(views);
+  } catch (err) {
+    return Promise.reject(new Error(`getViewsName: ${err.message}`));
+  }
+}
+
 export const getTablesFull = async (db: any, resTables: any[],
   exportProgress: EventEmitter<JsonProgressListener>): Promise<JsonTable[]> => {
   const tables: JsonTable[] = [];

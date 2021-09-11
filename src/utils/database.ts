@@ -7,7 +7,7 @@ import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
          execute, executeSet, run, queryAll, isTableExists, getVersion, setVersion } from './utils-sqlite';
-import { createDatabaseSchema, createTablesData} from './utils-importJson';
+import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
 import { createExportObject, getSynchroDate } from './utils-exportJson';
 import { onUpgrade }  from './utils-upgrade';
@@ -334,20 +334,28 @@ export class Database {
     }
   }
   async importJson(jsonData: JsonSQLite, importProgress: EventEmitter<JsonProgressListener>): Promise<any> {
-    let changes = -1;
+    let changes = 0;
     if (this._isDBOpen) {
       try {
-        // create the database schema
-        changes = await createDatabaseSchema(this.mDb, jsonData);
-        let msg = `Schema creation completed changes: ${changes}`;
-        importProgress.emit({progress:msg});
+        if (jsonData.tables && jsonData.tables.length > 0) {
 
-        if (changes != -1) {
-          // create the tables data
-          changes = await createTablesData(this.mDb, jsonData, importProgress);
-          let msg = `Tables data creation completed changes: ${changes}`;
+          // create the database schema
+          changes = await createDatabaseSchema(this.mDb, jsonData);
+          let msg = `Schema creation completed changes: ${changes}`;
           importProgress.emit({progress:msg});
+
+          if (changes != -1) {
+            // create the tables data
+            changes += await createTablesData(this.mDb, jsonData, importProgress);
+            let msg = `Tables data creation completed changes: ${changes}`;
+            importProgress.emit({progress:msg});
           }
+        }
+        if (jsonData.views && jsonData.views.length > 0) {
+          // create the views
+          changes += await createViews(this.mDb, jsonData);
+        }
+
         return Promise.resolve(changes);
       } catch (err) {
         return Promise.reject(new Error(`ImportJson: ${err.message}`));

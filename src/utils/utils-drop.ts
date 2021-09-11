@@ -18,6 +18,21 @@ export const getTablesNames = async (db: any): Promise<string[]> => {
     return Promise.reject(new Error(`GetTablesNames: ${err.message}`));
   }
 }
+export const getViewsNames = async (mDb: any): Promise<string[]> => {
+    let sql = 'SELECT name FROM sqlite_master WHERE ';
+    sql += "type='view' AND name NOT LIKE 'sqlite_%' ";
+    sql += 'ORDER BY rootpage DESC;';
+    const retArr: string[] = [];
+    try {
+      const retQuery: any[] = await queryAll(mDb, sql, []);
+      for (const query of retQuery) {
+        retArr.push(query.name);
+      }
+      return Promise.resolve(retArr);
+    } catch (err) {
+      return Promise.reject(new Error(`getViewsNames: ${err.message}`));
+    }
+}
 export const dropElements = async (db: any, type: string): Promise<void> => {
   let msg = '';
   switch (type) {
@@ -29,6 +44,9 @@ export const dropElements = async (db: any, type: string): Promise<void> => {
       break;
     case 'table':
       msg = 'DropTables';
+      break;
+    case 'view':
+      msg = 'DropViews';
       break;
     default:
       return Promise.reject(
@@ -68,6 +86,8 @@ export const dropAll = async (db: any): Promise<void> => {
     await dropElements(db, 'index');
     // drop triggers
     await dropElements(db, 'trigger');
+    // drop views
+    await dropElements(db, 'view');
     // vacuum the database
     await run(db, 'VACUUM;', []);
     return Promise.resolve();

@@ -253,7 +253,11 @@ export interface JsonSQLite {
    * Array of Table (JsonTable)
    */
   tables: JsonTable[];
-}
+  /***
+   * Array of View (JsonView)
+   */
+  views?: JsonView[];
+  }
 export interface JsonTable {
   /**
    * The database name
@@ -338,4 +342,14 @@ export interface JsonProgressListener {
    * Progress message
    */
   progress?: string;
+}
+export interface JsonView {
+  /**
+   * The view name
+   */
+  name: string;
+  /**
+   * The view statement
+   */
+  value: string;
 }

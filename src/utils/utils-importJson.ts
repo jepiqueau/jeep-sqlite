@@ -1,6 +1,6 @@
 import { EventEmitter } from '@stencil/core';
 
-import { JsonSQLite, JsonProgressListener } from '../interfaces/interfaces';
+import { JsonSQLite, JsonProgressListener, JsonView } from '../interfaces/interfaces';
 import { setForeignKeyConstraintsEnabled, setVersion, beginTransaction,
   rollbackTransaction, commitTransaction, execute, dbChanges,
   run, queryAll, isTableExists } from './utils-sqlite';
@@ -359,6 +359,68 @@ export const setNameForUpdate = async (names: string[]): Promise<string> => {
     return Promise.resolve(retString);
   } else {
     return Promise.reject(new Error('SetNameForUpdate: length = 0'));
+  }
+}
+
+export const createView = async (mDB: any, view: JsonView): Promise<void> => {
+  const stmt = `CREATE VIEW IF NOT EXISTS ${view.name} AS ${view.value};`;
+  try {
+    const changes = await execute(mDB, stmt);
+    if (changes < 0) {
+      return Promise.reject(new Error(`CreateView: ${view.name} failed`));
+    }
+    return Promise.resolve();
+  } catch (err) {
+    return Promise.reject(new Error(`CreateView: ${err.message}`));
+  }
+}
+export const createViews = async (mDB: any, jsonData: JsonSQLite): Promise<number> => {
+  let isView = false;
+  let msg = '';
+  let initChanges = -1;
+  let changes = -1;
+  try {
+    initChanges = await dbChanges(mDB);
+    // start a transaction
+    await beginTransaction(mDB, true);
+  } catch (err) {
+    return Promise.reject(new Error(`createViews: ${err.message}`));
+  }
+  for (const jView of jsonData.views) {
+    if (jView.value != null) {
+      // Create the view
+      try {
+        await createView(mDB, jView);
+        isView = true;
+      } catch (err) {
+        msg = err.message;
+        isView = false;
+        break;
+      }
+    }
+  }
+  if (isView) {
+    try {
+      await commitTransaction(mDB, true);
+      changes = (await dbChanges(mDB)) - initChanges;
+      return Promise.resolve(changes);
+    } catch (err) {
+      return Promise.reject(new Error('createViews: ' + `${err.message}`));
+    }
+  } else {
+    if (msg.length > 0) {
+      try {
+        await rollbackTransaction(mDB, true);
+        return Promise.reject(new Error(`createViews: ${msg}`));
+      } catch (err) {
+        return Promise.reject(
+          new Error('createViews: ' + `${err.message}: ${msg}`),
+        );
+      }
+    } else {
+      // case were no views given
+      return Promise.resolve(0);
+    }
   }
 }
 

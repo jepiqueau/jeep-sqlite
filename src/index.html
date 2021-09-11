@@ -22,7 +22,6 @@
     jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
       console.log(`Export: ${event.detail.progress}`)
     });
-    console.log(`${JSON.stringify(jeepSqlite)}`);
     let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
     if(await jeepSqlite.isStoreOpen()) {
         try {
@@ -95,7 +94,6 @@
               throw new Error("Query 3 user failed");
             }
             ret = await jeepSqlite.getVersion({database: "testNew"});
-            console.log(`$$$$$ version: ${ret.version}`);
 
             // *** test ExecuteSet
             await jeepSqlite.createConnection({
@@ -202,7 +200,7 @@
             await jeepSqlite.createConnection({database:"db-from-json", version: 1});
             // open db testNew
             await jeepSqlite.open({database: "db-from-json"});
-            const isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json"})
+            let isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json"})
             if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-from-json' failed"));
             // create synchronization table
             ret = await jeepSqlite.createSyncTable({database: "db-from-json"});
@@ -577,8 +575,160 @@
             if(ret.result) {
               return Promise.reject(new Error("IsDatabase 'testNew1' failed"));
             }
+            // testing import/export JsonSQLite with views
+            const dataToImport167 = {
+              database: "db-issue167",
+              version: 1,
+              encrypted: false,
+              mode: "full",
+              tables: [
+                {
+                  name: "departments",
+                  schema: [
+                    {column: "id", value: "INTEGER PRIMARY KEY AUTOINCREMENT" },
+                    {column: "name", value: "TEXT NOT NULL" },
+                    {column:"last_modified", value:"INTEGER"}
+                  ],
+                  indexes: [
+                    {name: "index_departments_on_last_modified",value: "last_modified DESC"}
+                  ],
+                  values: [
+                    [1,"Admin",1608216034],
+                    [2,"Sales",1608216034],
+                    [3,"Quality Control",1608216034],
+                    [4,"Marketing",1608216034],
+                  ]
+                },
+                {
+                  name: "employees",
+                  schema: [
+                    {column: "id", value: "INTEGER PRIMARY KEY AUTOINCREMENT" },
+                    {column: "first_name", value: "TEXT" },
+                    {column: "last_name", value: "TEXT" },
+                    {column: "salary", value: "NUMERIC" },
+                    {column: "dept_id", value: "INTEGER" },
+                    {column: "last_modified", value: "INTEGER"}
+                  ],
+                  indexes: [
+                    {name: "index_departments_on_last_modified",value: "last_modified DESC"}
+                  ],
+                  values: [
+                    [1,"John","Brown",27500,1,1608216034],
+                    [2,"Sally","Brown",37500,2,1608216034],
+                    [3,'Vinay','Jariwala', 35100,3,1608216034],
+                    [4,'Jagruti','Viras', 9500,2,1608216034],
+                    [5,'Shweta','Rana',12000,3,1608216034],
+                    [6,'sonal','Menpara', 13000,1,1608216034],
+                    [7,'Yamini','Patel', 10000,2,1608216034],
+                    [8,'Khyati','Shah', 50000,3,1608216034],
+                    [9,'Shwets','Jariwala',19400,2,1608216034],
+                    [10,'Kirk','Douglas',36400,4,1608216034],
+                    [11,'Leo','White',45000,4,1608216034],
+                  ],
+                }
+              ],
+              views: [
+                {name: "SalesTeam", value: "SELECT id,first_name,last_name from employees WHERE dept_id IN (SELECT id FROM departments where name='Sales')"},
+                {name: "AdminTeam", value: "SELECT id,first_name,last_name from employees WHERE dept_id IN (SELECT id FROM departments where name='Admin')"},
+              ]
+            }
+            const viewsToImport167 = {
+              database: "db-issue167",
+              version: 1,
+              encrypted: false,
+              mode: "partial",
+              tables: [],
+              views: [
+                {name: "QualityControlTeam", value: "SELECT id,first_name,last_name from employees WHERE dept_id IN (SELECT id FROM departments where name='Quality Control')"},
+                {name: "MarketingTeam", value: "SELECT id,first_name,last_name from employees WHERE dept_id IN (SELECT id FROM departments where name='Marketing')"},
+              ]
+            }
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImport167)});
+            if(!result.result) {
+              return Promise.reject(new Error("IsJsonValid dataToImport167 failed"));
+            }
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImport167)});
+            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'full' dataToImport167 failed"));
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"db-issue167", version: 1});
+            // open db db-issue167
+            await jeepSqlite.open({database: "db-issue167"});
+            isDBJson = await jeepSqlite.isDBOpen({database: "db-issue167"})
+            if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-issue167' failed"));
+            // create synchronization table
+            ret = await jeepSqlite.createSyncTable({database: "db-issue167"});
+            if (result.changes.changes < 0) return Promise.reject(new Error("CreateSyncTable failed"));
+            ret = await jeepSqlite.getSyncDate({database: "db-issue167"});
+            if(ret.length === 0) return Promise.reject(new Error("GetSyncDate failed"));
+            // select from view SalesTeam in db
+            ret = await jeepSqlite.query({database: "db-issue167",
+                                          statement: "SELECT * FROM SalesTeam;"});
+            if(ret.values.length !== 4 ||
+                    ret.values[0]["last_name"] !== "Brown" ||
+                    ret.values[1]["last_name"] !== "Viras" ||
+                    ret.values[2]["last_name"] !== "Patel" ||
+                    ret.values[3]["last_name"] !== "Jariwala"  ) {
+              return Promise.reject(new Error("Query SalesTeam failed"));
+            }
+            // select from view AdminTeam in db
+            ret = await jeepSqlite.query({database: "db-issue167",
+                                          statement: "SELECT * FROM AdminTeam;"});
+            if(ret.values.length !== 2 ||
+                    ret.values[0]["last_name"] !== "Brown" ||
+                    ret.values[1]["last_name"] !== "Menpara" ) {
+              return Promise.reject(new Error("Query AdminTeam failed"));
+            }
+            // close the connection test-updversion
+            await jeepSqlite.closeConnection({database:"db-issue167"});
+
+            // partial import views
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(viewsToImport167)});
+            if(!result.result) {
+              return Promise.reject(new Error("IsJsonValid viewsToImport167 failed"));
+            }
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(viewsToImport167)});
+            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial' viewsToImport167 failed"));
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"db-issue167", version: 1});
+            // open db testNew
+            await jeepSqlite.open({database: "db-issue167"});
+            isDBJson = await jeepSqlite.isDBOpen({database: "db-issue167"})
+            if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-issue167' failed"));
+            // select from view QualityControlTeam in db
+            ret = await jeepSqlite.query({database: "db-issue167",
+                                          statement: "SELECT * FROM QualityControlTeam;"});
+            if(ret.values.length !== 3 ||
+                    ret.values[0]["last_name"] !== "Jariwala" ||
+                    ret.values[1]["last_name"] !== "Rana" ||
+                    ret.values[2]["last_name"] !== "Shah" ) {
+              return Promise.reject(new Error("Query QualityControlTeam failed"));
+            }
+            // select from view MarketingTeam in db
+            ret = await jeepSqlite.query({database: "db-issue167",
+                                          statement: "SELECT * FROM MarketingTeam;"});
+            if(ret.values.length !== 2 ||
+                    ret.values[0]["last_name"] !== "Douglas" ||
+                    ret.values[1]["last_name"] !== "White" ) {
+              return Promise.reject(new Error("Query MarketingTeam failed"));
+            }
+            jsonObj = await jeepSqlite.exportToJson({database: "db-issue167",jsonexportmode: 'full'});
+            // test Json object validity
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+            if(!result.result) {
+              return Promise.reject(new Error("IsJsonValid 'full' export db-issue167 failed"));
+            }
+            if(!jsonObj.export.tables || jsonObj.export.tables.length !== 2) {
+              return Promise.reject(new Error("JsonObj tables not correct"));
+            }
+            if(!jsonObj.export.views || jsonObj.export.views.length !== 4) {
+              return Promise.reject(new Error("JsonObj views not correct"));
+            }
+
+
             ret = await jeepSqlite.getDatabaseList();
-            if(ret.values.length != 6) {
+            if(ret.values.length != 7) {
               return Promise.reject(new Error("GetDatabaseList failed"));
             }
             console.log("db success");
