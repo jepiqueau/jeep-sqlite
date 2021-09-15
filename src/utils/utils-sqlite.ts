@@ -118,7 +118,6 @@ export const executeSet = async (db: any, set: any): Promise<number> =>  {
       msg += ` for index ${i}`;
       return Promise.reject(new Error(msg));
     }
-    console.log(`values ${values}`)
     try {
       if (Array.isArray(values[0])) {
         for (const val of values) {
