@@ -137,12 +137,27 @@
                 values:[51.4,"4404030202",2]
               }
             ];
+            const setIssue170 = [
+              { statement: "DROP TABLE IF EXISTS issue170", values: [] },
+              { statement: "CREATE TABLE issue170 (src VARCHAR(255))", values: [] },
+              { statement: "INSERT INTO issue170 (src) values (?)", values: ["google.com"] },
+            ]
             // Create testSet schema
             ret = await jeepSqlite.execute({database: "testSet", statements: createSchemaContacts});
             // Create testSet contact
             ret = await jeepSqlite.executeSet({database: "testSet", set: setContacts});
             if (ret.changes.changes !== 5) {
-              return Promise.reject(new Error("ExecuteSet 5 contacts failed"));
+              throw new Error("ExecuteSet 5 contacts failed");
+            }
+            ret = await jeepSqlite.executeSet({database: "testSet", set: setIssue170});
+            if (ret.changes.changes !== 1) {
+              throw new Error("ExecuteSet 6 issue170 failed");
+            }
+            // Select all users
+            ret = await jeepSqlite.query({database: "testSet",
+                                          statement: "SELECT * FROM issue170;"});
+            if(ret.values.length !== 1 || ret.values[0].src !== "google.com") {
+              throw new Error("Query issue170 failed");
             }
 
             // *** test Import from Json
@@ -191,22 +206,22 @@
             // test Json object validity
             let result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImport)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid failed"));
+              throw new Error("IsJsonValid failed");
             }
             // full import
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImport)});
-            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'full' dataToImport failed"));
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImport failed");
             // create the connection to the database
             await jeepSqlite.createConnection({database:"db-from-json", version: 1});
             // open db testNew
             await jeepSqlite.open({database: "db-from-json"});
             let isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json"})
-            if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-from-json' failed"));
+            if (!isDBJson.result) throw new Error("isDBOpen 'db-from-json' failed");
             // create synchronization table
             ret = await jeepSqlite.createSyncTable({database: "db-from-json"});
-            if (result.changes.changes < 0) return Promise.reject(new Error("CreateSyncTable failed"));
+            if (result.changes.changes < 0) throw new Error("CreateSyncTable failed");
             ret = await jeepSqlite.getSyncDate({database: "db-from-json"});
-            if(ret.length === 0) return Promise.reject(new Error("GetSyncDate failed"));
+            if(ret.length === 0) throw new Error("GetSyncDate failed");
             // Select all users
             ret = await jeepSqlite.query({database: "db-from-json",
                                           statement: "SELECT * FROM users;"});
@@ -215,7 +230,7 @@
                   ret.values[1].name !== "Jones" ||
                   ret.values[2].name !== "Simpson" ||
                   ret.values[3].name !== "Brown"  ) {
-              return Promise.reject(new Error("Query 1 db-from-json Users failed"));
+              throw new Error("Query 1 db-from-json Users failed");
             }
             await jeepSqlite.closeConnection({database:"db-from-json"});
 
@@ -239,11 +254,11 @@
             // test Json object validity
             result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(partialImport1)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid failed"));
+              throw new Error("IsJsonValid failed");
             }
             // partial import
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport1)});
-            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial1' dataToImport failed"));
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'partial1' dataToImport failed");
 
 
             const partialImport2 = {
@@ -268,7 +283,7 @@
               ]
             };
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport2)});
-            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial2' dataToImport failed"));
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'partial2' dataToImport failed");
 
             const partialImport3 = {
               database : "db-from-json",
@@ -298,7 +313,7 @@
               ]
             };
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport3)});
-            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial3' dataToImport failed"));
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'partial3' dataToImport failed");
 
             // create the connection to the database
             await jeepSqlite.createConnection({database:"db-from-json", version: 1});
@@ -314,7 +329,7 @@
                   ret.values[3].name !== "Brown" ||
                   ret.values[4].name !== "Addington" ||
                   ret.values[5].name !== "Bannister" ) {
-              return Promise.reject(new Error("Query 2 db-from-json Users failed"));
+              throw new Error("Query 2 db-from-json Users failed");
             }
 
             // Select all messages
@@ -325,7 +340,7 @@
                   ret.values[1].title !== "test post 2" ||
                   ret.values[2].title !== "test post 3" ||
                   ret.values[3].title !== "test post 4" ) {
-              return Promise.reject(new Error("Query 3 db-from-json Messages failed"));
+              throw new Error("Query 3 db-from-json Messages failed");
             }
 
             // *** test Export to Json
@@ -334,7 +349,7 @@
             // test Json object validity
             result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid 'full' export failed"));
+              throw new Error("IsJsonValid 'full' export failed");
             }
             //test partial export
             syncDate = "2020-05-20T18:40:00.000Z";
@@ -343,7 +358,7 @@
             // test Json object validity
             result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid 'partial' export failed"));
+              throw new Error("IsJsonValid 'partial' export failed");
             }
             if(jsonObj.export.tables.length != 3 || jsonObj.export.tables[0].name != 'users'
                 || jsonObj.export.tables[1].name != 'messages'
@@ -351,7 +366,7 @@
                 || jsonObj.export.tables[0].values.length != 4
                 || jsonObj.export.tables[1].values.length != 3
                 || jsonObj.export.tables[2].values.length != 2) {
-              return Promise.reject(new Error("IsJsonValid 'partial' export failed: No 4 tables"));
+              throw new Error("IsJsonValid 'partial' export failed: No 4 tables");
             }
 
             await jeepSqlite.closeConnection({database:"testNew"});
@@ -548,7 +563,7 @@
                 ret.values[0].title !== "test message 1" ||
                 ret.values[1].name !== "Whiteley" ||
                 ret.values[1].title !== "test message 3") {
-              return Promise.reject(new Error("Query Messages User 1 Version 2 failed"));
+              throw new Error("Query Messages User 1 Version 2 failed");
             }
             // select all messages for user 2
             ret = await jeepSqlite.query({database: "test-updversion",
@@ -557,11 +572,11 @@
             if(ret.values.length !== 1 ||
                 ret.values[0].name !== "Jones" ||
                 ret.values[0].title !== "test message 2") {
-              return Promise.reject(new Error("Query Messages User 2 Version 2 failed"));
+              throw new Error("Query Messages User 2 Version 2 failed");
             }
             ret = await jeepSqlite.checkConnectionsConsistency({dbNames:["test-updversion"]});
             if(!ret.result) {
-              return Promise.reject(new Error("checkConnectionsConsistency ['test-updversion'] failed"));
+              throw new Error("checkConnectionsConsistency ['test-updversion'] failed");
             }
             // close the connection test-updversion
             await jeepSqlite.closeConnection({database:"test-updversion"});
@@ -569,11 +584,11 @@
             // check if a database is in the store
             ret = await jeepSqlite.isDatabase({database: "testNew"});
             if(!ret.result) {
-              return Promise.reject(new Error("IsDatabase 'testNew' failed"));
+              throw new Error("IsDatabase 'testNew' failed");
             }
             ret = await jeepSqlite.isDatabase({database: "testNew1"});
             if(ret.result) {
-              return Promise.reject(new Error("IsDatabase 'testNew1' failed"));
+              throw new Error("IsDatabase 'testNew1' failed");
             }
             // testing import/export JsonSQLite with views
             const dataToImport167 = {
@@ -645,22 +660,22 @@
             }
             result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImport167)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid dataToImport167 failed"));
+              throw new Error("IsJsonValid dataToImport167 failed");
             }
             // full import
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImport167)});
-            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'full' dataToImport167 failed"));
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImport167 failed");
             // create the connection to the database
             await jeepSqlite.createConnection({database:"db-issue167", version: 1});
             // open db db-issue167
             await jeepSqlite.open({database: "db-issue167"});
             isDBJson = await jeepSqlite.isDBOpen({database: "db-issue167"})
-            if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-issue167' failed"));
+            if (!isDBJson.result) throw new Error("isDBOpen 'db-issue167' failed");
             // create synchronization table
             ret = await jeepSqlite.createSyncTable({database: "db-issue167"});
-            if (result.changes.changes < 0) return Promise.reject(new Error("CreateSyncTable failed"));
+            if (result.changes.changes < 0) throw new Error("CreateSyncTable failed");
             ret = await jeepSqlite.getSyncDate({database: "db-issue167"});
-            if(ret.length === 0) return Promise.reject(new Error("GetSyncDate failed"));
+            if(ret.length === 0) throw new Error("GetSyncDate failed");
             // select from view SalesTeam in db
             ret = await jeepSqlite.query({database: "db-issue167",
                                           statement: "SELECT * FROM SalesTeam;"});
@@ -669,7 +684,7 @@
                     ret.values[1]["last_name"] !== "Viras" ||
                     ret.values[2]["last_name"] !== "Patel" ||
                     ret.values[3]["last_name"] !== "Jariwala"  ) {
-              return Promise.reject(new Error("Query SalesTeam failed"));
+              throw new Error("Query SalesTeam failed");
             }
             // select from view AdminTeam in db
             ret = await jeepSqlite.query({database: "db-issue167",
@@ -677,7 +692,7 @@
             if(ret.values.length !== 2 ||
                     ret.values[0]["last_name"] !== "Brown" ||
                     ret.values[1]["last_name"] !== "Menpara" ) {
-              return Promise.reject(new Error("Query AdminTeam failed"));
+              throw new Error("Query AdminTeam failed");
             }
             // close the connection test-updversion
             await jeepSqlite.closeConnection({database:"db-issue167"});
@@ -685,17 +700,17 @@
             // partial import views
             result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(viewsToImport167)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid viewsToImport167 failed"));
+              throw new Error("IsJsonValid viewsToImport167 failed");
             }
             // full import
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(viewsToImport167)});
-            if(result.changes.changes === -1 ) return Promise.reject(new Error("ImportFromJson 'partial' viewsToImport167 failed"));
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'partial' viewsToImport167 failed");
             // create the connection to the database
             await jeepSqlite.createConnection({database:"db-issue167", version: 1});
             // open db testNew
             await jeepSqlite.open({database: "db-issue167"});
             isDBJson = await jeepSqlite.isDBOpen({database: "db-issue167"})
-            if (!isDBJson.result) return Promise.reject(new Error("isDBOpen 'db-issue167' failed"));
+            if (!isDBJson.result) throw new Error("isDBOpen 'db-issue167' failed");
             // select from view QualityControlTeam in db
             ret = await jeepSqlite.query({database: "db-issue167",
                                           statement: "SELECT * FROM QualityControlTeam;"});
@@ -703,7 +718,7 @@
                     ret.values[0]["last_name"] !== "Jariwala" ||
                     ret.values[1]["last_name"] !== "Rana" ||
                     ret.values[2]["last_name"] !== "Shah" ) {
-              return Promise.reject(new Error("Query QualityControlTeam failed"));
+              throw new Error("Query QualityControlTeam failed");
             }
             // select from view MarketingTeam in db
             ret = await jeepSqlite.query({database: "db-issue167",
@@ -711,25 +726,25 @@
             if(ret.values.length !== 2 ||
                     ret.values[0]["last_name"] !== "Douglas" ||
                     ret.values[1]["last_name"] !== "White" ) {
-              return Promise.reject(new Error("Query MarketingTeam failed"));
+              throw new Error("Query MarketingTeam failed");
             }
             jsonObj = await jeepSqlite.exportToJson({database: "db-issue167",jsonexportmode: 'full'});
             // test Json object validity
             result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
             if(!result.result) {
-              return Promise.reject(new Error("IsJsonValid 'full' export db-issue167 failed"));
+              throw new Error("IsJsonValid 'full' export db-issue167 failed");
             }
             if(!jsonObj.export.tables || jsonObj.export.tables.length !== 2) {
-              return Promise.reject(new Error("JsonObj tables not correct"));
+              throw new Error("JsonObj tables not correct");
             }
             if(!jsonObj.export.views || jsonObj.export.views.length !== 4) {
-              return Promise.reject(new Error("JsonObj views not correct"));
+              throw new Error("JsonObj views not correct");
             }
 
 
             ret = await jeepSqlite.getDatabaseList();
             if(ret.values.length != 7) {
-              return Promise.reject(new Error("GetDatabaseList failed"));
+              new Error("GetDatabaseList failed");
             }
             console.log("db success");
         } catch (err) {

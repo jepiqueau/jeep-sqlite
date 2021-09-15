@@ -112,12 +112,13 @@ export const executeSet = async (db: any, set: any): Promise<number> =>  {
   for (let i = 0; i < set.length; i++) {
     const statement = 'statement' in set[i] ? set[i].statement : null;
     const values =
-      'values' in set[i] && set[i].values.length > 0 ? set[i].values : null;
-    if (statement == null || values == null) {
-      let msg = 'ExecuteSet: Error statement';
-      msg += ` or values are null for index ${i}`;
+      'values' in set[i] && set[i].values.length > 0 ? set[i].values : [];
+    if (statement == null) {
+      let msg = 'ExecuteSet: Error No statement';
+      msg += ` for index ${i}`;
       return Promise.reject(new Error(msg));
     }
+    console.log(`values ${values}`)
     try {
       if (Array.isArray(values[0])) {
         for (const val of values) {
