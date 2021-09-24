@@ -87,6 +87,10 @@ export class AppHome {
           if (ret.changes.changes !== 2) {
             throw new Error("Execute 3 users failed");
           }
+          
+          // Save the database to store
+            await jeepSqlite.saveToStore({database: "testNew"});
+
           // Select all users
           let retValues = await jeepSqlite.query({database: "testNew",
                                         statement: "SELECT * FROM users;"});

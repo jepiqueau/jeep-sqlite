@@ -451,6 +451,16 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+### `saveToStore(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `setSyncDate(options: SQLiteSyncDateOptions) => Promise<void>`
 
 

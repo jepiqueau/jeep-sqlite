@@ -70,6 +70,7 @@ in the head of your index.html
 | isDatabase                  | ✅      |
 | getDatabaseList             | ✅      |
 | checkConnectionsConsistency | ✅      |
+| saveToStore                 | ✅      |
 
 
 The database is saved when you run the methods `close`or `closeConnection`, in the Browser Storage `IndexedDB` as a `localforage` store under the `jeepSqliteStore` name and `databases`table name.
@@ -159,6 +160,8 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
               if (ret.changes.changes !== 2) {
                 throw new Error("Execute 3 users failed");
               }
+              // Save Database to store
+              await jeepSqlite.saveToStore({database: "testNew"});
               // Select all users
               ret = await jeepSqlite.query({database: "testNew",
                                             statement: "SELECT * FROM users;"});

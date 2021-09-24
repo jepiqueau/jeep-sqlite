@@ -33,6 +33,7 @@ export namespace Components {
         "open": (options: SQLiteOptions) => Promise<void>;
         "query": (options: SQLiteQueryOptions) => Promise<SQLiteValues>;
         "run": (options: SQLiteRunOptions) => Promise<SQLiteChanges>;
+        "saveToStore": (options: SQLiteOptions) => Promise<void>;
         "setSyncDate": (options: SQLiteSyncDateOptions) => Promise<void>;
     }
 }

@@ -42,6 +42,9 @@ export class JeepSqlite {
   }
   @Method()
   async createConnection(options: ConnectionOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -57,6 +60,9 @@ export class JeepSqlite {
   }
   @Method()
   async closeConnection(options: SQLiteOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -71,6 +77,9 @@ export class JeepSqlite {
   }
   @Method()
   async open(options: SQLiteOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -85,6 +94,9 @@ export class JeepSqlite {
   }
   @Method()
   async close(options: SQLiteOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -99,6 +111,9 @@ export class JeepSqlite {
   }
   @Method()
   async getVersion(options: SQLiteOptions): Promise<SQLiteVersion> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -113,6 +128,9 @@ export class JeepSqlite {
   }
   @Method()
   async execute(options: SQLiteExecuteOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -133,6 +151,9 @@ export class JeepSqlite {
   }
   @Method()
   async executeSet(options: SQLiteSetOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -153,6 +174,9 @@ export class JeepSqlite {
   }
   @Method()
   async run(options: SQLiteRunOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -177,6 +201,9 @@ export class JeepSqlite {
   }
   @Method()
   async query(options: SQLiteQueryOptions): Promise<SQLiteValues> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -199,6 +226,9 @@ export class JeepSqlite {
   }
   @Method()
   async isDBExists(options: SQLiteOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -213,6 +243,9 @@ export class JeepSqlite {
   }
   @Method()
   async isDBOpen(options: SQLiteOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -227,6 +260,9 @@ export class JeepSqlite {
   }
   @Method()
   async deleteDatabase(options: SQLiteOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -245,6 +281,9 @@ export class JeepSqlite {
   }
   @Method()
   async copyFromAssets(): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     try {
       await this._copyFromAssets();
       return Promise.resolve();
@@ -255,6 +294,9 @@ export class JeepSqlite {
   }
   @Method()
   async isTableExists(options: SQLiteTableOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -273,6 +315,9 @@ export class JeepSqlite {
   }
   @Method()
   async createSyncTable(options: SQLiteOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -287,6 +332,9 @@ export class JeepSqlite {
   }
   @Method()
   async getSyncDate(options: SQLiteSyncDateOptions): Promise<SQLiteSyncDate> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -301,6 +349,9 @@ export class JeepSqlite {
   }
   @Method()
   async setSyncDate(options: SQLiteSyncDateOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -333,6 +384,9 @@ export class JeepSqlite {
   }
   @Method()
   async importFromJson(options: SQLiteImportOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('jsonstring')) {
       return Promise.reject('Must provide a json object');
@@ -347,6 +401,9 @@ export class JeepSqlite {
   }
   @Method()
   async exportToJson(options: SQLiteExportOptions): Promise<SQLiteJson> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -365,6 +422,9 @@ export class JeepSqlite {
   }
   @Method()
   async addUpgradeStatement(options: SQLiteUpgradeOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     let keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -394,6 +454,9 @@ export class JeepSqlite {
   }
   @Method()
   async isDatabase(options: SQLiteOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('database')) {
       return Promise.reject('Must provide a database name');
@@ -408,6 +471,9 @@ export class JeepSqlite {
   }
   @Method()
   async getDatabaseList(): Promise<SQLiteValues> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     try {
       const ret: SQLiteValues = await this._getDatabaseList();
       return Promise.resolve(ret);
@@ -417,6 +483,9 @@ export class JeepSqlite {
   }
   @Method()
   async checkConnectionsConsistency(options: AllConnectionsOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
     const keys = Object.keys(options);
     if (!keys.includes('dbNames')) {
       return Promise.reject(`Must provide a list of connection's name`);
@@ -429,7 +498,23 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
-
+  @Method()
+  async saveToStore(options: SQLiteOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      await this._saveToStore(dbName);
+      return Promise.resolve();
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
   //********************************
   //* Component Internal Variables *
   //********************************
@@ -438,7 +523,7 @@ export class JeepSqlite {
   private storeName: string;
   private isStore: boolean = false;
   private _dbDict: any = {};
-  private databaseList: any;
+  private databaseList: any = {};
   private _versionUpgrades: Record<string, Record<number, SQLiteVersionUpgrade>> = {};
 
 
@@ -448,11 +533,13 @@ export class JeepSqlite {
 
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
-    const res = await this.loadJSON('assets/databases/databases.json');
-    this.databaseList = JSON.parse(res).databaseList;
   }
   componentDidLoad() {
-    console.log(`StoreName: ${this.storeName}`);
+    if(this.isStore) {
+      console.log(`>>> jeep-sqlite StoreName: ${this.storeName}`);
+    } else {
+      console.log('>>> jeep-sqlite isStore = false');
+    }
   }
 
   //******************************
@@ -523,6 +610,20 @@ export class JeepSqlite {
       return Promise.resolve();
     } catch (err) {
       return Promise.reject(`Close: ${err.message}`);
+    }
+  }
+  private async _saveToStore(database: string): Promise<void> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(`SaveToStore: No available connection for ${database}`);
+    }
+
+    const mDB = this._dbDict[database];
+    try {
+      await mDB.saveToStore();
+      return Promise.resolve();
+    } catch (err) {
+      return Promise.reject(`SaveToStore: ${err.message}`);
     }
   }
   private async _getVersion(database: string): Promise<SQLiteVersion> {
@@ -776,13 +877,24 @@ export class JeepSqlite {
 
   }
   async _copyFromAssets(): Promise<void> {
-    try {
-      for( const dbName of this.databaseList) {
-        await this.copyDatabase(`assets/databases/${dbName}`);
+    const res = await this.loadJSON('assets/databases/databases.json');
+    if(res != null) {
+      this.databaseList = JSON.parse(res);
+      const keys = Object.keys(this.databaseList);
+      if (keys.includes("databaseList")) {
+        try {
+          for( const dbName of this.databaseList.databaseList) {
+            await this.copyDatabase(`assets/databases/${dbName}`);
+          }
+          return Promise.resolve();
+        } catch (err) {
+          return Promise.reject(`CopyFromAssets: ${err.message}`);
+        }
+      } else {
+        return Promise.reject(`CopyFromAssets: no key databaseList in databases.json`);
       }
-      return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`CopyFromAssets: ${err.message}`);
+    } else {
+      return Promise.reject(`CopyFromAssets: no databases.json file in assets/databases folder`);
     }
   }
   async _isDatabase(database:string): Promise<SQLiteResult> {
@@ -894,6 +1006,7 @@ export class JeepSqlite {
       }
 
       xobj.onreadystatechange = function () {
+        if(xobj.status == 404) resolve(null);
         if (xobj.readyState == 4 && xobj.status == 200) {
         // Required use of an anonymous callback as .open will NOT return a value but simply returns undefined in asynchronous mode
         resolve(xobj.responseText);

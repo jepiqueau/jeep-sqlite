@@ -119,6 +119,17 @@ export class Database {
     }
     return Promise.resolve();
   }
+  public async saveToStore(): Promise<void> {
+    if (this.mDb != null && this._isDBOpen) {
+      try {
+        // save the database to store
+        await setDBToStore(this.mDb, this.dbName, this.store);
+      } catch (err) {
+        return Promise.reject(`in saveToStore ${err}`);
+      }
+    }
+    return Promise.resolve();
+  }
   public async getVersion(): Promise<number> {
     if (this.mDb != null && this._isDBOpen) {
       try {
