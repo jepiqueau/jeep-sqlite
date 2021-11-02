@@ -27,6 +27,7 @@
         try {
 
           // *** test all basic methods
+
           await jeepSqlite.createConnection({
                     database:"testNew",
                     version: 1
@@ -377,7 +378,7 @@
 
             // *** test copy from asset ***
 
-            await jeepSqlite.copyFromAssets();
+            await jeepSqlite.copyFromAssets({overwrite: false});
             // create connection to myDB
             await jeepSqlite.createConnection({database:"myDB",version: 1});
             // open db myDB
@@ -748,6 +749,53 @@
             if(ret.values.length != 7) {
               new Error("GetDatabaseList failed");
             }
+
+            // create connection to dbZip2
+            await jeepSqlite.createConnection({database:"dbZip2",version: 1});
+            // open db myDB
+            await jeepSqlite.open({database: "dbZip2"});
+            statement = `SELECT name FROM sqlite_master WHERE type='table';`;
+            // Select all tables
+            ret = await jeepSqlite.query({database: "dbZip2",
+                                          statement: statement});
+            if(ret.values.length !== 3 ||
+                ret.values[0].name !== "users" ||
+                ret.values[1].name !== "messages" ||
+                ret.values[2].name !== "sync_table"
+            ) {
+              throw new Error("Query MyDB Tables failed");
+            }
+
+            // Select all users
+            ret = await jeepSqlite.query({database: "dbZip2",
+                                          statement: "SELECT * FROM users;"});
+            if(ret.values.length != 7 ||
+                ret.values[0].name !== "Whiteley" ||
+                ret.values[1].name !== "Jones" ||
+                ret.values[2].name !== "Simpson" ||
+                ret.values[3].name !== "Brown" ||
+                ret.values[4].name !== "Jackson" ||
+                ret.values[5].name !== "Kennedy" ||
+                ret.values[6].name !== "Bush"
+            ) {
+              throw new Error("Query MyDB Users failed");
+            }
+            await jeepSqlite.closeConnection({database:"dbZip2"});
+            // create connection to dbForCopy
+            await jeepSqlite.createConnection({database:"dbZip1",version: 1});
+            // open db myDB
+            await jeepSqlite.open({database: "dbZip1"});
+            // Select all users
+            ret = await jeepSqlite.query({database: "dbZip1",
+                                          statement: "SELECT * FROM areas;"});
+            if(ret.values.length != 3 ||
+                ret.values[0].name !== "Access road" ||
+                ret.values[1].name !== "Accessway" ||
+                ret.values[2].name !== "Air handling system"              ) {
+              throw new Error("Query dbZip1 Areas failed");
+            }
+            await jeepSqlite.closeConnection({database:"dbZip1"});
+
             console.log("db success");
         } catch (err) {
           console.log(`Error ${err}`);

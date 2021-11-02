@@ -119,17 +119,7 @@ export interface SQLiteTableOptions {
    */
   table?: string;
 }
-export interface SQLiteSyncDateOptions {
-  /**
-   * The database name
-   */
-  database?: string;
-  /**
-   * Set the synchronization date
-   * Format yyyy-MM-dd'T'HH:mm:ss.SSSZ
-   */
-  syncdate?: string;
-}
+
 export interface SQLiteImportOptions {
   /**
    * Set the JSON object to import
@@ -223,6 +213,12 @@ export interface SQLiteSyncDate {
    * the synchronization date
    */
   syncDate?: number;
+}
+export interface  SQLiteFromAssetsOptions {
+  /**
+   * the overwrite value true/false default true
+   */
+  overwrite?: boolean;
 }
 export interface SQLiteJson {
   /**

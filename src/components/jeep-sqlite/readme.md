@@ -1,5 +1,77 @@
 # jeep-sqlite
 
+## Indexes
+* [`Events Index`](#events-index)
+* [`Interfaces Index`](#interfaces-index)
+* [`Methods Index`](#methods-index)
+
+
+## Methods Index
+* [`addUpgradeStatement(...)`](#addUpgradeStatement(options:-SQLiteUpgradeOptions)-=>-Promise<void>)
+* [`checkConnectionsConsistency(...)`](#checkConnectionsConsistency(options:-AllConnectionsOptions)-=>-Promise<SQLiteResult>)
+* [`close(...)`](#close(options:-SQLiteOptions)-=>-Promise<void>)
+* [`closeConnection(...)`](#closeConnection(options:-SQLiteOptions)-=>-Promise<void>)
+* [`copyFromAssets(...)`](#copyFromAssets(options:-SQLiteFromAssetsOptions)-=>-Promise<void>)
+* [`createConnection(...)`](#createConnection(options:-ConnectionOptions)-=>-Promise<void>)
+* [`createSyncTable(...)`](#createSyncTable(options:-SQLiteOptions)-=>-Promise<SQLiteChanges>)
+* [`deleteDatabase(...)`](#deleteDatabase(options:-SQLiteOptions)-=>-Promise<void>)
+* [`echo(...)`](#echo(options:-EchoOptions)-=>-Promise<EchoResult>)
+* [`execute(...)`](#execute(options:-SQLiteExecuteOptions)-=>-Promise<SQLiteChanges>)
+* [`executeSet(...)`](#executeSet(options:-SQLiteSetOptions)-=>-Promise<SQLiteChanges>)
+* [`exportToJson(...)`](#exportToJson(options:-SQLiteExportOptions)-=>-Promise<SQLiteJson>)
+* [`getDatabaseList()`](#getDatabaseList()-=>-Promise<SQLiteValues>)
+* [`getSyncDate(...)`](#ggetSyncDate(options:-SQLiteSyncDateOptions)-=>-Promise<SQLiteSyncDate>)
+* [`getVersion(...)`](#getVersion(options:-SQLiteOptions)-=>-Promise<SQLiteVersion>)
+* [`importFromJson(...)`](#importFromJson(options:-SQLiteImportOptions)-=>-Promise<SQLiteChanges>)
+* [`isDatabase(...)`](#isDatabase(options:-SQLiteOptions)-=>-Promise<SQLiteResult>)
+* [`isDBExists(...)`](#isDBExists(options:-SQLiteOptions)-=>-Promise<SQLiteResult>)
+* [`isDBOpen(...)`](#isDBOpen(options:-SQLiteOptions)-=>-Promise<SQLiteResult>)
+* [`isJsonValid(...)`](#isJsonValid(options:-SQLiteImportOptions)-=>-Promise<SQLiteResult>)
+* [`isStoreOpen()`](#isStoreOpen()-=>-Promise<boolean>)
+* [`isTableExists(...)`](#isTableExists(options:-SQLiteTableOptions)-=>-Promise<SQLiteResult>)
+* [`open(...)`](#open(options:-SQLiteOptions)-=>-Promise<void>)
+* [`query(...)`](#query(options:-SQLiteQueryOptions)-=>-Promise<SQLiteValues>)
+* [`run(...)`](#run(options:-SQLiteRunOptions)-=>-Promise<SQLiteChanges>)
+* [`saveToStore(...)`](#saveToStore(options:-SQLiteOptions)-=>-Promise<void>)
+* [`setSyncDate(...)`](#setSyncDate(options:-SQLiteSyncDateOptions)-=>-Promise<void>)
+
+## Interfaces Index
+* [`AllConnectionsOptions`](#allconnectionsoptions)
+* [`Changes`](#changes)
+* [`ConnectionOptions`](#connectionoptions)
+* [`EchoOptions`](#echooptions)
+* [`EchoResult`](#echoresult)
+* [`JsonColumn`](#jsoncolumn)
+* [`JsonSQLite`](#jsonsqlite)
+* [`JsonTable`](#jsontable)
+* [`JsonTrigger`](#jsontrigger)
+* [`JsonIndex`](#jsonindex)
+* [`JsonProgressListener`](#jsonprogresslistener)
+* [`JsonView`](#jsonview)
+* [`SQLiteChanges`](#sqlitechanges)
+* [`SQLiteExecuteOptions`](#sqliteexecuteoptions)
+* [`SQLiteExportOptions`](#sqliteexportoptions)
+* [`SQLiteFromAssetsOptions`](#sqlitefromassetsoptions)
+* [`SQLiteImportOptions`](#sqliteimportoptions)
+* [`SQLiteJson`](#sqlitejson)
+* [`SQLiteOptions`](#sqliteoptions)
+* [`SQLiteQueryOptions`](#sqlitequeryoptions)
+* [`SQLiteResult`](#sqliteresult)
+* [`SQLiteRunOptions`](#sqliterunoptions)
+* [`SQLiteSet`](#sqliteset)
+* [`SQLiteSetOptions`](#sqlitesetoptions)
+* [`SQLiteSyncDate`](#sqlitesyncdate)
+* [`SQLiteSyncDateOptions`](#sqlitesyncdateoptions)
+* [`SQLiteTableOptions`](#sqlitetableoptions)
+* [`SQLiteUpgradeOptions`](#sqliteupgradeoptions)
+* [`SQLiteValues`](#sqlitevalues)
+* [`SQLiteVersion`](#sqliteversion)
+* [`SQLiteVersionUpgrade`](#sqliteversionupgrade)
+
+### Events Index
+* [`jeepSqliteExportProgress`](#jeepsqliteexportprogress)
+* [`jeepSqliteImportProgress`](#jeepsqliteimportprogress)
+
 ## Interfaces
 
 ### EchoOptions
@@ -123,11 +195,21 @@
 | ------------- | -------------------- | ------------------------------------------------------- |
 | **`values`**  | <code>any[]</code>   | Returned the data values list as an Array               |
 
+### SQLiteVersion 
+| Prop           | Type                 | Description                                 |
+| -------------- | -------------------- | ------------------------------------------- |
+| **`version`**  | <code>number</code>  | Returned the database version               |
+
 ### SQLiteSyncDate {
 | Prop            | Type                 | Description                                             |
 | --------------- | -------------------- | ------------------------------------------------------- |
 | **`syncDate`**  | <code>number</code>  | Returned the stored synchronization date                |
 
+### SQLiteFromAssetsOptions {
+| Prop            | Type                  | Description                                             |
+| --------------- | --------------------- | ------------------------------------------------------- |
+| **`overwrite`**  | <code>boolean</code> | An overwrite value true/false default true              |
+  
 ### SQLiteJson {
 | Prop          | Type                     | Description                                           |
 | ------------- | ------------------------ | ----------------------------------------------------- |
@@ -138,6 +220,12 @@
 | --------------- | -------------------- | ----------------------------------------------------- |
 | **`progress`**  | <code>string</code>  | Progress message for importFromJson or exportToJson   |
 
+### JsonView {
+| Prop         | Type                     | Description         |
+| ------------ | ------------------------ | ------------------- |
+| **`mode`**   | <code>string</code>      | "full" / "partial"  |
+| **`tables`** | <code>JsonTable[]</code> | tables definition   |
+| **`views`**  | <code>JsonView[]</code>  | views definition    |
 
 ## JSON Types
 
@@ -193,11 +281,15 @@ The index value can have the following formats:
 
 ## Events
 
+### jeepSqliteExportProgress
 | Event                      | Description | Type                                |
 | -------------------------- | ----------- | ----------------------------------- |
 | `jeepSqliteExportProgress` |             | `CustomEvent<JsonProgressListener>` |
-| `jeepSqliteImportProgress` |             | `CustomEvent<JsonProgressListener>` |
 
+### jeepSqliteImportProgress
+| Event                      | Description | Type                                |
+| -------------------------- | ----------- | ----------------------------------- |
+| `jeepSqliteImportProgress` |             | `CustomEvent<JsonProgressListener>` |
 
 ## Methods
 
@@ -241,7 +333,7 @@ Type: `Promise<void>`
 
 
 
-### `copyFromAssets() => Promise<void>`
+### `copyFromAssets(options: SQLiteFromAssetsOptions) => Promise<void>`
 
 
 

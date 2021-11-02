@@ -5,14 +5,14 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
+import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "addUpgradeStatement": (options: SQLiteUpgradeOptions) => Promise<void>;
         "checkConnectionsConsistency": (options: AllConnectionsOptions) => Promise<SQLiteResult>;
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
-        "copyFromAssets": () => Promise<void>;
+        "copyFromAssets": (options: SQLiteFromAssetsOptions) => Promise<void>;
         "createConnection": (options: ConnectionOptions) => Promise<void>;
         "createSyncTable": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "deleteDatabase": (options: SQLiteOptions) => Promise<void>;

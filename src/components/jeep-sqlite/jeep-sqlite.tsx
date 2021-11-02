@@ -6,9 +6,10 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
          SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
-         SQLiteJson, JsonProgressListener, SQLiteVersion } from '../../interfaces/interfaces';
+         SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
-import { saveDBToStore, isDBInStore, getDBListFromStore } from '../../utils/utils-store';
+import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
+import * as JSZip from 'jszip';
 
 @Component({
   tag: 'jeep-sqlite',
@@ -280,12 +281,19 @@ export class JeepSqlite {
     return Promise.resolve(this.isStore);
   }
   @Method()
-  async copyFromAssets(): Promise<void> {
+  async copyFromAssets(options: SQLiteFromAssetsOptions): Promise<void> {
+    let overwrite: boolean;
+    if(options != null) {
+      const keys = Object.keys(options);
+      overwrite = keys.includes('overwrite') ? options.overwrite : true;
+    } else {
+      overwrite = true;
+    }
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
     }
     try {
-      await this._copyFromAssets();
+      await this._copyFromAssets(overwrite);
       return Promise.resolve();
     }
     catch (err) {
@@ -876,7 +884,7 @@ export class JeepSqlite {
     }
 
   }
-  async _copyFromAssets(): Promise<void> {
+  async _copyFromAssets(overwrite: boolean): Promise<void> {
     const res = await this.loadJSON('assets/databases/databases.json');
     if(res != null) {
       this.databaseList = JSON.parse(res);
@@ -884,7 +892,12 @@ export class JeepSqlite {
       if (keys.includes("databaseList")) {
         try {
           for( const dbName of this.databaseList.databaseList) {
-            await this.copyDatabase(`assets/databases/${dbName}`);
+            if( dbName.substring(dbName.length - 3) === ".db") {
+              await this.copyDatabase(`assets/databases/${dbName}`, overwrite);
+            }
+            if( dbName.substring(dbName.length - 4) === ".zip") {
+              await this.unzipDatabase(`assets/databases/${dbName}`, overwrite);
+            }
           }
           return Promise.resolve();
         } catch (err) {
@@ -976,7 +989,43 @@ export class JeepSqlite {
     }
     return _difference
 }
-  private async copyDatabase(dbAssetName: string): Promise<void> {
+private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void> {
+  return new Promise ((resolve,reject) => {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', dbZipName, true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onerror = () => {
+      reject(`unzipDatabase: failed`);
+    }
+    xhr.onload =  () => {
+      try {
+
+        JSZip.loadAsync(xhr.response).then( (zip) => {
+          Object.keys(zip.files).forEach( (filename) => {
+            zip.files[filename].async('nodebuffer').then(async (fileData) => {
+              const uInt8Array = new Uint8Array(fileData);
+              const dbName = this.setPathSuffix(filename);
+              // check if dbName exists
+              const isExist: boolean = await isDBInStore(dbName, this.store);
+              if (!isExist || overwrite) {
+                if(overwrite && isExist) {
+                  await removeDBFromStore(dbName, this.store);
+                }
+                await saveDBToStore(dbName, uInt8Array, this.store);
+              }
+            })
+          })
+          resolve();
+        })
+      } catch (err) {
+        reject(`unzipDatabase Error: ${err}`);
+      }
+    };
+    xhr.send();
+  });
+}
+
+  private async copyDatabase(dbAssetName: string, overwrite: boolean): Promise<void> {
     return new Promise ((resolve,reject) => {
       var xhr = new XMLHttpRequest();
       var uInt8Array: Uint8Array;
@@ -990,7 +1039,14 @@ export class JeepSqlite {
       };
       xhr.onloadend= async () => {
         const dbName = this.setPathSuffix(dbAssetName);
-        await saveDBToStore(dbName, uInt8Array, this.store);
+        // check if dbName exists
+        const isExist: boolean = await isDBInStore(dbName, this.store);
+        if (!isExist || overwrite) {
+          if(overwrite && isExist) {
+            await removeDBFromStore(dbName, this.store);
+          }
+          await saveDBToStore(dbName, uInt8Array, this.store);
+        }
         resolve();
       };
       xhr.send();
@@ -1037,13 +1093,11 @@ export class JeepSqlite {
   }
   private setPathSuffix(db: string): string {
     let toDb: string = db.slice(db.lastIndexOf("/") + 1);
-    if (db.length > 9) {
-      const last9: string = db.slice(-9);
-      if (last9 != 'SQLite.db') {
+    const ext: string = ".db";
+    if(db.substring(db.length -3) === ext) {
+      if(!db.includes("SQLite.db")) {
         toDb = db.slice(db.lastIndexOf("/") + 1, -3) + 'SQLite.db';
       }
-    } else {
-      toDb = toDb + 'SQLite.db';
     }
     return toDb;
   }
