@@ -7,33 +7,33 @@
 
 
 ## Methods Index
-* [`addUpgradeStatement(...)`](#addUpgradeStatement(options:-SQLiteUpgradeOptions)-=>-Promise<void>)
-* [`checkConnectionsConsistency(...)`](#checkConnectionsConsistency(options:-AllConnectionsOptions)-=>-Promise<SQLiteResult>)
-* [`close(...)`](#close(options:-SQLiteOptions)-=>-Promise<void>)
-* [`closeConnection(...)`](#closeConnection(options:-SQLiteOptions)-=>-Promise<void>)
-* [`copyFromAssets(...)`](#copyFromAssets(options:-SQLiteFromAssetsOptions)-=>-Promise<void>)
-* [`createConnection(...)`](#createConnection(options:-ConnectionOptions)-=>-Promise<void>)
-* [`createSyncTable(...)`](#createSyncTable(options:-SQLiteOptions)-=>-Promise<SQLiteChanges>)
-* [`deleteDatabase(...)`](#deleteDatabase(options:-SQLiteOptions)-=>-Promise<void>)
-* [`echo(...)`](#echo(options:-EchoOptions)-=>-Promise<EchoResult>)
-* [`execute(...)`](#execute(options:-SQLiteExecuteOptions)-=>-Promise<SQLiteChanges>)
-* [`executeSet(...)`](#executeSet(options:-SQLiteSetOptions)-=>-Promise<SQLiteChanges>)
-* [`exportToJson(...)`](#exportToJson(options:-SQLiteExportOptions)-=>-Promise<SQLiteJson>)
-* [`getDatabaseList()`](#getDatabaseList()-=>-Promise<SQLiteValues>)
-* [`getSyncDate(...)`](#ggetSyncDate(options:-SQLiteSyncDateOptions)-=>-Promise<SQLiteSyncDate>)
-* [`getVersion(...)`](#getVersion(options:-SQLiteOptions)-=>-Promise<SQLiteVersion>)
-* [`importFromJson(...)`](#importFromJson(options:-SQLiteImportOptions)-=>-Promise<SQLiteChanges>)
-* [`isDatabase(...)`](#isDatabase(options:-SQLiteOptions)-=>-Promise<SQLiteResult>)
-* [`isDBExists(...)`](#isDBExists(options:-SQLiteOptions)-=>-Promise<SQLiteResult>)
-* [`isDBOpen(...)`](#isDBOpen(options:-SQLiteOptions)-=>-Promise<SQLiteResult>)
-* [`isJsonValid(...)`](#isJsonValid(options:-SQLiteImportOptions)-=>-Promise<SQLiteResult>)
-* [`isStoreOpen()`](#isStoreOpen()-=>-Promise<boolean>)
-* [`isTableExists(...)`](#isTableExists(options:-SQLiteTableOptions)-=>-Promise<SQLiteResult>)
-* [`open(...)`](#open(options:-SQLiteOptions)-=>-Promise<void>)
-* [`query(...)`](#query(options:-SQLiteQueryOptions)-=>-Promise<SQLiteValues>)
-* [`run(...)`](#run(options:-SQLiteRunOptions)-=>-Promise<SQLiteChanges>)
-* [`saveToStore(...)`](#saveToStore(options:-SQLiteOptions)-=>-Promise<void>)
-* [`setSyncDate(...)`](#setSyncDate(options:-SQLiteSyncDateOptions)-=>-Promise<void>)
+* [`addUpgradeStatement(...)`](#addupgradestatement)
+* [`checkConnectionsConsistency(...)`](#checkconnectionsconsistency)
+* [`close(...)`](#close)
+* [`closeConnection(...)`](#closeconnection)
+* [`copyFromAssets(...)`](#copyfromassets)
+* [`createConnection(...)`](#createconnection)
+* [`createSyncTable(...)`](#createsynctable)
+* [`deleteDatabase(...)`](#deletedatabase)
+* [`echo(...)`](#echo)
+* [`execute(...)`](#execute)
+* [`executeSet(...)`](#executeset)
+* [`exportToJson(...)`](#exporttojson)
+* [`getDatabaseList()`](#getdatabaselist)
+* [`getSyncDate(...)`](#getsyncdate)
+* [`getVersion(...)`](#getversion)
+* [`importFromJson(...)`](#importfromjson)
+* [`isDatabase(...)`](#isdatabase)
+* [`isDBExists(...)`](#isdbexists)
+* [`isDBOpen(...)`](#isdbopen)
+* [`isJsonValid(...)`](#isjsonvalid)
+* [`isStoreOpen()`](#isstoreopen)
+* [`isTableExists(...)`](#istableexists)
+* [`open(...)`](#open)
+* [`query(...)`](#query)
+* [`run(...)`](#run)
+* [`saveToStore(...)`](#savetostore)
+* [`setSyncDate(...)`](#setsyncdate)
 
 ## Interfaces Index
 * [`AllConnectionsOptions`](#allconnectionsoptions)
@@ -276,7 +276,6 @@ The index value can have the following formats:
    - email, MobileNumber
    - email ASC, MobileNumber DESC
 
-<!-- Auto Generated Below -->
 
 
 ## Events
@@ -293,7 +292,9 @@ The index value can have the following formats:
 
 ## Methods
 
-### `addUpgradeStatement(options: SQLiteUpgradeOptions) => Promise<void>`
+### addUpgradeStatement
+
+`addUpgradeStatement(options: SQLiteUpgradeOptions) => Promise<void>`
 
 
 
@@ -303,7 +304,9 @@ Type: `Promise<void>`
 
 
 
-### `checkConnectionsConsistency(options: AllConnectionsOptions) => Promise<SQLiteResult>`
+### checkConnectionsConsistency
+
+`checkConnectionsConsistency(options: AllConnectionsOptions) => Promise<SQLiteResult>`
 
 
 
@@ -313,7 +316,9 @@ Type: `Promise<SQLiteResult>`
 
 
 
-### `close(options: SQLiteOptions) => Promise<void>`
+### close
+
+`close(options: SQLiteOptions) => Promise<void>`
 
 
 
@@ -323,7 +328,9 @@ Type: `Promise<void>`
 
 
 
-### `closeConnection(options: SQLiteOptions) => Promise<void>`
+### closeConnection
+
+`closeConnection(options: SQLiteOptions) => Promise<void>`
 
 
 
@@ -333,7 +340,9 @@ Type: `Promise<void>`
 
 
 
-### `copyFromAssets(options: SQLiteFromAssetsOptions) => Promise<void>`
+### copyFromAssets
+
+`copyFromAssets(options: SQLiteFromAssetsOptions) => Promise<void>`
 
 
 
@@ -343,7 +352,9 @@ Type: `Promise<void>`
 
 
 
-### `createConnection(options: ConnectionOptions) => Promise<void>`
+### createConnection
+
+`createConnection(options: ConnectionOptions) => Promise<void>`
 
 
 
@@ -353,7 +364,9 @@ Type: `Promise<void>`
 
 
 
-### `createSyncTable(options: SQLiteOptions) => Promise<SQLiteChanges>`
+### createSyncTable
+
+ `createSyncTable(options: SQLiteOptions) => Promise<SQLiteChanges>`
 
 
 
@@ -363,7 +376,9 @@ Type: `Promise<SQLiteChanges>`
 
 
 
-### `deleteDatabase(options: SQLiteOptions) => Promise<void>`
+### deleteDatabase
+
+`deleteDatabase(options: SQLiteOptions) => Promise<void>`
 
 
 
@@ -373,7 +388,9 @@ Type: `Promise<void>`
 
 
 
-### `echo(options: EchoOptions) => Promise<EchoResult>`
+### echo
+
+`echo(options: EchoOptions) => Promise<EchoResult>`
 
 
 
@@ -383,7 +400,9 @@ Type: `Promise<EchoResult>`
 
 
 
-### `execute(options: SQLiteExecuteOptions) => Promise<SQLiteChanges>`
+### execute
+
+`execute(options: SQLiteExecuteOptions) => Promise<SQLiteChanges>`
 
 
 
@@ -393,7 +412,9 @@ Type: `Promise<SQLiteChanges>`
 
 
 
-### `executeSet(options: SQLiteSetOptions) => Promise<SQLiteChanges>`
+### executeSet
+
+`executeSet(options: SQLiteSetOptions) => Promise<SQLiteChanges>`
 
 
 
@@ -403,7 +424,9 @@ Type: `Promise<SQLiteChanges>`
 
 
 
-### `exportToJson(options: SQLiteExportOptions) => Promise<SQLiteJson>`
+### exportToJson
+
+`exportToJson(options: SQLiteExportOptions) => Promise<SQLiteJson>`
 
 
 
@@ -413,7 +436,9 @@ Type: `Promise<SQLiteJson>`
 
 
 
-### `getDatabaseList() => Promise<SQLiteValues>`
+### getDatabaseList
+
+`getDatabaseList() => Promise<SQLiteValues>`
 
 
 
@@ -423,7 +448,9 @@ Type: `Promise<SQLiteValues>`
 
 
 
-### `getSyncDate(options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>`
+### getSyncDate
+
+`getSyncDate(options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>`
 
 
 
@@ -433,7 +460,9 @@ Type: `Promise<SQLiteSyncDate>`
 
 
 
-### `getVersion(options: SQLiteOptions) => Promise<SQLiteVersion>`
+### getVersion
+
+`getVersion(options: SQLiteOptions) => Promise<SQLiteVersion>`
 
 
 
@@ -443,7 +472,9 @@ Type: `Promise<SQLiteVersion>`
 
 
 
-### `importFromJson(options: SQLiteImportOptions) => Promise<SQLiteChanges>`
+### importFromJson
+
+`importFromJson(options: SQLiteImportOptions) => Promise<SQLiteChanges>`
 
 
 
@@ -453,7 +484,9 @@ Type: `Promise<SQLiteChanges>`
 
 
 
-### `isDBExists(options: SQLiteOptions) => Promise<SQLiteResult>`
+### isDBExists
+
+`isDBExists(options: SQLiteOptions) => Promise<SQLiteResult>`
 
 
 
@@ -463,7 +496,9 @@ Type: `Promise<SQLiteResult>`
 
 
 
-### `isDBOpen(options: SQLiteOptions) => Promise<SQLiteResult>`
+### isDBOpen
+
+`isDBOpen(options: SQLiteOptions) => Promise<SQLiteResult>`
 
 
 
@@ -473,7 +508,9 @@ Type: `Promise<SQLiteResult>`
 
 
 
-### `isDatabase(options: SQLiteOptions) => Promise<SQLiteResult>`
+### isDatabase
+
+`isDatabase(options: SQLiteOptions) => Promise<SQLiteResult>`
 
 
 
@@ -483,7 +520,9 @@ Type: `Promise<SQLiteResult>`
 
 
 
-### `isJsonValid(options: SQLiteImportOptions) => Promise<SQLiteResult>`
+### isJsonValid
+
+`isJsonValid(options: SQLiteImportOptions) => Promise<SQLiteResult>`
 
 
 
@@ -493,7 +532,9 @@ Type: `Promise<SQLiteResult>`
 
 
 
-### `isStoreOpen() => Promise<boolean>`
+### isStoreOpen
+
+`isStoreOpen() => Promise<boolean>`
 
 
 
@@ -503,7 +544,9 @@ Type: `Promise<boolean>`
 
 
 
-### `isTableExists(options: SQLiteTableOptions) => Promise<SQLiteResult>`
+### isTableExists
+
+`isTableExists(options: SQLiteTableOptions) => Promise<SQLiteResult>`
 
 
 
@@ -513,7 +556,9 @@ Type: `Promise<SQLiteResult>`
 
 
 
-### `open(options: SQLiteOptions) => Promise<void>`
+### open
+
+`open(options: SQLiteOptions) => Promise<void>`
 
 
 
@@ -523,7 +568,9 @@ Type: `Promise<void>`
 
 
 
-### `query(options: SQLiteQueryOptions) => Promise<SQLiteValues>`
+### query
+
+`query(options: SQLiteQueryOptions) => Promise<SQLiteValues>`
 
 
 
@@ -533,7 +580,9 @@ Type: `Promise<SQLiteValues>`
 
 
 
-### `run(options: SQLiteRunOptions) => Promise<SQLiteChanges>`
+### run
+
+`run(options: SQLiteRunOptions) => Promise<SQLiteChanges>`
 
 
 
@@ -543,7 +592,9 @@ Type: `Promise<SQLiteChanges>`
 
 
 
-### `saveToStore(options: SQLiteOptions) => Promise<void>`
+### saveToStore
+
+`saveToStore(options: SQLiteOptions) => Promise<void>`
 
 
 
@@ -553,7 +604,9 @@ Type: `Promise<void>`
 
 
 
-### `setSyncDate(options: SQLiteSyncDateOptions) => Promise<void>`
+### setSyncDate
+
+`setSyncDate(options: SQLiteSyncDateOptions) => Promise<void>`
 
 
 
@@ -562,6 +615,7 @@ Type: `Promise<void>`
 Type: `Promise<void>`
 
 
+<!-- Auto Generated Below -->
 
 
 ----------------------------------------------
