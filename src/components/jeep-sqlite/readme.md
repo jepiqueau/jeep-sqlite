@@ -618,6 +618,285 @@ Type: `Promise<void>`
 <!-- Auto Generated Below -->
 
 
+## Events
+
+| Event                      | Description | Type                                |
+| -------------------------- | ----------- | ----------------------------------- |
+| `jeepSqliteExportProgress` |             | `CustomEvent<JsonProgressListener>` |
+| `jeepSqliteImportProgress` |             | `CustomEvent<JsonProgressListener>` |
+
+
+## Methods
+
+### `addUpgradeStatement(options: SQLiteUpgradeOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `checkConnectionsConsistency(options: AllConnectionsOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
+### `close(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `closeConnection(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `copyFromAssets(options: SQLiteFromAssetsOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `createConnection(options: ConnectionOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `createSyncTable(options: SQLiteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
+### `deleteDatabase(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `echo(options: EchoOptions) => Promise<EchoResult>`
+
+
+
+#### Returns
+
+Type: `Promise<EchoResult>`
+
+
+
+### `execute(options: SQLiteExecuteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
+### `executeSet(options: SQLiteSetOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
+### `exportToJson(options: SQLiteExportOptions) => Promise<SQLiteJson>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteJson>`
+
+
+
+### `getDatabaseList() => Promise<SQLiteValues>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteValues>`
+
+
+
+### `getSyncDate(options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteSyncDate>`
+
+
+
+### `getVersion(options: SQLiteOptions) => Promise<SQLiteVersion>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteVersion>`
+
+
+
+### `importFromJson(options: SQLiteImportOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
+### `isDBExists(options: SQLiteOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
+### `isDBOpen(options: SQLiteOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
+### `isDatabase(options: SQLiteOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
+### `isJsonValid(options: SQLiteImportOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
+### `isStoreOpen() => Promise<boolean>`
+
+
+
+#### Returns
+
+Type: `Promise<boolean>`
+
+
+
+### `isTableExists(options: SQLiteTableOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
+### `open(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `query(options: SQLiteQueryOptions) => Promise<SQLiteValues>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteValues>`
+
+
+
+### `run(options: SQLiteRunOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
+
+
+
+### `saveToStore(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
+### `setSyncDate(options: SQLiteSyncDateOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
 
 
 ----------------------------------------------
