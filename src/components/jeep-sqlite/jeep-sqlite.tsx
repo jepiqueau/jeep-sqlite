@@ -543,10 +543,8 @@ export class JeepSqlite {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
   }
   componentDidLoad() {
-    if(this.isStore) {
-      console.log(`>>> jeep-sqlite StoreName: ${this.storeName}`);
-    } else {
-      console.log('>>> jeep-sqlite isStore = false');
+    if(!this.isStore) {
+      console.log('jeep-sqlite isStore = false');
     }
   }
 
