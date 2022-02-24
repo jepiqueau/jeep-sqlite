@@ -618,6 +618,13 @@ Type: `Promise<void>`
 <!-- Auto Generated Below -->
 
 
+## Properties
+
+| Property   | Attribute  | Description | Type      | Default     |
+| ---------- | ---------- | ----------- | --------- | ----------- |
+| `autoSave` | `autosave` | AutoSave    | `boolean` | `undefined` |
+
+
 ## Events
 
 | Event                      | Description | Type                                |
