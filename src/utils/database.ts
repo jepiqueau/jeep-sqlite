@@ -19,14 +19,17 @@ export class Database {
   private version: number;
   private mDb: any;
   private vUpgDict: Record<number, SQLiteVersionUpgrade> = {};
+  private autoSave: boolean = false;
 
-  constructor(databaseName: string, version: number, upgDict: Record<number, SQLiteVersionUpgrade>, store: LocalForage) {
+  constructor(databaseName: string, version: number, upgDict: Record<number, SQLiteVersionUpgrade>,
+              store: LocalForage, autoSave: boolean) {
     this.dbName = databaseName;
     this.store = store;
     this.version = version;
     this.mDb = null;
     this.vUpgDict = upgDict;
     this._isDBOpen = false;
+    this.autoSave = autoSave;
   }
   public async open(): Promise<void> {
     try {
@@ -92,6 +95,14 @@ export class Database {
           }
         }
 
+      }
+      if( this.autoSave ) {
+        try {
+          await setDBToStore(this.mDb, this.dbName, this.store);
+        } catch (err) {
+          this._isDBOpen = false;
+          return Promise.reject(`in close ${err}`);
+        }
       }
       return Promise.resolve();
     } catch (err) {
@@ -184,6 +195,14 @@ export class Database {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
       }
       if(transaction) await commitTransaction(this.mDb, this._isDBOpen);
+      if( this.autoSave ) {
+        try {
+          await setDBToStore(this.mDb, this.dbName, this.store);
+        } catch (err) {
+          this._isDBOpen = false;
+          return Promise.reject(`in close ${err}`);
+        }
+      }
       return Promise.resolve(changes);
     } catch (err) {
       let msg = `ExecuteSQL: ${err.message}`;
@@ -214,6 +233,14 @@ export class Database {
       const changes = (await dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
+      if( this.autoSave ) {
+        try {
+          await setDBToStore(this.mDb, this.dbName, this.store);
+        } catch (err) {
+          this._isDBOpen = false;
+          return Promise.reject(`in close ${err}`);
+        }
+      }
       return Promise.resolve(retRes);
     } catch (err) {
       let msg = `ExecSet: ${err.message}`;
@@ -257,6 +284,14 @@ export class Database {
       const changes = (await dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
+      if( this.autoSave ) {
+        try {
+          await setDBToStore(this.mDb, this.dbName, this.store);
+        } catch (err) {
+          this._isDBOpen = false;
+          return Promise.reject(`in close ${err}`);
+        }
+      }
       return Promise.resolve(retRes);
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;
@@ -366,7 +401,14 @@ export class Database {
           // create the views
           changes += await createViews(this.mDb, jsonData);
         }
-
+        if( this.autoSave ) {
+          try {
+            await setDBToStore(this.mDb, this.dbName, this.store);
+          } catch (err) {
+            this._isDBOpen = false;
+            return Promise.reject(`in close ${err}`);
+          }
+        }
         return Promise.resolve(changes);
       } catch (err) {
         return Promise.reject(new Error(`ImportJson: ${err.message}`));

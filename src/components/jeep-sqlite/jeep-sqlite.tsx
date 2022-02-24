@@ -1,4 +1,4 @@
-import { Component, Method, Event, EventEmitter } from '@stencil/core';
+import { Component, Method, Event, EventEmitter, Prop, State, Watch } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
 import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
@@ -18,6 +18,34 @@ import * as JSZip from 'jszip';
   shadow: true,
 })
 export class JeepSqlite {
+
+  //************************
+  //* Property Definitions *
+  //************************
+
+  /**
+   * AutoSave
+   */
+  @Prop({
+    attribute: "autosave",
+    reflect: true
+  }) autoSave: boolean;
+
+  //*********************
+  //* State Definitions *
+  //*********************
+
+  @State() innerAutoSave: boolean;
+
+  //*****************************
+  //* Watch on Property Changes *
+  //*****************************
+
+  @Watch('autoSave')
+  parseAutoSave(newValue: boolean) {
+    this.innerAutoSave = newValue;
+  }
+
   //*********************
   //* Event Definitions *
   //*********************
@@ -541,6 +569,7 @@ export class JeepSqlite {
 
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
+    this.parseAutoSave(this.autoSave != undefined ? this.autoSave : false);
   }
   componentDidLoad() {
     if(!this.isStore) {
@@ -559,7 +588,8 @@ export class JeepSqlite {
       upgDict = this._versionUpgrades[database];
     }
     try {
-      const mDB: Database = new Database(database + 'SQLite.db', version, upgDict, this.store);
+      const mDB: Database = new Database(database + 'SQLite.db', version, upgDict,
+                                         this.store, this.innerAutoSave);
       this._dbDict[database] = mDB;
       return Promise.resolve();
     } catch(err) {
@@ -848,7 +878,7 @@ export class JeepSqlite {
     const dbName = `${vJsonObj.database}SQLite.db`;
     const dbVersion: number = vJsonObj.version ?? 1;
     // Create the database
-    const mDb: Database = new Database(dbName, dbVersion, {}, this.store);
+    const mDb: Database = new Database(dbName, dbVersion, {}, this.store, this.innerAutoSave);
     try {
       // Open the database
       await mDb.open();

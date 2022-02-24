@@ -9,6 +9,10 @@ import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, Json
 export namespace Components {
     interface JeepSqlite {
         "addUpgradeStatement": (options: SQLiteUpgradeOptions) => Promise<void>;
+        /**
+          * AutoSave
+         */
+        "autoSave": boolean;
         "checkConnectionsConsistency": (options: AllConnectionsOptions) => Promise<SQLiteResult>;
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
@@ -50,6 +54,10 @@ declare global {
 }
 declare namespace LocalJSX {
     interface JeepSqlite {
+        /**
+          * AutoSave
+         */
+        "autoSave"?: boolean;
         "onJeepSqliteExportProgress"?: (event: CustomEvent<JsonProgressListener>) => void;
         "onJeepSqliteImportProgress"?: (event: CustomEvent<JsonProgressListener>) => void;
     }
