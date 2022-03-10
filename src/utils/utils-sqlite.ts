@@ -1,4 +1,5 @@
 import { getTablesNames } from '../utils/utils-drop';
+import { getTableColumnNamesTypes } from '../utils/utils-json';
 
 export const beginTransaction = async (db: any, isOpen: boolean): Promise<void> => {
     const msg = 'BeginTransaction: ';
@@ -185,6 +186,30 @@ export const isTableExists = async (db: any, tableName: string): Promise<boolean
     return Promise.reject(new Error(`isTableExists: ${err.message}`));
   }
 }
+/**
+ * isLastModified
+ * @param db
+ * @param isOpen
+ */
+export const isLastModified = async (db: any,isOpen: boolean): Promise<boolean> => {
+    if (!isOpen) {
+      return Promise.reject('isLastModified: database not opened');
+    }
+    try {
+      const tableList: string[] = await getTablesNames(db);
+      for( const table of tableList) {
+        const tableNamesTypes: any = await getTableColumnNamesTypes(
+                                        db, table);
+        const tableColumnNames: string[] = tableNamesTypes.names;
+        if(tableColumnNames.includes("last_modified")) {
+          return Promise.resolve(true);
+        }
+      }
+    } catch (err) {
+      return Promise.reject(`isLastModified: ${err}`);
+    }
+}
+
 export const replaceUndefinedByNull = async (values: any[]): Promise<any[]> => {
   const retValues: any[] = [];
   for( const val of values) {

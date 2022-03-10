@@ -76,6 +76,8 @@ export const createSchema = async (db: any, jsonData: any): Promise<number> => {
 }
 export const createSchemaStatement = async (jsonData: any): Promise<string[]> => {
   const statements: string[] = [];
+  let isLastModified = false;
+
   // Prepare the statement to execute
   try {
     for (const jTable of jsonData.tables) {
@@ -88,6 +90,9 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
               statements.push(
                 `${jTable.schema[j].column} ${jTable.schema[j].value}`,
               );
+              if(jTable.schema[j].column === "last_modified") {
+                isLastModified = true;
+              }
             } else if (jTable.schema[j].foreignkey) {
               statements.push(
                 `FOREIGN KEY (${jTable.schema[j].foreignkey}) ${jTable.schema[j].value}`,
@@ -114,18 +119,19 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
           }
         }
         statements.push(');');
-        // create trigger last_modified associated with the table
-        let trig = 'CREATE TRIGGER IF NOT EXISTS ';
-        trig += `${jTable.name}`;
-        trig += `_trigger_last_modified `;
-        trig += `AFTER UPDATE ON ${jTable.name} `;
-        trig += 'FOR EACH ROW WHEN NEW.last_modified <= ';
-        trig += 'OLD.last_modified BEGIN UPDATE ';
-        trig += `${jTable.name} `;
-        trig += `SET last_modified = `;
-        trig += "(strftime('%s','now')) WHERE id=OLD.id; END;";
-        statements.push(trig);
-
+        if(isLastModified) {
+          // create trigger last_modified associated with the table
+          let trig = 'CREATE TRIGGER IF NOT EXISTS ';
+          trig += `${jTable.name}`;
+          trig += `_trigger_last_modified `;
+          trig += `AFTER UPDATE ON ${jTable.name} `;
+          trig += 'FOR EACH ROW WHEN NEW.last_modified <= ';
+          trig += 'OLD.last_modified BEGIN UPDATE ';
+          trig += `${jTable.name} `;
+          trig += `SET last_modified = `;
+          trig += "(strftime('%s','now')) WHERE id=OLD.id; END;";
+          statements.push(trig);
+        }
       }
 
       if (jTable.indexes != null && jTable.indexes.length >= 1) {

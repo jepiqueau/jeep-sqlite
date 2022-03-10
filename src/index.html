@@ -795,6 +795,145 @@
               throw new Error("Query dbZip1 Areas failed");
             }
             await jeepSqlite.closeConnection({database:"dbZip1"});
+            const dataToImport231 = {
+              database : "db-from-json231",
+              version : 1,
+              encrypted : false,
+              mode : "full",
+              tables :[
+                {
+                  name: "users",
+                  schema: [
+                      {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                      {column:"email", value:"TEXT UNIQUE NOT NULL"},
+                      {column:"name", value:"TEXT"},
+                      {column:"age", value:"REAL"}
+                  ],
+                  indexes: [
+                      {name: "index_user_on_name",value: "name"},
+                      {name: "index_user_on_email_name", value: "email ASC, name", mode: "unique"}
+                  ],
+                  values: [
+                      [1,"Whiteley.com","Whiteley",30.5],
+                      [2,"Jones.com","Jones",44.2],
+                      [3,"Simpson@example.com","Simpson",69],
+                      [4,"Brown@example.com","Brown",15]
+                  ]
+                },
+                {
+                  name: "messages",
+                  schema: [
+                    {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                    {column:"title", value:"TEXT NOT NULL"},
+                    {column:"body", value:"TEXT NOT NULL"},
+                  ],
+                  values: [
+                      [1,"test post 1","content test post 1"],
+                      [2,"test post 2","content test post 2"]
+                  ]
+                },
+              ]
+            };
+            // test Json object validity
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImport231)});
+            if(!result.result) {
+              throw new Error("IsJsonValid231 failed");
+            }
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImport231)});
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImport231 failed");
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"db-from-json231", version: 1});
+            // open db testNew
+            await jeepSqlite.open({database: "db-from-json231"});
+            isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json231"})
+            if (!isDBJson.result) throw new Error("isDBOpen 'db-from-json231' failed");
+/*  Only for testing
+            // create synchronization table
+            ret = await jeepSqlite.createSyncTable({database: "db-from-json231"});
+            if (result.changes.changes < 0) throw new Error("CreateSyncTable failed");
+
+            ret = await jeepSqlite.getSyncDate({database: "db-from-json231"});
+            if(ret.length === 0) throw new Error("GetSyncDate failed");
+*/
+            // Select all users
+            ret = await jeepSqlite.query({database: "db-from-json231",
+                                          statement: "SELECT * FROM users;"});
+            if(ret.values.length !== 4 ||
+                  ret.values[0].name !== "Whiteley" ||
+                  ret.values[1].name !== "Jones" ||
+                  ret.values[2].name !== "Simpson" ||
+                  ret.values[3].name !== "Brown"  ) {
+              throw new Error("Query 1 db-from-json231 Users failed");
+            }
+            await jeepSqlite.closeConnection({database:"db-from-json231"});
+
+            const partialImport231 = {
+              database : "db-from-json231",
+              version : 1,
+              encrypted : false,
+              mode : "partial",
+              tables :[
+                {
+                    name: "users",
+                    values: [
+                        [5,"Addington.com","Addington",22.7],
+                        [6,"Bannister.com","Bannister",59],
+                        [2,"Jones@example.com","Jones",45]
+
+                    ]
+                },
+              ]
+            };
+            // test Json object validity
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(partialImport231)});
+            if(!result.result) {
+              throw new Error("IsJsonValid Partial231 failed");
+            }
+            // partial import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport231)});
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'partial231' dataToImport failed");
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"db-from-json231", version: 1});
+            // open db testNew
+            await jeepSqlite.open({database: "db-from-json231"});
+            // Select all users
+            ret = await jeepSqlite.query({database: "db-from-json231",
+                                          statement: "SELECT * FROM users;"});
+            if(ret.values.length !== 6 ||
+                  ret.values[0].name !== "Whiteley" ||
+                  ret.values[1].name !== "Jones" ||
+                  ret.values[2].name !== "Simpson" ||
+                  ret.values[3].name !== "Brown" ||
+                  ret.values[4].name !== "Addington" ||
+                  ret.values[5].name !== "Bannister" ) {
+              throw new Error("Query 2 db-from-json231 Users failed");
+            }
+            // *** test Export to Json
+            // test full export
+            jsonObj = await jeepSqlite.exportToJson({database: "db-from-json231",jsonexportmode: 'full'});
+            // test Json object validity
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+            if(!result.result) {
+              throw new Error("IsJsonValid231 'full' export failed");
+            }
+            const exObj = jsonObj.export;
+            if(exObj.database !== 'db-from-json231' ||
+                    exObj.tables.length !== 2 ||
+                    exObj.tables[0].name !== 'users' ||
+                    exObj.tables[1].name !== 'messages' ||
+                    exObj.tables[0].values.length !== 6 ||
+                    exObj.tables[1].values.length !== 2) {
+              throw new Error("Export231 'full' export failed");
+            }
+/*  Only for testing
+            //test partial export
+            syncDate = "2020-05-20T18:40:00.000Z";
+            await jeepSqlite.setSyncDate({database: "db-from-json231", syncdate: syncDate});
+
+            jsonObj = await jeepSqlite.exportToJson({database: "db-from-json231",jsonexportmode: 'partial'});
+*/
+            await jeepSqlite.closeConnection({database:"db-from-json231"});
 
             console.log("db success");
         } catch (err) {

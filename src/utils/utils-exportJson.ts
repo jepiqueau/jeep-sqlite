@@ -1,7 +1,7 @@
 import { EventEmitter } from '@stencil/core';
 
 import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger, JsonView, JsonProgressListener } from '../interfaces/interfaces';
-import { queryAll } from './utils-sqlite';
+import { queryAll, isTableExists } from './utils-sqlite';
 import { checkSchemaValidity, checkIndexesValidity, checkTriggersValidity, getTableColumnNamesTypes } from './utils-json';
 
 export const createExportObject = async (db: any, sqlObj: JsonSQLite,
@@ -21,6 +21,11 @@ export const createExportObject = async (db: any, sqlObj: JsonSQLite,
         new Error("createExportObject: table's names failed"),
       );
     } else {
+      const isTable = await isTableExists(db, 'sync_table');
+      if(!isTable && sqlObj.mode === 'partial') {
+        return Promise.reject(new Error('No sync_table available'));
+      }
+
       switch (sqlObj.mode) {
         case 'partial': {
           tables = await getTablesPartial(db, resTables, exportProgress);

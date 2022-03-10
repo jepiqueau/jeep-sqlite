@@ -6,7 +6,8 @@ import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade, JsonProgressListener} from
 import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
-         execute, executeSet, run, queryAll, isTableExists, getVersion, setVersion } from './utils-sqlite';
+         execute, executeSet, run, queryAll, isTableExists, getVersion,
+         setVersion, isLastModified } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
 import { createExportObject, getSynchroDate } from './utils-exportJson';
@@ -327,16 +328,21 @@ export class Database {
     try {
       const retB = await isTableExists(this.mDb, 'sync_table');
       if(!retB) {
-        const date: number = Math.round(new Date().getTime() / 1000);
-        let stmts = `
-                        CREATE TABLE IF NOT EXISTS sync_table (
-                            id INTEGER PRIMARY KEY NOT NULL,
-                            sync_date INTEGER
-                            );`;
-        stmts += `INSERT INTO sync_table (sync_date) VALUES (
-                            "${date}");`;
-        changes = await execute(this.mDb, stmts);
-        return Promise.resolve(changes);
+        const isLastMod = await isLastModified(this.mDb, this._isDBOpen);
+        if(isLastMod) {
+          const date: number = Math.round(new Date().getTime() / 1000);
+          let stmts = `
+                          CREATE TABLE IF NOT EXISTS sync_table (
+                              id INTEGER PRIMARY KEY NOT NULL,
+                              sync_date INTEGER
+                              );`;
+          stmts += `INSERT INTO sync_table (sync_date) VALUES (
+                              "${date}");`;
+          changes = await execute(this.mDb, stmts);
+          return Promise.resolve(changes);
+        } else {
+          return Promise.reject(new Error('No last_modified column in tables'));
+        }
       } else {
         return Promise.resolve(0);
       }
@@ -352,6 +358,10 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
+      const isTable = await isTableExists(this.mDb, 'sync_table');
+      if(!isTable) {
+        return Promise.reject(new Error('No sync_table available'));
+      }
       const res = await getSynchroDate(this.mDb);
       return Promise.resolve(res);
     } catch (err) {
@@ -366,6 +376,10 @@ export class Database {
       return { result: false, message: msg };
     }
     try {
+      const isTable = await isTableExists(this.mDb, 'sync_table');
+      if(!isTable) {
+        return Promise.reject(new Error('No sync_table available'));
+      }
       const sDate: number = Math.round(new Date(syncDate).getTime() / 1000);
       let stmt = `UPDATE sync_table SET sync_date = `;
       stmt += `${sDate} WHERE id = 1;`;
