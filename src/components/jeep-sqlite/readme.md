@@ -775,6 +775,16 @@ Type: `Promise<SQLiteSyncDate>`
 
 
 
+### `getTableList(options: SQLiteOptions) => Promise<SQLiteValues>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteValues>`
+
+
+
 ### `getVersion(options: SQLiteOptions) => Promise<SQLiteVersion>`
 
 

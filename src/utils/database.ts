@@ -7,7 +7,7 @@ import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
          execute, executeSet, run, queryAll, isTableExists, getVersion,
-         setVersion, isLastModified } from './utils-sqlite';
+         setVersion, isLastModified, getTableList } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
 import { createExportObject, getSynchroDate } from './utils-exportJson';
@@ -54,7 +54,7 @@ export class Database {
         curVersion = await getVersion(this.mDb);
       }
       this._isDBOpen = true;
-      if (this.version > curVersion) {
+      if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
         const keys: string[] = Object.keys(this.vUpgDict);
 
         if (keys.length > 0) {
@@ -303,6 +303,20 @@ export class Database {
       }
       return Promise.reject(new Error(`RunSQL: ${msg}`));
     }
+  }
+  async getTableNames(): Promise<any[]> {
+    if (!this._isDBOpen) {
+      let msg = `GetTableNames: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      let retArr: any[] = await getTableList(this.mDb);
+      return Promise.resolve(retArr);
+    } catch (err) {
+      return Promise.reject(new Error(`GetTableNames: ${err.message}`));
+    }
+
   }
   async isTable(tableName: string): Promise<boolean> {
     if (!this._isDBOpen) {

@@ -175,6 +175,14 @@ export const run = async (db: any, statement: string, values: any[]): Promise<nu
     return Promise.reject(new Error(`run: ${err.message}`));
   }
 }
+export const getTableList = async (db:any): Promise<any[]> => {
+  try {
+    const result = await getTablesNames(db)
+    return Promise.resolve(result);
+  } catch (err) {
+    return Promise.reject(new Error(`getTableList: ${err.message}`));
+  }
+}
 export const isTableExists = async (db: any, tableName: string): Promise<boolean> => {
   try {
     let statement = 'SELECT name FROM sqlite_master WHERE ';

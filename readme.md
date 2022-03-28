@@ -69,6 +69,7 @@ in the head of your index.html
 | addUpgradeStatement         | ✅      |
 | isDatabase                  | ✅      |
 | getDatabaseList             | ✅      |
+| getTableList                | ✅      |
 | checkConnectionsConsistency | ✅      |
 | saveToStore                 | ✅      |
 

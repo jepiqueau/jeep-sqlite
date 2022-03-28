@@ -35,6 +35,7 @@ export const getViewsNames = async (mDb: any): Promise<string[]> => {
 }
 export const dropElements = async (db: any, type: string): Promise<void> => {
   let msg = '';
+  let stmt1 = `AND name NOT LIKE ('sqlite_%')`;
   switch (type) {
     case 'index':
       msg = 'DropIndexes';
@@ -44,6 +45,7 @@ export const dropElements = async (db: any, type: string): Promise<void> => {
       break;
     case 'table':
       msg = 'DropTables';
+      stmt1 += ` AND name NOT IN ('sync_table')`;
       break;
     case 'view':
       msg = 'DropViews';
@@ -55,7 +57,7 @@ export const dropElements = async (db: any, type: string): Promise<void> => {
   }
   // get the element's names
   let stmt = 'SELECT name FROM sqlite_master WHERE ';
-  stmt += `type = '${type}' AND name NOT LIKE 'sqlite_%';`;
+  stmt += `type = '${type}' ${stmt1};`;
   try {
     const elements: any[] = await queryAll(db, stmt, []);
     if (elements.length > 0) {

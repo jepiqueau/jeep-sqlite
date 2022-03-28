@@ -225,6 +225,13 @@
             if (result.changes.changes < 0) throw new Error("CreateSyncTable failed");
             ret = await jeepSqlite.getSyncDate({database: "db-from-json"});
             if(ret.length === 0) throw new Error("GetSyncDate failed");
+            // get Table's list
+            ret = await jeepSqlite.getTableList({database: "db-from-json"});
+            if(ret.values.length !== 2 ||
+                    ret.values[0] !== "messages" ||
+                    ret.values[1] !== "users") {
+              throw new Error("GetTableList db-from-json failed");
+            }
             // Select all users
             ret = await jeepSqlite.query({database: "db-from-json",
                                           statement: "SELECT * FROM users;"});
@@ -237,18 +244,99 @@
             }
             await jeepSqlite.closeConnection({database:"db-from-json"});
 
+            // modify the schema of db-from-json and create version 2
+            const dataToImportV2 = {
+              database : "db-from-json",
+              version : 2,
+              encrypted : false,
+              mode : "full",
+              tables :[
+                {
+                  name: "users",
+                  schema: [
+                      {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                      {column:"email", value:"TEXT UNIQUE NOT NULL"},
+                      {column:"name", value:"TEXT"},
+                      {column:"age", value:"INTEGER"},
+                      {column:"size", value:"REAL"},
+                      {column:"last_modified", value:"INTEGER"}
+                  ],
+                  indexes: [
+                      {name: "index_user_on_name",value: "name"},
+                      {name: "index_user_on_last_modified",value: "last_modified DESC"},
+                      {name: "index_user_on_email_name", value: "email ASC, name", mode: "unique"}
+                  ],
+                  values: [
+                      [1,"Whiteley.com","Whiteley",30,1.82,1582536810],
+                      [2,"Jones.com","Jones",44,1.74,1582812800],
+                      [3,"Simpson@example.com","Simpson",69,1.93,1583570630],
+                      [4,"Brown@example.com","Brown",15,1.89,1590383895]
+                  ]
+                },
+                {
+                  name: "messages",
+                  schema: [
+                    {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                    {column:"userid", value: "INTEGER"},
+                    {column:"title", value:"TEXT NOT NULL"},
+                    {column:"body", value:"TEXT NOT NULL"},
+                    {column:"last_modified", value:"INTEGER"},
+                    {foreignkey: "userid", value:"REFERENCES users(id) ON DELETE CASCADE"}
+
+                  ],
+                  values: [
+                      [1,1,"test post 1","content test post 1",1587310030],
+                      [2,3,"test post 2","content test post 2",1590388125]
+                  ]
+                },
+              ]
+            };
+            // test Json object validity
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImportV2)});
+            if(!result.result) {
+              throw new Error("IsJsonValid Version 2 failed");
+            }
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImportV2)});
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImportV2 failed");
+            // try to reload the full import with the same version number
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImportV2)});
+            if(result.changes.changes != 0 ) throw new Error("ImportFromJson reload 'full' dataToImportV2 failed");
+
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"db-from-json", version: 1});
+            // open db testNew
+            await jeepSqlite.open({database: "db-from-json"});
+            isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json"})
+            if (!isDBJson.result) throw new Error("isDBOpen 'db-from-json' Version 2 failed");
+            stmt = "SELECT users.name, messages.title FROM users INNER JOIN messages on messages.userid = users.id;";
+            ret = await jeepSqlite.query({database: "db-from-json",
+                                          statement: stmt});
+            if(ret.values.length !== 2 ||
+                  (ret.values[0].name !== "Whiteley" ||
+                    ret.values[0].title !== "test post 1") ||
+                  (ret.values[1].name !== "Simpson" ||
+                    ret.values[1].title !== "test post 2")) {
+              throw new Error("Query 1 db-from-json V2 failed");
+            }
+            ret = await jeepSqlite.getVersion({database:"db-from-json"});
+            if(ret.version !== 2) {
+              throw new Error("GetVersion db-from-json V2 failed");
+            }
+            await jeepSqlite.closeConnection({database:"db-from-json"});
+
             const partialImport1 = {
               database : "db-from-json",
-              version : 1,
+              version : 2,
               encrypted : false,
               mode : "partial",
               tables :[
                 {
                     name: "users",
                     values: [
-                        [5,"Addington.com","Addington",22.7,1590388335],
-                        [6,"Bannister.com","Bannister",59,1590393015],
-                        [2,"Jones@example.com","Jones",45,1590393325]
+                        [5,"Addington.com","Addington",22,1.79,1590388335],
+                        [6,"Bannister.com","Bannister",59,1.85,1590393015],
+                        [2,"Jones@example.com","Jones",45,1.77,1590393325]
 
                     ]
                 },
@@ -266,7 +354,7 @@
 
             const partialImport2 = {
               database : "db-from-json",
-              version : 1,
+              version : 2,
               encrypted : false,
               mode : "partial",
               tables :[
@@ -279,8 +367,8 @@
 
                   ],
                   values: [
-                      [3,"test post 3","content test post 3",1590396146],
-                      [4,"test post 4","content test post 4",1590396288]
+                      [3,2,"test post 3","content test post 3",1590396146],
+                      [4,1,"test post 4","content test post 4",1590396288]
                   ]
                 }
               ]
@@ -290,7 +378,7 @@
 
             const partialImport3 = {
               database : "db-from-json",
-              version : 1,
+              version : 2,
               encrypted : false,
               mode : "partial",
               tables :[
@@ -383,16 +471,13 @@
             await jeepSqlite.createConnection({database:"myDB",version: 1});
             // open db myDB
             await jeepSqlite.open({database: "myDB"});
-            let statement = `SELECT name FROM sqlite_master WHERE type='table';`;
-            // Select all tables
-            ret = await jeepSqlite.query({database: "myDB",
-                                          statement: statement});
-            if(ret.values.length !== 3 ||
-                ret.values[0].name !== "users" ||
-                ret.values[1].name !== "messages" ||
-                ret.values[2].name !== "sync_table"
+            // Select all tables,
+            ret = await jeepSqlite.getTableList({database: "myDB"});
+            if(ret.values.length !== 2 ||
+                ret.values[0]!== "messages" ||
+                ret.values[1] !== "users"
             ) {
-              throw new Error("Query MyDB Tables failed");
+              throw new Error("GetTableList MyDB Tables failed");
             }
 
             // Select all users
@@ -481,6 +566,7 @@
                   ret.values[1].name !== "Jones") {
               throw new Error("Query 2 Users failed");
             }
+            ret = await jeepSqlite.getTableList({database: "test-updversion"});
             await jeepSqlite.closeConnection({database:"test-updversion"});
             // create version 2 of test-updversion
             const createSchemaVersion2 = `
@@ -544,6 +630,7 @@
                     version: 2
             });
             await jeepSqlite.open({database: "test-updversion"});
+            ret = await jeepSqlite.getTableList({database: "test-updversion"});
             // select all user's country in db
             ret = await jeepSqlite.query({database: "test-updversion",
                                           statement: "SELECT country FROM users;"});
@@ -933,6 +1020,15 @@
 
             jsonObj = await jeepSqlite.exportToJson({database: "db-from-json231",jsonexportmode: 'partial'});
 */
+            stmt = `
+              DROP TABLE IF EXISTS users;
+              DROP TABLE IF EXISTS messages;
+            `
+            await jeepSqlite.execute({database:"db-from-json231",statements:stmt});
+            tableList = await jeepSqlite.getTableList({database:"db-from-json231"});
+            if (tableList.values.length != 0) {
+              throw new Error("Export231 drop tables failed");
+            }
             await jeepSqlite.closeConnection({database:"db-from-json231"});
 
             console.log("db success");

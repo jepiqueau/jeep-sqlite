@@ -26,6 +26,7 @@ export namespace Components {
         "exportToJson": (options: SQLiteExportOptions) => Promise<SQLiteJson>;
         "getDatabaseList": () => Promise<SQLiteValues>;
         "getSyncDate": (options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>;
+        "getTableList": (options: SQLiteOptions) => Promise<SQLiteValues>;
         "getVersion": (options: SQLiteOptions) => Promise<SQLiteVersion>;
         "importFromJson": (options: SQLiteImportOptions) => Promise<SQLiteChanges>;
         "isDBExists": (options: SQLiteOptions) => Promise<SQLiteResult>;

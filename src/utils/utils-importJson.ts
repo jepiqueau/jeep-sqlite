@@ -11,10 +11,12 @@ export const createDatabaseSchema = async (db: any, jsonData: JsonSQLite): Promi
   let changes = -1;
   const version: number = jsonData.version;
   try {
-      // set Foreign Keys On
-      await setForeignKeyConstraintsEnabled(db, true);
+      // set Foreign Keys Off
+      await setForeignKeyConstraintsEnabled(db, false);
       // set User Version PRAGMA
       await setVersion(db, version);
+      // set Foreign Keys On
+      await setForeignKeyConstraintsEnabled(db, true);
       // DROP ALL when mode="full"
       if (jsonData.mode === 'full') {
         await dropAll(db);

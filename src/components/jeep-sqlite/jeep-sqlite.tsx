@@ -254,6 +254,23 @@ export class JeepSqlite {
     }
   }
   @Method()
+  async getTableList(options: SQLiteOptions): Promise<SQLiteValues> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      const retValues = await this._getTableList(dbName);
+      return Promise.resolve(retValues);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
   async isDBExists(options: SQLiteOptions): Promise<SQLiteResult> {
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
@@ -745,6 +762,20 @@ export class JeepSqlite {
       return Promise.reject(`Query failed: ${err.message}`);
     }
   }
+  private async _getTableList(database: string): Promise<SQLiteValues> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(`GetTableList: No available connection for ${database}`);
+    }
+    const mDB = this._dbDict[database];
+    let ret: any[] = [];
+    try {
+      ret = await mDB.getTableNames();
+      return Promise.resolve({ values: ret });
+    } catch (err) {
+      return Promise.reject(`GetTableList failed: ${err.message}`);
+    }
+  }
   private async _isDBExists(database:string): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
     if (!keys.includes(database)) {
@@ -877,11 +908,20 @@ export class JeepSqlite {
     const vJsonObj: JsonSQLite = jsonObj;
     const dbName = `${vJsonObj.database}SQLite.db`;
     const dbVersion: number = vJsonObj.version ?? 1;
+    const mode: string = vJsonObj.mode;
     // Create the database
     const mDb: Database = new Database(dbName, dbVersion, {}, this.store, this.innerAutoSave);
     try {
       // Open the database
       await mDb.open();
+      const tableList = await mDb.getTableNames();
+      if(mode === 'full' && tableList.length > 0) {
+        const curVersion = await mDb.getVersion();
+        if( curVersion === dbVersion) {
+          return Promise.resolve({ changes: { changes: 0 } });
+        }
+      }
+
       // Import the JsonSQLite Object
       const changes = await mDb.importJson(vJsonObj, this.importProgress);
       // Close the database
