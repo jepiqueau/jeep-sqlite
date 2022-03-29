@@ -917,6 +917,9 @@ export class JeepSqlite {
       const tableList = await mDb.getTableNames();
       if(mode === 'full' && tableList.length > 0) {
         const curVersion = await mDb.getVersion();
+        if(dbVersion < curVersion) {
+          return Promise.reject(`ImportFromJson: Cannot import a version lower than ${curVersion}`);
+        }
         if( curVersion === dbVersion) {
           return Promise.resolve({ changes: { changes: 0 } });
         }
