@@ -15,12 +15,12 @@ export const createDatabaseSchema = async (db: any, jsonData: JsonSQLite): Promi
       await setForeignKeyConstraintsEnabled(db, false);
       // set User Version PRAGMA
       await setVersion(db, version);
-      // set Foreign Keys On
-      await setForeignKeyConstraintsEnabled(db, true);
       // DROP ALL when mode="full"
       if (jsonData.mode === 'full') {
         await dropAll(db);
       }
+      // set Foreign Keys On
+      await setForeignKeyConstraintsEnabled(db, true);
       // create database schema
       changes = await createSchema(db, jsonData);
       return Promise.resolve(changes);
