@@ -237,6 +237,10 @@ export interface JsonSQLite {
    */
   version: number;
   /**
+   * Delete the database prior to import (default false)
+   */
+  overwrite?: boolean;
+   /**
    * Set to true (database encryption) / false
    */
   encrypted: boolean;

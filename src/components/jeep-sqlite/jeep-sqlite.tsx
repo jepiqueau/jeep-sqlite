@@ -909,9 +909,16 @@ export class JeepSqlite {
     const dbName = `${vJsonObj.database}SQLite.db`;
     const dbVersion: number = vJsonObj.version ?? 1;
     const mode: string = vJsonObj.mode;
+    const overwrite: boolean = vJsonObj.overwrite ?? false;
     // Create the database
     const mDb: Database = new Database(dbName, dbVersion, {}, this.store, this.innerAutoSave);
     try {
+      if(overwrite && mode === 'full') {
+        const isExists = isDBInStore(dbName,this.store);
+        if(isExists) {
+          await removeDBFromStore(dbName,this.store);
+        }
+      }
       // Open the database
       await mDb.open();
       const tableList = await mDb.getTableNames();

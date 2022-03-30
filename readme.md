@@ -8,7 +8,7 @@
 
 This component might be used in PWA applications. It will also be used in the web implementation of the `@capacitor-community-sqlite`.
 
-This is the reason for having similar API than the `@capacitor-community-sqlite`.
+This is the reason for having similar API than the `@capacitor-community-sqlite`. Look at the `@capacitor-community-sqlite`documentation and CHANGELOG.md
 
 It will be used at that stage to test the integration with the `@capacitor-community-sqlite` but can also be used in development of `Stencil` or `Ionic/Angular` applications.
 

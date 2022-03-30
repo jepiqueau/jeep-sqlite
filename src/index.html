@@ -1013,6 +1013,12 @@
                     exObj.tables[1].values.length !== 2) {
               throw new Error("Export231 'full' export failed");
             }
+            exObj.overwrite = true;
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(exObj)});
+            console.log(`re-import ovewrite ${exObj.overwrite} ${JSON.stringify(result)}`);
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImport231 failed");
+
 /*  Only for testing
             //test partial export
             syncDate = "2020-05-20T18:40:00.000Z";
