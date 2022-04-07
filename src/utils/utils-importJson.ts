@@ -5,7 +5,7 @@ import { setForeignKeyConstraintsEnabled, setVersion, beginTransaction,
   rollbackTransaction, commitTransaction, execute, dbChanges,
   run, queryAll, isTableExists } from './utils-sqlite';
 import { dropAll } from './utils-drop';
-import { getTableColumnNamesTypes } from './utils-json';
+import { getTableColumnNamesTypes, getValues } from './utils-json';
 
 export const createDatabaseSchema = async (db: any, jsonData: JsonSQLite): Promise<number> => {
   let changes = -1;
@@ -127,7 +127,7 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
           trig += `${jTable.name}`;
           trig += `_trigger_last_modified `;
           trig += `AFTER UPDATE ON ${jTable.name} `;
-          trig += 'FOR EACH ROW WHEN NEW.last_modified <= ';
+          trig += 'FOR EACH ROW WHEN NEW.last_modified < ';
           trig += 'OLD.last_modified BEGIN UPDATE ';
           trig += `${jTable.name} `;
           trig += `SET last_modified = `;
@@ -264,6 +264,7 @@ export const createDataTable = async (db: any, table: any, mode: string): Promis
       */
       const retisIdExists: boolean = await isIdExists(db, table.name, tableColumnNames[0], table.values[j][0]);
       let stmt: string;
+      let isRun: Boolean = true;
       if (mode === 'full' || (mode === 'partial' && !retisIdExists)) {
         // Insert
         const nameString: string = tableColumnNames.join();
@@ -291,16 +292,53 @@ export const createDataTable = async (db: any, table: any, mode: string): Promis
           stmt +=
           `${tableColumnNames[0]} = ${table.values[j][0]};`;
         }
-
+        isRun = await checkUpdate(db, table.values[j], table.name, tableColumnNames);
       }
-      lastId = await run(db, stmt, table.values[j]);
-      if (lastId < 0) {
-        return Promise.reject(new Error('CreateDataTable: lastId < 0'));
+      if(isRun) {
+        lastId = await run(db, stmt, table.values[j]);
+        if (lastId < 0) {
+          return Promise.reject(new Error('CreateDataTable: lastId < 0'));
+        }
+      } else {
+        lastId = 0;
       }
     }
     return Promise.resolve(lastId);
   } catch (err) {
     return Promise.reject(new Error(`CreateDataTable: ${err.message}`));
+  }
+}
+export const checkUpdate = async (db: any, values: any[], tbName: string, tColNames: string[]): Promise<boolean> => {
+  try {
+    let query = `SELECT * FROM ${tbName} WHERE `;
+    if( typeof values[0] == "string") {
+      query +=
+      `${tColNames[0]} = '${values[0]}';`;
+    } else {
+      query +=
+      `${tColNames[0]} = ${values[0]};`;
+    }
+
+
+    const resQuery: any[] = await getValues(db, query, tbName);
+    let resValues: any[] = [];
+    if(resQuery.length > 0) {
+      resValues = resQuery[0];
+    }
+    if(values.length > 0  && resValues.length > 0
+                          && values.length === resValues.length) {
+      for(let i = 0; i < values.length; i++) {
+        if(values[i] !== resValues[i]) {
+          return Promise.resolve(true);
+        }
+      }
+      return Promise.resolve(false);
+    } else {
+      const msg = "Both arrays not the same length"
+      return Promise.reject(new Error(`CheckUpdate: ${msg}`));
+    }
+  } catch (err) {
+    return Promise.reject(new Error(`CheckUpdate: ${err.message}`));
   }
 }
 export const isIdExists = async (db: any, dbName: string, firstColumnName: string,

@@ -293,3 +293,35 @@ export const getTableColumnNamesTypes = async (db: any, tableName: string): Prom
     );
   }
 }
+export const getValues = async (db: any, query: string, tableName: string): Promise<any[]> => {
+  const values: any[] = [];
+  try {
+    // get table column names and types
+    const tableNamesTypes = await getTableColumnNamesTypes(db, tableName);
+    let rowNames: string[] = [];
+    if (Object.keys(tableNamesTypes).includes('names')) {
+      rowNames = tableNamesTypes.names;
+    } else {
+      return Promise.reject(
+        new Error(`GetValues: Table ${tableName} no names`),
+      );
+    }
+    const retValues = await queryAll(db, query, []);
+    for (const rValue of retValues) {
+      const row: any[] = [];
+      for (const rName of rowNames) {
+        if (Object.keys(rValue).includes(rName)) {
+          row.push(rValue[rName]);
+        } else {
+          row.push(null);
+        }
+      }
+      values.push(row);
+    }
+    return Promise.resolve(values);
+  } catch (err) {
+    return Promise.reject(new Error(`GetValues: ${err.message}`));
+  }
+}
+
+

@@ -2,7 +2,7 @@ import { EventEmitter } from '@stencil/core';
 
 import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger, JsonView, JsonProgressListener } from '../interfaces/interfaces';
 import { queryAll, isTableExists } from './utils-sqlite';
-import { checkSchemaValidity, checkIndexesValidity, checkTriggersValidity, getTableColumnNamesTypes } from './utils-json';
+import { checkSchemaValidity, checkIndexesValidity, checkTriggersValidity, getValues } from './utils-json';
 
 export const createExportObject = async (db: any, sqlObj: JsonSQLite,
   exportProgress: EventEmitter<JsonProgressListener>): Promise<JsonSQLite> => {
@@ -334,36 +334,6 @@ export const getTriggers = async (db: any, tableName: string): Promise<JsonTrigg
     return Promise.resolve(triggers);
   } catch (err) {
     return Promise.reject(new Error(`GetTriggers: ${err.message}`));
-  }
-}
-export const getValues = async (db: any, query: string, tableName: string): Promise<any[]> => {
-  const values: any[] = [];
-  try {
-    // get table column names and types
-    const tableNamesTypes = await getTableColumnNamesTypes(db, tableName);
-    let rowNames: string[] = [];
-    if (Object.keys(tableNamesTypes).includes('names')) {
-      rowNames = tableNamesTypes.names;
-    } else {
-      return Promise.reject(
-        new Error(`GetValues: Table ${tableName} no names`),
-      );
-    }
-    const retValues = await queryAll(db, query, []);
-    for (const rValue of retValues) {
-      const row: any[] = [];
-      for (const rName of rowNames) {
-        if (Object.keys(rValue).includes(rName)) {
-          row.push(rValue[rName]);
-        } else {
-          row.push(null);
-        }
-      }
-      values.push(row);
-    }
-    return Promise.resolve(values);
-  } catch (err) {
-    return Promise.reject(new Error(`GetValues: ${err.message}`));
   }
 }
 export const getTablesPartial = async (db: any, resTables: any[],
