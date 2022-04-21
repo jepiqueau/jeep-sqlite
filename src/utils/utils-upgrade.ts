@@ -77,11 +77,14 @@ export const onUpgrade = async (
   }
 }
 export const executeStatementProcess = async (mDb: any, statement: string): Promise<void> => {
+  let alterTables: Record<string, string[]> = {};
+  let commonColumns : Record<string, string[]> = {};
   try {
+
 
     // -> backup all existing tables  "tableName" in
     //    "temp_tableName"
-    const alterTables: Record<string, string[]> = await backupTables(mDb);
+    alterTables = await backupTables(mDb);
 
     // -> Drop all Indexes
     await dropElements(mDb, 'index');
@@ -96,20 +99,24 @@ export const executeStatementProcess = async (mDb: any, statement: string): Prom
       );
     }
     // -> Create the list of table's common fields
-    const commonColumns : Record<string, string[]> = await findCommonColumns(mDb, alterTables);
+    commonColumns = await findCommonColumns(mDb, alterTables);
 
     // -> Update the new table's data from old table's data
     if (Object.keys(commonColumns).length > 0) {
       await updateNewTablesData(mDb, commonColumns);
     }
 
-    // -> Drop _temp_tables
-    await dropTempTables(mDb, alterTables);
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(
       new Error(`ExecuteStatementProcess: ${err.message}`),
     );
+  } finally {
+    // -> Drop _temp_tables
+    await dropTempTables(mDb, alterTables);
+      // -> Do some cleanup
+      alterTables = {};
+      commonColumns = {};
   }
 
 }

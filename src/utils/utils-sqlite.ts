@@ -253,9 +253,13 @@ export const backupTable = async (db: any, table: string): Promise<string[]> => 
     await beginTransaction(db, true);
     // get the table's column names
     const colNames: string[] = await getTableColumnNames(db, table);
-    // prefix the table with _temp_
+    const tmpTable = `_temp_${table}`;
+    // Drop the tmpTable if exists
+    const delStmt = `DROP TABLE IF EXISTS ${tmpTable};`;
+    await run(db, delStmt, []);
+  // prefix the table with _temp_
     let stmt = `ALTER TABLE ${table} RENAME `;
-    stmt += `TO _temp_${table};`;
+    stmt += `TO ${tmpTable};`;
     const lastId: number = await run(db, stmt, []);
     if (lastId < 0) {
       let msg = 'BackupTable: lastId < 0';
