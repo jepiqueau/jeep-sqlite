@@ -77,11 +77,14 @@ export const onUpgrade = async (
   }
 }
 export const executeStatementProcess = async (mDb: any, statement: string): Promise<void> => {
+  let alterTables: Record<string, string[]> = {};
+  let commonColumns : Record<string, string[]> = {};
   try {
+
 
     // -> backup all existing tables  "tableName" in
     //    "temp_tableName"
-    const alterTables: Record<string, string[]> = await backupTables(mDb);
+    alterTables = await backupTables(mDb);
 
     // -> Drop all Indexes
     await dropElements(mDb, 'index');
@@ -89,34 +92,38 @@ export const executeStatementProcess = async (mDb: any, statement: string): Prom
     await dropElements(mDb, 'trigger');
 
     // -> Create new tables from upgrade.statement
-    const changes: number = await execute(mDb, statement);
+    const changes: number = await execute(mDb, statement, false);
     if (changes < 0) {
       return Promise.reject(
         new Error('ExecuteStatementProcess: ' + 'changes < 0'),
       );
     }
     // -> Create the list of table's common fields
-    const commonColumns : Record<string, string[]> = await findCommonColumns(mDb, alterTables);
+    commonColumns = await findCommonColumns(mDb, alterTables);
 
     // -> Update the new table's data from old table's data
     if (Object.keys(commonColumns).length > 0) {
       await updateNewTablesData(mDb, commonColumns);
     }
 
-    // -> Drop _temp_tables
-    await dropTempTables(mDb, alterTables);
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(
       new Error(`ExecuteStatementProcess: ${err.message}`),
     );
+  } finally {
+    // -> Drop _temp_tables
+    await dropTempTables(mDb, alterTables);
+      // -> Do some cleanup
+      alterTables = {};
+      commonColumns = {};
   }
 
 }
 export const executeSetProcess = async (mDb: any, set: SQLiteSet[], toVersion: number): Promise<void> => {
   try {
     // -> load new data
-    const lastId = await executeSet(mDb, set);
+    const lastId = await executeSet(mDb, set, false);
     if (lastId < 0) {
       return Promise.reject(new Error('ExecuteSetProcess: lastId ' + '< 0'));
     }
@@ -128,7 +135,7 @@ export const executeSetProcess = async (mDb: any, set: SQLiteSet[], toVersion: n
       const sDate: number = Math.round(new Date().getTime() / 1000);
       let stmt = 'UPDATE sync_table SET ';
       stmt += `sync_date = ${sDate} WHERE id = 1;`;
-      const changes: number = await execute(mDb, stmt);
+      const changes: number = await execute(mDb, stmt, false);
       if (changes < 0) {
         return Promise.reject(
           new Error('ExecuteSetProcess: changes ' + '< 0'),

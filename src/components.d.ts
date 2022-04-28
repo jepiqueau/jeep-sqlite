@@ -20,6 +20,7 @@ export namespace Components {
         "createConnection": (options: ConnectionOptions) => Promise<void>;
         "createSyncTable": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "deleteDatabase": (options: SQLiteOptions) => Promise<void>;
+        "deleteExportedRows": (options: SQLiteOptions) => Promise<void>;
         "echo": (options: EchoOptions) => Promise<EchoResult>;
         "execute": (options: SQLiteExecuteOptions) => Promise<SQLiteChanges>;
         "executeSet": (options: SQLiteSetOptions) => Promise<SQLiteChanges>;
@@ -29,6 +30,7 @@ export namespace Components {
         "getTableList": (options: SQLiteOptions) => Promise<SQLiteValues>;
         "getVersion": (options: SQLiteOptions) => Promise<SQLiteVersion>;
         "importFromJson": (options: SQLiteImportOptions) => Promise<SQLiteChanges>;
+        "isConnection": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDBExists": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDBOpen": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "isDatabase": (options: SQLiteOptions) => Promise<SQLiteResult>;

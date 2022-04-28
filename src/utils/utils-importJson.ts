@@ -1,9 +1,8 @@
 import { EventEmitter } from '@stencil/core';
 
 import { JsonSQLite, JsonProgressListener, JsonView } from '../interfaces/interfaces';
-import { setForeignKeyConstraintsEnabled, setVersion, beginTransaction,
-  rollbackTransaction, commitTransaction, execute, dbChanges,
-  run, queryAll, isTableExists } from './utils-sqlite';
+import { setVersion, beginTransaction, rollbackTransaction, commitTransaction,
+  execute, dbChanges, run, queryAll, isTableExists } from './utils-sqlite';
 import { dropAll } from './utils-drop';
 import { getTableColumnNamesTypes, getValues } from './utils-json';
 
@@ -11,16 +10,12 @@ export const createDatabaseSchema = async (db: any, jsonData: JsonSQLite): Promi
   let changes = -1;
   const version: number = jsonData.version;
   try {
-      // set Foreign Keys Off
-      await setForeignKeyConstraintsEnabled(db, false);
       // set User Version PRAGMA
       await setVersion(db, version);
       // DROP ALL when mode="full"
       if (jsonData.mode === 'full') {
         await dropAll(db);
       }
-      // set Foreign Keys On
-      await setForeignKeyConstraintsEnabled(db, true);
       // create database schema
       changes = await createSchema(db, jsonData);
       return Promise.resolve(changes);
@@ -45,7 +40,7 @@ export const createSchema = async (db: any, jsonData: any): Promise<number> => {
   if (stmts.length > 0) {
     const schemaStmt: string = stmts.join('\n');
     try {
-      changes = await execute(db, schemaStmt);
+      changes = await execute(db, schemaStmt, true);
       if (changes < 0) {
         try {
           await rollbackTransaction(db, true);
@@ -184,7 +179,7 @@ export const createTablesData = async (db: any, jsonData: JsonSQLite,
     if (jTable.values != null && jTable.values.length >= 1) {
       // Create the table's data
       try {
-        lastId = await createDataTable(db, jTable, jsonData.mode);
+        lastId = await createTableData(db, jTable, jsonData.mode);
         const msg: string = `create table data ${jTable.name}`;
         importProgress.emit({progress: msg});
         if (lastId < 0) break;
@@ -222,14 +217,14 @@ export const createTablesData = async (db: any, jsonData: JsonSQLite,
     }
 }
 }
-export const createDataTable = async (db: any, table: any, mode: string): Promise<number> => {
+export const createTableData = async (db: any, table: any, mode: string): Promise<number> => {
   let lastId = -1;
   try {
     // Check if the table exists
     const tableExists = await isTableExists(db, table.name);
     if (!tableExists) {
       return Promise.reject(
-        new Error('CreateDataTable: Table ' + `${table.name} does not exist`),
+        new Error('CreateTableData: Table ' + `${table.name} does not exist`),
       );
     }
 
@@ -240,64 +235,24 @@ export const createDataTable = async (db: any, table: any, mode: string): Promis
     if (tableColumnTypes.length === 0) {
       return Promise.reject(
         new Error(
-          'CreateDataTable: Table ' + `${table.name} info does not exist`,
+          'CreateTableData: Table ' + `${table.name} info does not exist`,
         ),
       );
     }
     // Loop on Table Values
     for (let j = 0; j < table.values.length; j++) {
-      // Check the row number of columns
-      if (table.values[j].length != tableColumnTypes.length) {
-        return Promise.reject(
-          new Error(
-            `CreateDataTable: Table ${table.name} ` +
-              `values row ${j} not correct length`,
-          ),
-        );
-      }
-      // Check the column's type before proceeding
-      // remove type checking for allowing RDBMS Types
-      /*await checkColumnTypes(
-        tableColumnTypes,
-        table.values[j],
-      );
-      */
-      const retisIdExists: boolean = await isIdExists(db, table.name, tableColumnNames[0], table.values[j][0]);
-      let stmt: string;
-      let isRun: Boolean = true;
-      if (mode === 'full' || (mode === 'partial' && !retisIdExists)) {
-        // Insert
-        const nameString: string = tableColumnNames.join();
-        const questionMarkString = await createQuestionMarkString(tableColumnNames.length);
-        stmt = `INSERT INTO ${table.name} (${nameString}) VALUES (`;
-        stmt += `${questionMarkString});`;
-
-      } else {
-        // Update
-        const setString: string = await setNameForUpdate(tableColumnNames);
-        if (setString.length === 0) {
-          return Promise.reject(
-            new Error(
-              `CreateDataTable: Table ${table.name} ` +
-                `values row ${j} not set to String`,
-            ),
-          );
-        }
-        stmt =
-          `UPDATE ${table.name} SET ${setString} WHERE `;
-        if( typeof table.values[j][0] == "string") {
-          stmt +=
-          `${tableColumnNames[0]} = '${table.values[j][0]}';`;
-        } else {
-          stmt +=
-          `${tableColumnNames[0]} = ${table.values[j][0]};`;
-        }
-        isRun = await checkUpdate(db, table.values[j], table.name, tableColumnNames);
-      }
+      let row = table.values[j];
+      let isRun: boolean = true;
+      const stmt: string = await createRowStatement(db, tableColumnNames, row,
+                                                    j, table.name, mode);
+      isRun = await checkUpdate(db, stmt, row, table.name, tableColumnNames);
       if(isRun) {
-        lastId = await run(db, stmt, table.values[j]);
+        if(stmt.substring(0,6).toUpperCase() === "DELETE") {
+          row = [];
+        }
+        lastId = await run(db, stmt, row, true);
         if (lastId < 0) {
-          return Promise.reject(new Error('CreateDataTable: lastId < 0'));
+          return Promise.reject(new Error('CreateTableData: lastId < 0'));
         }
       } else {
         lastId = 0;
@@ -305,40 +260,115 @@ export const createDataTable = async (db: any, table: any, mode: string): Promis
     }
     return Promise.resolve(lastId);
   } catch (err) {
-    return Promise.reject(new Error(`CreateDataTable: ${err.message}`));
+    return Promise.reject(new Error(`CreateTableData: ${err.message}`));
   }
 }
-export const checkUpdate = async (db: any, values: any[], tbName: string, tColNames: string[]): Promise<boolean> => {
+export const createRowStatement = async (db: any, tColNames: string[],
+                                         row: any[], j: number, tableName: string,
+                                         mode: string): Promise<string> => {
+
+  // Check the row number of columns
+  if (row.length != tColNames.length || row.length ===0 || tColNames.length === 0) {
+    return Promise.reject(
+      new Error(
+        `CreateRowStatement: Table ${tableName} ` +
+          `values row ${j} not correct length`,
+      ),
+    );
+  }
   try {
-    let query = `SELECT * FROM ${tbName} WHERE `;
-    if( typeof values[0] == "string") {
-      query +=
-      `${tColNames[0]} = '${values[0]}';`;
+    const retisIdExists: boolean = await isIdExists(db, tableName, tColNames[0], row[0]);
+    let stmt: string;
+    if (mode === 'full' || (mode === 'partial' && !retisIdExists)) {
+      // Insert
+      const nameString: string = tColNames.join();
+      const questionMarkString = await createQuestionMarkString(tColNames.length);
+      stmt = `INSERT INTO ${tableName} (${nameString}) VALUES (`;
+      stmt += `${questionMarkString});`;
+
     } else {
-      query +=
-      `${tColNames[0]} = ${values[0]};`;
-    }
-
-
-    const resQuery: any[] = await getValues(db, query, tbName);
-    let resValues: any[] = [];
-    if(resQuery.length > 0) {
-      resValues = resQuery[0];
-    }
-    if(values.length > 0  && resValues.length > 0
-                          && values.length === resValues.length) {
-      for(let i = 0; i < values.length; i++) {
-        if(values[i] !== resValues[i]) {
-          return Promise.resolve(true);
+      // Update or Delete
+      let isUpdate = true
+      const isColDeleted = (element: string) => element === `sql_deleted`;
+      const idxDelete = tColNames.findIndex(isColDeleted);
+      if(idxDelete >= 0) {
+        if(row[idxDelete] === 1) {
+          isUpdate = false;
+          stmt =
+          `DELETE FROM ${tableName} WHERE `;
+          if( typeof row[0] == "string") {
+            stmt +=
+            `${tColNames[0]} = '${row[0]}';`;
+          } else {
+            stmt +=
+            `${tColNames[0]} = ${row[0]};`;
+          }
         }
       }
-      return Promise.resolve(false);
-    } else {
-      const msg = "Both arrays not the same length"
-      return Promise.reject(new Error(`CheckUpdate: ${msg}`));
+      if(isUpdate) {
+        // Update
+        const setString: string = await setNameForUpdate(tColNames);
+        if (setString.length === 0) {
+          return Promise.reject(
+            new Error(
+              `CreateRowStatement: Table ${tableName} ` +
+                `values row ${j} not set to String`,
+            ),
+          );
+        }
+        stmt =
+          `UPDATE ${tableName} SET ${setString} WHERE `;
+        if( typeof row[0] == "string") {
+          stmt +=
+          `${tColNames[0]} = '${row[0]}';`;
+        } else {
+          stmt +=
+          `${tColNames[0]} = ${row[0]};`;
+        }
+      }
     }
+    return Promise.resolve(stmt);
   } catch (err) {
-    return Promise.reject(new Error(`CheckUpdate: ${err.message}`));
+    return Promise.reject(new Error(`CreateRowStatement: ${err.message}`));
+  }
+}
+export const checkUpdate = async (db: any, stmt: string, values: any[], tbName: string,
+                                  tColNames: string[]): Promise<boolean> => {
+  let isRun: boolean = true;
+  if (stmt.substring(0, 6) === "UPDATE") {
+    try {
+      let query = `SELECT * FROM ${tbName} WHERE `;
+      if( typeof values[0] == "string") {
+        query +=
+        `${tColNames[0]} = '${values[0]}';`;
+      } else {
+        query +=
+        `${tColNames[0]} = ${values[0]};`;
+      }
+
+
+      const resQuery: any[] = await getValues(db, query, tbName);
+      let resValues: any[] = [];
+      if(resQuery.length > 0) {
+        resValues = resQuery[0];
+      }
+      if(values.length > 0  && resValues.length > 0
+                            && values.length === resValues.length) {
+        for(let i = 0; i < values.length; i++) {
+          if(values[i] !== resValues[i]) {
+            return Promise.resolve(true);
+          }
+        }
+        return Promise.resolve(false);
+      } else {
+        const msg = "Both arrays not the same length"
+        return Promise.reject(new Error(`CheckUpdate: ${msg}`));
+      }
+    } catch (err) {
+      return Promise.reject(new Error(`CheckUpdate: ${err.message}`));
+    }
+  } else {
+    return Promise.resolve(isRun);
   }
 }
 export const isIdExists = async (db: any, dbName: string, firstColumnName: string,
@@ -411,7 +441,7 @@ export const setNameForUpdate = async (names: string[]): Promise<string> => {
 export const createView = async (mDB: any, view: JsonView): Promise<void> => {
   const stmt = `CREATE VIEW IF NOT EXISTS ${view.name} AS ${view.value};`;
   try {
-    const changes = await execute(mDB, stmt);
+    const changes = await execute(mDB, stmt, true);
     if (changes < 0) {
       return Promise.reject(new Error(`CreateView: ${view.name} failed`));
     }

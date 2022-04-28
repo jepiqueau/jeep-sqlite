@@ -715,6 +715,16 @@ Type: `Promise<void>`
 
 
 
+### `deleteExportedRows(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `echo(options: EchoOptions) => Promise<EchoResult>`
 
 
@@ -802,6 +812,16 @@ Type: `Promise<SQLiteVersion>`
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
+
+
+
+### `isConnection(options: SQLiteOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
 
 
 

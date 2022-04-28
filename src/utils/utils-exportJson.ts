@@ -1,7 +1,7 @@
 import { EventEmitter } from '@stencil/core';
 
 import { JsonSQLite, JsonTable, JsonColumn, JsonIndex, JsonTrigger, JsonView, JsonProgressListener } from '../interfaces/interfaces';
-import { queryAll, isTableExists } from './utils-sqlite';
+import { execute, queryAll, run, isTableExists, getTableList } from './utils-sqlite';
 import { checkSchemaValidity, checkIndexesValidity, checkTriggersValidity, getValues } from './utils-json';
 
 export const createExportObject = async (db: any, sqlObj: JsonSQLite,
@@ -18,8 +18,7 @@ export const createExportObject = async (db: any, sqlObj: JsonSQLite,
     const resTables: any[] = await getTablesNameSQL(db);
     if (resTables.length === 0) {
       return Promise.reject(
-        new Error("createExportObject: table's names failed"),
-      );
+        new Error("createExportObject: table's names failed"));
     } else {
       const isTable = await isTableExists(db, 'sync_table');
       if(!isTable && sqlObj.mode === 'partial') {
@@ -61,18 +60,7 @@ export const createExportObject = async (db: any, sqlObj: JsonSQLite,
     return Promise.reject(new Error('createExportObject: ' + err.message));
   }
 }
-export const getTablesNameSQL = async (db: any): Promise<any[]> => {
-  let sql = 'SELECT name,sql FROM sqlite_master WHERE ';
-  sql += "type='table' AND name NOT LIKE 'sync_table' ";
-  sql += "AND name NOT LIKE '_temp_%' ";
-  sql += "AND name NOT LIKE 'sqlite_%';";
-  try {
-    const retQuery: any[] = await queryAll(db, sql, []);
-    return Promise.resolve(retQuery);
-  } catch (err) {
-    return Promise.reject(new Error(`getTablesNames: ${err.message}`));
-  }
-}
+
 export const getViewsName = async (mDb: any): Promise<JsonView[]> => {
   const views: JsonView[] = [];
   let sql = 'SELECT name,sql FROM sqlite_master WHERE ';
@@ -465,6 +453,18 @@ export const getPartialModeData = async (db: any, resTables: any[]): Promise<any
     return Promise.reject(new Error(`GetPartialModeData: ${err.message}`));
   }
 }
+export const getTablesNameSQL = async (db: any): Promise<any[]> => {
+  let sql = 'SELECT name,sql FROM sqlite_master WHERE ';
+  sql += "type='table' AND name NOT LIKE 'sync_table' ";
+  sql += "AND name NOT LIKE '_temp_%' ";
+  sql += "AND name NOT LIKE 'sqlite_%';";
+  try {
+    const retQuery: any[] = await queryAll(db, sql, []);
+    return Promise.resolve(retQuery);
+  } catch (err) {
+    return Promise.reject(new Error(`getTablesNamesSQL: ${err.message}`));
+  }
+}
 export const getTablesModified = async (db: any, tables: any[], syncDate: number): Promise<any> => {
   let errmsg = '';
   try {
@@ -508,13 +508,86 @@ export const getTablesModified = async (db: any, tables: any[], syncDate: number
 }
 export const getSynchroDate = async (db: any): Promise<number> => {
   try {
-    const stmt = `SELECT sync_date FROM sync_table;`;
+    const stmt = `SELECT sync_date FROM sync_table WHERE id = 1;`;
     const res = await queryAll(db,stmt,[]);
     return Promise.resolve(res[0]["sync_date"]);
   } catch (err) {
     const msg = `getSyncDate: ${err.message}`;
     return Promise.reject(new Error(msg));
   }
+}
+export const getLastExportDate = async (db: any): Promise<number> => {
+  try {
+    const stmt = `SELECT sync_date FROM sync_table WHERE id = 2;`;
+    const res = await queryAll(db,stmt,[]);
+    if (res.length === 0) {
+      return Promise.resolve(-1);
+    } else {
+      return Promise.resolve(res[0]["sync_date"]);
+    }
+  } catch (err) {
+    const msg = `getLastExport: ${err.message}`;
+    return Promise.reject(new Error(msg));
+  }
+}
+export const setLastExportDate = async (db: any, lastExportedDate: string): Promise<any> => {
+  try {
+    const isTable = await isTableExists(db, 'sync_table');
+    if(!isTable) {
+      return Promise.reject(new Error('setLastExportDate: No sync_table available'));
+    }
+    const sDate: number = Math.round(new Date(lastExportedDate).getTime() / 1000);
+    let stmt = "";
+    if( await getLastExportDate(db) > 0) {
+      stmt = `UPDATE sync_table SET sync_date = ${sDate} WHERE id = 2;`;
+    } else {
+      stmt =  `INSERT INTO sync_table (sync_date) VALUES (${sDate});`
+    }
+    const changes: number = await execute(db, stmt, false);
+    if (changes < 0) {
+      return { result: false, message: 'setLastExportDate failed' };
+    } else {
+      return { result: true };
+    }
+  } catch (err) {
+    return { result: false, message: `setLastExportDate failed: ${err.message}` };
+  }
+}
+export const delExportedRows = async (db:any): Promise<void> => {
+  let lastExportDate: number;
+  try {
+    // check if synchronization table exists
+    const isTable = await isTableExists(db, 'sync_table');
+    if(!isTable) {
+      return Promise.reject(new Error('DelExportedRows: No sync_table available'));
+    }
+    // get the last export date
+    lastExportDate = await getLastExportDate(db);
+    if( lastExportDate < 0) {
+      return Promise.reject(
+        new Error("DelExportedRows: no last exported date available"));
+    }
+    // get the table' name list
+    const resTables: any[] = await getTableList(db);
+    if (resTables.length === 0) {
+      return Promise.reject(
+        new Error("DelExportedRows: No table's names returned"));
+    }
+    // Loop through the tables
+    for (const table of resTables) {
+      let lastId: number = -1
+      // define the delete statement
+      const delStmt = `DELETE FROM ${table}
+            WHERE sql_deleted = 1 AND last_modified < ${lastExportDate};`
+      lastId = await run(db, delStmt, [], true);
+      if (lastId < 0) {
+        return Promise.reject(new Error('DelExportedRows: lastId < 0'));
+      }
+    }
+  } catch (err) {
+    return Promise.reject(new Error(`DelExportedRows failed: ${err.message}`));
+  }
+
 }
 const modEmbeddedParentheses = async (sstr: string): Promise<string> => {
   const oParArray: number[] = indexOfChar(sstr, '(');

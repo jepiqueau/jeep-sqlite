@@ -88,6 +88,19 @@ export class JeepSqlite {
     }
   }
   @Method()
+  async isConnection(options: SQLiteOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    const ret: SQLiteResult = await this._isConnection(dbName);
+    return Promise.resolve(ret);
+  }
+  @Method()
   async closeConnection(options: SQLiteOptions): Promise<void> {
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
@@ -474,6 +487,20 @@ export class JeepSqlite {
     }
   }
   @Method()
+  async deleteExportedRows(options: SQLiteOptions): Promise<void> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      await this._deleteExportedRows(dbName);
+      return Promise.resolve();
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
   async addUpgradeStatement(options: SQLiteUpgradeOptions): Promise<void> {
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
@@ -611,6 +638,14 @@ export class JeepSqlite {
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err.message);
+    }
+  }
+  private async _isConnection(database: string): Promise<SQLiteResult> {
+    const keys = Object.keys(this._dbDict);
+    if (keys.includes(database)) {
+      return {result: true};
+    } else {
+      return {result: false};
     }
   }
   private async _closeConnection(database: string): Promise<void> {
@@ -962,6 +997,21 @@ export class JeepSqlite {
     }
 
   }
+  async _deleteExportedRows(database: string): Promise<void> {
+    const keys = Object.keys(this._dbDict);
+    if (!keys.includes(database)) {
+      return Promise.reject(
+        'ExportToJson: No available connection for ' + `${database}`,
+      );
+    }
+    const mDb = this._dbDict[database];
+    try {
+      await mDb.deleteExportedRows();
+    } catch (err) {
+      return Promise.reject(`DeleteExportedRows: ${err.message}`);
+    }
+  }
+
   async _copyFromAssets(overwrite: boolean): Promise<void> {
     const res = await this.loadJSON('assets/databases/databases.json');
     if(res != null) {

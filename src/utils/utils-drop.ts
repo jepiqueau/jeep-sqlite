@@ -69,7 +69,7 @@ export const dropElements = async (db: any, type: string): Promise<void> => {
         statements.push(stmt);
       }
       for (const stmt of statements) {
-        const lastId: number = await run(db, stmt, []);
+        const lastId: number = await run(db, stmt, [], false);
         if (lastId < 0) {
           return Promise.reject(new Error(`DropElements: ${msg}: lastId < 0`));
         }
@@ -91,7 +91,7 @@ export const dropAll = async (db: any): Promise<void> => {
     // drop views
     await dropElements(db, 'view');
     // vacuum the database
-    await run(db, 'VACUUM;', []);
+    await run(db, 'VACUUM;', [], false);
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(new Error(`DropAll: ${err.message}`));
@@ -106,7 +106,7 @@ export const dropTempTables = async (db: any, alterTables: Record<string, string
     statements.push(stmt);
   }
   try {
-    const changes: number = await execute(db, statements.join('\n'));
+    const changes: number = await execute(db, statements.join('\n'), false);
     if (changes < 0) {
       return Promise.reject(new Error('DropTempTables: changes < 0'));
     }

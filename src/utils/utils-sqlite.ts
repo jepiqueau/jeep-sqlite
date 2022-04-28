@@ -96,19 +96,37 @@ export const setVersion = async (db: any, version: number): Promise<void> => {
   }
 }
 
-export const execute = async (db: any, sql: string): Promise<number> => {
+export const execute = async (db: any, sql: string, fromJson: boolean): Promise<number> => {
   let changes = -1;
   let initChanges = -1;
   try {
     initChanges = await dbChanges(db);
-    await db.exec(sql);
+    var sqlStmt = sql;
+    // Check for DELETE FROM in sql string
+    if(!fromJson && sql.toLowerCase().includes('DELETE FROM'.toLowerCase())) {
+      sqlStmt = sql.replace(/\n/g,'');
+      let sqlStmts: string[] = sqlStmt.split(';');
+      var resArr: string[] = [];
+      for ( const stmt of sqlStmts) {
+        const trimStmt = stmt.trim().substring(0,11).toUpperCase();
+        if( trimStmt === 'DELETE FROM' && stmt.toLowerCase().includes('WHERE'.toLowerCase())) {
+          const whereStmt = stmt.trim();
+          const rStmt = await deleteSQL(db, whereStmt, []);
+          resArr.push(rStmt);
+        } else {
+          resArr.push(stmt);
+        }
+      }
+      sqlStmt = resArr.join(';');
+    }
+    await db.exec(sqlStmt);
     changes = (await dbChanges(db)) - initChanges;
     return Promise.resolve(changes);
   } catch (err) {
     return Promise.reject(new Error(`Execute: ${err.message}`));
   }
 }
-export const executeSet = async (db: any, set: any): Promise<number> =>  {
+export const executeSet = async (db: any, set: any, fromJson: boolean): Promise<number> =>  {
   let lastId = -1;
   for (let i = 0; i < set.length; i++) {
     const statement = 'statement' in set[i] ? set[i].statement : null;
@@ -120,14 +138,17 @@ export const executeSet = async (db: any, set: any): Promise<number> =>  {
       return Promise.reject(new Error(msg));
     }
     try {
+
       if (Array.isArray(values[0])) {
         for (const val of values) {
           const mVal: any[] = await replaceUndefinedByNull(val);
-          await db.exec(statement, mVal);
+          await run(db, statement, mVal, fromJson)
+//          await db.exec(statement, mVal);
         }
       } else {
         const mVal: any[] = await replaceUndefinedByNull(values);
-        await db.exec(statement, mVal);
+        await run(db, statement, mVal, fromJson)
+        //        await db.exec(statement, mVal);
       }
       lastId = await getLastId(db);
     } catch (err) {
@@ -135,7 +156,6 @@ export const executeSet = async (db: any, set: any): Promise<number> =>  {
     }
   }
   return Promise.resolve(lastId);
-
 }
 export const queryAll = async (db: any, sql: string, values: any[]): Promise<any[]> => {
   const result: any[] = [];
@@ -159,14 +179,19 @@ export const queryAll = async (db: any, sql: string, values: any[]): Promise<any
     return Promise.reject(new Error(`queryAll: ${err.message}`));
   }
 }
-export const run = async (db: any, statement: string, values: any[]): Promise<number> => {
+export const run = async (db: any, statement: string, values: any[], fromJson: boolean): Promise<number> => {
+  let stmtType: string = statement.replace(/\n/g,"").trim().substring(0,6).toUpperCase();
   let lastId: number = -1;
+  let sqlStmt: string = statement
   try {
+    if (!fromJson && stmtType === "DELETE") {
+      sqlStmt = await deleteSQL(db, statement, values);
+    }
     if(values != null && values.length > 0) {
       const mVal: any[] = await replaceUndefinedByNull(values);
-      await db.exec(statement, mVal);
+      await db.exec(sqlStmt, mVal);
     } else {
-      await db.exec(statement);
+      await db.exec(sqlStmt);
     }
     lastId = await getLastId(db);
     return Promise.resolve(lastId);
@@ -174,6 +199,113 @@ export const run = async (db: any, statement: string, values: any[]): Promise<nu
   } catch (err) {
     return Promise.reject(new Error(`run: ${err.message}`));
   }
+}
+export const deleteSQL= async (db: any, statement: string,
+                               values: any[]): Promise<string> => {
+  let sqlStmt: string = statement;
+  try {
+    const isLast: boolean = await isLastModified(db, true);
+    if(isLast) {
+      // Replace DELETE by UPDATE and set sql_deleted to 1
+      const wIdx: number = statement.toUpperCase().indexOf("WHERE");
+      const preStmt: string = statement.substring(0, wIdx - 1);
+      const clauseStmt: string = statement.substring(wIdx, statement.length);
+      const tableName: string = preStmt.substring(("DELETE FROM").length).trim();
+      sqlStmt = `UPDATE ${tableName} SET sql_deleted = 1 ${clauseStmt}`;
+      // Find REFERENCES if any and update the sql_deleted column
+      await findReferencesAndUpdate(db, tableName, clauseStmt, values);
+    }
+    return Promise.resolve(sqlStmt);
+  } catch (err) {
+    return Promise.reject(new Error(`deleteSQL: ${err.message}`));
+  }
+}
+export const findReferencesAndUpdate = async (db: any, tableName: string,
+                                              whereStmt: string,
+                                              values: any[]): Promise<void> => {
+  try {
+    const references = await getReferences(db, tableName);
+    for ( const refe of references) {
+      // get the tableName of the reference
+      const refTable: string = await getReferenceTableName(refe.sql);
+      if (refTable.length <= 0) {
+          continue;
+      }
+      // get the columnName
+      const colName: string = await getReferenceColumnName(refe.sql);
+      if (colName.length <= 0) {
+          continue;
+      }
+      // update the where clause
+      const uWhereStmt: string = await updateWhere(whereStmt, colName);
+      if (uWhereStmt.length <= 0) {
+          continue;
+      }
+      //update sql_deleted for this reference
+      const stmt: string = "UPDATE " + refTable + " SET sql_deleted = 1 " + uWhereStmt;
+      if(values != null && values.length > 0) {
+        const mVal: any[] = await replaceUndefinedByNull(values);
+        await db.exec(stmt, mVal);
+      } else {
+        await db.exec(stmt);
+      }
+      const lastId: number = await getLastId(db);
+      if (lastId == -1) {
+          const msg = `UPDATE sql_deleted failed for references table: ${refTable}`;
+          return Promise.reject(new Error(`findReferencesAndUpdate: ${msg}`));
+        }
+
+      return;
+    }
+  } catch (err) {
+    return Promise.reject(new Error(`findReferencesAndUpdate: ${err.message}`));
+  }
+}
+export const getReferenceTableName = async (refValue: string): Promise<string> => {
+  var tableName = '';
+  if (refValue.length > 0 && refValue.substring(0, 12).toLowerCase() === 'CREATE TABLE'.toLowerCase()) {
+      const oPar = refValue.indexOf("(");
+      tableName = refValue.substring(13, oPar).trim();
+  }
+  return tableName;
+}
+export const  getReferenceColumnName = async (refValue: string): Promise<string> => {
+  var colName = '';
+  if (refValue.length > 0) {
+      const index: number = refValue.toLowerCase().indexOf("FOREIGN KEY".toLowerCase());
+      const stmt: string = refValue.substring(index + 12);
+      const oPar: number = stmt.indexOf("(");
+      const cPar: number = stmt.indexOf(")");
+      colName = stmt.substring(oPar + 1, cPar).trim();
+  }
+  return colName;
+}
+const updateWhere = async (whStmt: string, colName: string): Promise<string> => {
+  var whereStmt = '';
+  if (whStmt.length > 0) {
+      const index: number = whStmt.toLowerCase().indexOf("WHERE".toLowerCase());
+      const stmt: string = whStmt.substring(index + 6);
+      const fEqual: number = stmt.indexOf("=");
+      const whereColName: string = stmt.substring(0, fEqual).trim();
+      whereStmt = whStmt.replace(whereColName, colName);
+  }
+  return whereStmt;
+}
+
+export const getReferences= async (db: any, tableName: string): Promise<any[]> => {
+  const sqlStmt: string =
+  "SELECT sql FROM sqlite_master " +
+  "WHERE sql LIKE('%REFERENCES%') AND " +
+  "sql LIKE('%" +
+  tableName +
+  "%') AND sql LIKE('%ON DELETE%');";
+  try {
+    const res: any[] = await queryAll(db,sqlStmt,[]);
+    return Promise.resolve(res);
+  } catch (err) {
+    return Promise.reject(new Error(`getReferences: ${err.message}`));
+  }
+
 }
 export const getTableList = async (db:any): Promise<any[]> => {
   try {
@@ -253,10 +385,14 @@ export const backupTable = async (db: any, table: string): Promise<string[]> => 
     await beginTransaction(db, true);
     // get the table's column names
     const colNames: string[] = await getTableColumnNames(db, table);
-    // prefix the table with _temp_
+    const tmpTable = `_temp_${table}`;
+    // Drop the tmpTable if exists
+    const delStmt = `DROP TABLE IF EXISTS ${tmpTable};`;
+    await run(db, delStmt, [], false);
+  // prefix the table with _temp_
     let stmt = `ALTER TABLE ${table} RENAME `;
-    stmt += `TO _temp_${table};`;
-    const lastId: number = await run(db, stmt, []);
+    stmt += `TO ${tmpTable};`;
+    const lastId: number = await run(db, stmt, [], false);
     if (lastId < 0) {
       let msg = 'BackupTable: lastId < 0';
       try {
@@ -342,7 +478,7 @@ export const updateNewTablesData = async (db: any, commonColumns: Record<string,
       stmt += `SELECT ${columns} FROM _temp_${key};`;
       statements.push(stmt);
     });
-    const changes: number = await execute(db, statements.join('\n'));
+    const changes: number = await execute(db, statements.join('\n'), false);
     if (changes < 0) {
       let msg: string = 'updateNewTablesData: ' + 'changes < 0';
       try {
@@ -367,3 +503,5 @@ export const updateNewTablesData = async (db: any, commonColumns: Record<string,
     );
   }
 }
+
+

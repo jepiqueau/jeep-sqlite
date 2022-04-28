@@ -7,10 +7,10 @@ import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
          execute, executeSet, run, queryAll, isTableExists, getVersion,
-         setVersion, isLastModified, getTableList } from './utils-sqlite';
+         setVersion, isLastModified, getTableList, setForeignKeyConstraintsEnabled } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
-import { createExportObject, getSynchroDate } from './utils-exportJson';
+import { createExportObject, getSynchroDate, setLastExportDate, delExportedRows } from './utils-exportJson';
 import { onUpgrade }  from './utils-upgrade';
 
 export class Database {
@@ -191,7 +191,7 @@ export class Database {
     }
     try {
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
-      const changes = await execute(this.mDb, sql);
+      const changes = await execute(this.mDb, sql, false);
       if (changes < 0) {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
       }
@@ -226,7 +226,7 @@ export class Database {
     try {
       initChanges = await dbChanges(this.mDb);
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
-      const lastId = await executeSet(this.mDb, set);
+      const lastId = await executeSet(this.mDb, set, false);
       if (lastId < 0) {
         return Promise.reject(new Error('ExecSet: changes < 0'));
       }
@@ -277,7 +277,7 @@ export class Database {
     try {
       initChanges = await dbChanges(this.mDb);
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
-      const lastId = await run(this.mDb, statement, values);
+      const lastId = await run(this.mDb, statement, values, false);
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
@@ -352,7 +352,7 @@ export class Database {
                               );`;
           stmts += `INSERT INTO sync_table (sync_date) VALUES (
                               "${date}");`;
-          changes = await execute(this.mDb, stmts);
+          changes = await execute(this.mDb, stmts, false);
           return Promise.resolve(changes);
         } else {
           return Promise.reject(new Error('No last_modified column in tables'));
@@ -397,7 +397,7 @@ export class Database {
       const sDate: number = Math.round(new Date(syncDate).getTime() / 1000);
       let stmt = `UPDATE sync_table SET sync_date = `;
       stmt += `${sDate} WHERE id = 1;`;
-      const changes: number = await execute(this.mDb,stmt);
+      const changes: number = await execute(this.mDb, stmt, false);
       if (changes < 0) {
         return { result: false, message: 'setSyncDate failed' };
       } else {
@@ -411,6 +411,9 @@ export class Database {
     let changes = 0;
     if (this._isDBOpen) {
       try {
+        // set Foreign Keys Off
+        await setForeignKeyConstraintsEnabled(this.mDb, false);
+
         if (jsonData.tables && jsonData.tables.length > 0) {
 
           // create the database schema
@@ -429,6 +432,9 @@ export class Database {
           // create the views
           changes += await createViews(this.mDb, jsonData);
         }
+        // set Foreign Keys On
+        await setForeignKeyConstraintsEnabled(this.mDb, true);
+
         if( this.autoSave ) {
           try {
             await setDBToStore(this.mDb, this.dbName, this.store);
@@ -453,7 +459,14 @@ export class Database {
     inJson.mode = mode;
     if (this._isDBOpen) {
       try {
+        await setLastExportDate(this.mDb, (new Date()).toISOString());
         const retJson: JsonSQLite = await createExportObject(this.mDb, inJson, exportProgress);
+        const keys = Object.keys(retJson);
+        if(keys.length === 0) {
+          const msg = `ExportJson: return Object is empty `+
+                      `No data to synchronize`;
+          return Promise.reject(new Error(msg));
+        }
         const isValid = isJsonSQLite(retJson);
         if (isValid) {
           return Promise.resolve(retJson);
@@ -466,5 +479,17 @@ export class Database {
     } else {
       return Promise.reject(new Error(`ExportJson: database is closed`));
     }
+  }
+  async deleteExportedRows() : Promise<void> {
+    if (this._isDBOpen) {
+      try {
+        await delExportedRows(this.mDb);
+      } catch (err) {
+        return Promise.reject(new Error(`deleteExportedRows: ${err.message}`));
+      }
+    } else {
+      return Promise.reject(new Error(`deleteExportedRows: database is closed`));
+    }
+
   }
 }

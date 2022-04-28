@@ -12,9 +12,41 @@ This is the reason for having similar API than the `@capacitor-community-sqlite`
 
 It will be used at that stage to test the integration with the `@capacitor-community-sqlite` but can also be used in development of `Stencil` or `Ionic/Angular` applications.
 
-Integration in other frameworks (`Vue`, `React`, `Ionic/Vue`, `Ionic/React`) will be looked at later but if some of you want to contribute feel free.
+Integration in other frameworks (`Vue`, `React`, `Ionic/Vue`, `Ionic/React`,`SolidJS`) are alos available.
 
 Stencil is also great for building entire apps. For that, use the [stencil-app-starter](https://github.com/ionic-team/stencil-app-starter) instead.
+
+🚨 Release 1.5.0 ->> 🚨
+
+The main change is related to the delete table's rows when a synchronization table exists as well as a last_mofidied table's column, allowing for database synchronization of the local database with a remote server database.
+
+- All existing triggers to YOUR_TABLE_NAME_trigger_last_modified must be modified as follows
+  ```
+  CREATE TRIGGER YOUR_TABLE_NAME_trigger_last_modified
+    AFTER UPDATE ON YOUR_TABLE_NAME
+    FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+    BEGIN
+        UPDATE YOUR_TABLE_NAME SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
+    END;
+  ```
+- an new column `sql_deleted` must be added to each of your tables as
+  ```
+  sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))
+  ```
+  This column will be autommatically set to 1 when you will use a `DELETE FROM ...` sql statement in the `execute`, `run` or `executeSet` methods.
+
+- In the JSON object that you provide to `importFromJson`, all the deleted rows in your remote server database's tables must have the `sql_deleted` column set to 1. This will indicate to the import process to physically delete the corresponding rows in your local database. All the others rows must have the `sql_deleted` column set to 0. 
+
+- In the JSON object outputs by the `exportToJson`, all the deleted rows in your local database have got the `sql_deleted` column set to 1 to help in your synchronization management process with the remote server database. A system `last_exported_date` is automatically saved in the synchronization table at the start of the export process flow.
+
+- On successfull completion of your synchronization management process with the remote server database, you must 
+  - Set a new synchronization date (as `(new Date()).toISOString()`) with the `setSyncDate` method.
+  - Execute the `deleteExportedRows` method which physically deletes all table's rows having 1 as value for the `sql_deleted` column prior to the `last_exported_date` in your local database.
+
+An example of using this new feature is given in the `index_delete.html` file. It has been used to test the validity of the implementation.
+
+
+🚨 Release 1.5.0 <<- 🚨
 
 ## Getting Started
 
@@ -65,6 +97,7 @@ in the head of your index.html
 | isJsonValid                 | ✅      |
 | importFromJson              | ✅      |
 | exportToJson                | ✅      |
+| deleteExportedRows          | ✅      | NEW in 1.5.0
 | copyFromAssets              | ✅      |
 | addUpgradeStatement         | ✅      |
 | isDatabase                  | ✅      |
@@ -135,7 +168,7 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
               let sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY NOT NULL,email TEXT UNIQUE NOT NULL,name TEXT,company TEXT,size REAL,age INTEGER,last_modified INTEGER DEFAULT (strftime('%s', 'now')));";
               sql += "CREATE INDEX IF NOT EXISTS users_index_name ON users (name);";
               sql += "CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);";
-              sql += "CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified BEGIN UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id; END;";
+              sql += "CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified BEGIN UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id; END;";
               sql += "PRAGMA user_version = 1;";
               let ret = await jeepSqlite.execute({database: "testNew", statements: sql});
               ret = await jeepSqlite.isTableExists({database: "testNew", table: "users"});
@@ -533,7 +566,7 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
                 CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);
                 CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
                   AFTER UPDATE ON users
-                  FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+                  FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
                   BEGIN
                       UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
                   END;
@@ -588,13 +621,13 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
                 CREATE INDEX messages_index_last_modified ON messages (last_modified);
                 CREATE TRIGGER users_trigger_last_modified
                   AFTER UPDATE ON users
-                  FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+                  FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
                   BEGIN
                       UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
                   END;
                 CREATE TRIGGER messages_trigger_last_modified
                   AFTER UPDATE ON messages
-                  FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+                  FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
                   BEGIN
                       UPDATE messages SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
                   END;

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Delete</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <body>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
+      console.log(`Import: ${event.detail.progress}`)
+    });
+    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
+      console.log(`Export: ${event.detail.progress}`)
+    });
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+      };
+      const endTest = async(name,msg) => {
+        if(msg.length === 0) {
+          console.log(`\n* The set of tests ${name} was successful *\n`);
+        } else {
+          console.log(`${msg}`);
+          console.log(`\n* The set of tests ${name} failed *\n`);
+        }
+      }
+      const openConnection = async (dbName, encrypted, mode, version,
+                                    isDelete) => {
+        try {
+          const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName]})).result;
+          const isConn = (await jeepSqlite.isConnection({database: dbName})).result;
+          if(retCC && isConn) {
+              await jeepSqlite.retrieveConnection({database: dbName});
+          } else {
+              await jeepSqlite.createConnection({database: dbName, encrypted: encrypted, mode: mode,
+                                                 version: version});
+          }
+          if (isDelete) {
+                await deleteDatabase(dbName);
+          }
+          await jeepSqlite.open({database: dbName});
+          return Promise.resolve();
+        } catch (err) {
+            return Promise.reject(err);
+        }
+      }
+      const deleteDatabase = async (dbName) => {
+        try {
+            const ret = (await jeepSqlite.isDBExists({database: dbName})).result;
+            if(ret) {
+                await jeepSqlite.deleteDatabase({database: dbName});
+                return Promise.resolve();
+            } else {
+                return Promise.resolve();
+            }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+      const showUsers = async (message) => {
+        try {
+          let res = await jeepSqlite.query({database: 'testNew',statement: 'SELECT * FROM users'});
+          console.log(`**** Show Users ${message} ****`)
+          for( const user of res.values) {
+            console.log(`>>> id: ${user.id} name: ${user.name} sql_deleted: ${user.sql_deleted}`);
+          }
+          res = await jeepSqlite.query({database: 'testNew',statement: 'SELECT * FROM messages'});
+          if(res.values.length > 0) {
+            console.log(`**** Show Messages ${message} ****`)
+            for( const msg of res.values) {
+              console.log(`>>> id: ${msg.id} userid: ${msg.userid} title: ${msg.title} sql_deleted: ${msg.sql_deleted}`);
+            }
+          }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+      const createSyncTable = async(dbName) => {
+        try {
+            // create synchronization table
+            let res = await jeepSqlite.createSyncTable({database: dbName});
+            if (res.changes.changes < 0) {
+                const msg = `createSyncTable ${dbName} changes < 0 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+            console.log(`> createSyncTable ${dbName} successful\n`);
+            // get the synchronization date
+            res = await jeepSqlite.getSyncDate({database: dbName});
+            if(res.syncDate === 0) {
+                const msg = `getSyncDate ${dbName} return 0 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+            const msg = `> getSyncDate ${dbName} successful\n`;
+            console.log(msg);
+
+            // save the db to store
+            await jeepSqlite.saveToStore({database: dbName});
+            return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      const localSynchronization = async (dbName) => {
+        try {
+          // set the synchronization date
+          await jeepSqlite.setSyncDate({database: dbName, syncdate: (new Date()).toISOString()});
+          // remove all rows having sql_deleted = 1
+          await jeepSqlite.deleteExportedRows({database: dbName});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      const delay = async (delay, message) => {
+        return new Promise (resolve => {
+          setTimeout(() => {
+            const s = "*".repeat(message.length)
+            console.log(`*****************${s}`);
+            console.log(`Simulate a delay ${message}`);
+            console.log(`*****************${s}`);
+            resolve();
+          }, delay * 1000);
+        });
+      }
+
+      // ********************************
+      // *** test with SQL statements ***
+      // ********************************
+
+      const createSchema = `
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    name TEXT,
+    company TEXT,
+    size REAL,
+    age INTEGER,
+    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+    last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+);
+CREATE TABLE IF NOT EXISTS messages (
+  id INTEGER PRIMARY KEY NOT NULL,
+  userid INTEGER,
+  title TEXT NOT NULL,
+  body TEXT NOT NULL,
+  sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+  last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+  FOREIGN KEY (userid) REFERENCES users(id) ON DELETE SET DEFAULT
+);
+CREATE TABLE IF NOT EXISTS images (
+  id INTEGER PRIMARY KEY NOT NULL,
+  name TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL,
+  size INTEGER,
+  img BLOB,
+  sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+  last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+);
+CREATE INDEX IF NOT EXISTS users_index_name ON users (name);
+CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);
+CREATE INDEX IF NOT EXISTS messages_index_name ON messages (title);
+CREATE INDEX IF NOT EXISTS messages_index_last_modified ON messages (last_modified);
+CREATE INDEX IF NOT EXISTS images_index_name ON images (name);
+CREATE INDEX IF NOT EXISTS images_index_last_modified ON images (last_modified);
+CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
+AFTER UPDATE ON users
+FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+BEGIN
+    UPDATE users SET last_modified = (strftime('%s', 'now')) WHERE id=OLD.id;
+END;
+CREATE TRIGGER IF NOT EXISTS messages_trigger_last_modified
+AFTER UPDATE ON messages
+FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+BEGIN
+    UPDATE messages SET last_modified = (strftime('%s', 'now')) WHERE id=OLD.id;
+END;
+CREATE TRIGGER IF NOT EXISTS images_trigger_last_modified
+AFTER UPDATE ON images
+FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+BEGIN
+    UPDATE images SET last_modified = (strftime('%s', 'now')) WHERE id=OLD.id;
+END;
+PRAGMA user_version = 1;
+`;
+
+      const twoUsers = `
+      INSERT INTO users (name,email,age) VALUES ("Whiteley","Whiteley.com",30);
+      INSERT INTO users (name,email,age) VALUES ("Jones","Jones.com",44);
+      `;
+      const fourUsers  = [
+        // Insert a set of users
+        { statement:"INSERT INTO users (name,email,company,size,age) VALUES (?,?,?,?,?);",
+          values:[
+              ["Jackson","Jackson@example.com",null,null,18],
+              ["Bush","Bush@example.com",null,null,null]
+          ]
+        },
+        { statement:"INSERT INTO users (name,email,age) VALUES (?,?,?);",
+          values:["Kennedy","Kennedy@example.com",25]
+        },
+        { statement:"INSERT INTO users (name,email,company,size,age) VALUES (?,?,?,?,?);",
+          values:["Jeep","Jeep@example.com","example",null,null]
+        },
+      ];
+      const initializeTest = async() => {
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+          await openConnection('testNew', false,
+                                    'no-encryption', 1,true);
+
+          console.log("> Open connection 'testNew' successful\n");
+          // create tables in db
+          const isDB = await jeepSqlite.isDBOpen({database: 'testNew'});
+          if(!isDB) return Promise.reject('Database "testNew" not opened')
+          let ret = await jeepSqlite.execute({database: 'testNew', statements: createSchema});
+          console.log(`>>> createSchema ret ${JSON.stringify(ret)}`)
+          if (ret.changes.changes < 0) {
+              const msg = "Error: Execute createSchema failed";
+              return Promise.reject(msg);
+          }
+          console.log("> Create DB Schema 'testNew' successful\n");
+          res = await jeepSqlite.getTableList({database: "testNew"});
+          console.log(`>>> getTableList res ${JSON.stringify(res)}`)
+          // Delete users if any
+          let stmt = "DELETE FROM users;"
+          res = await jeepSqlite.execute({database: 'testNew',statements: stmt});
+          console.log(`>>> execute DELETE FROM users res: ${JSON.stringify(res)}`);
+          // Insert two users with execute method
+          res = await jeepSqlite.execute({database: 'testNew',statements: twoUsers});
+          if (res.changes.changes !== 2) {
+              const msg = `Execute insert twoUsers changes != 2`;
+              return Promise.reject(msg);
+          }
+          console.log("> Execute insert two users successful\n");
+
+          // save the db to store
+          await jeepSqlite.saveToStore({database: 'testNew'});
+          // Query the users
+          res = await jeepSqlite.query({database: 'testNew',statement: "SELECT * FROM users"});
+          if(res.values.length !== 2 ||
+          res.values[0].name !== "Whiteley" ||
+                      res.values[1].name !== "Jones") {
+              const msg = `Query not returning two users`;
+              return Promise.reject(msg);
+          }
+          console.log("> Select two users successful\n");
+
+          // insert one user with statement and values
+          const sqlcmd =
+              'INSERT INTO users (name,email,age) VALUES (?,?,?)';
+          const values  = ["Simpson","Simpson@example.com",69];
+          ret = await jeepSqlite.run({database: 'testNew',statement: sqlcmd,
+                                      values: values});
+          if(ret.changes.lastId !== 3) {
+              const msg = `Run insert one user lastId != 3`;
+              return Promise.reject(msg);
+          }
+
+          // Insert for users with executeSet method
+          res = await jeepSqlite.executeSet({database: 'testNew', set:fourUsers});
+          if (res.changes.changes !== 4) {
+              const msg = `ExecuteSet insert fourUsers changes != 4`;
+              return Promise.reject(msg);
+          }
+          console.log("> ExecuteSet insert four users successful\n");
+          // Query the users
+          res = await jeepSqlite.query({database: 'testNew',statement: "SELECT * FROM users"});
+          if(res.values.length !== 7 ||
+          res.values[0].name !== "Whiteley" ||
+                      res.values[1].name !== "Jones" ||
+                      res.values[2].name !== "Simpson" ||
+                      res.values[3].name !== "Jackson" ||
+                      res.values[4].name !== "Bush" ||
+                      res.values[5].name !== "Kennedy" ||
+                      res.values[6].name !== "Jeep") {
+              const msg = `Query not returning seven users`;
+              return Promise.reject(msg);
+          }
+          console.log("> Select seven users successful\n");
+
+          // save the db to store
+          await jeepSqlite.saveToStore({database: 'testNew'});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const deleteTest = async() => {
+        try {
+            let stmt = "";
+            // Delete users in an execute statement
+            stmt = `
+            DELETE FROM users WHERE id = 4;
+            DELETE FROM users WHERE id = 5;
+            `;
+            var res = await jeepSqlite.execute({database: 'testNew',statements: stmt});
+            console.log(`>>> delete execute res: ${JSON.stringify(res)}`)
+            if(res.changes.changes != 2) {
+                const msg = `createSyncTable "testNew" changes < 0 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+            console.log("> delete with execute successful\n");
+
+            // Delete one user in a run statement
+            stmt = "DELETE FROM users WHERE id = ?;";
+            res = await jeepSqlite.run({database: "testNew",statement: stmt,values: [2]});
+            if(res.changes.changes != 1) {
+                const msg = `run delete "testNew" changes != 2 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+
+            console.log("> delete with run  successful\n");
+
+            // Delete a set of users in an executeSet statement
+            const deleteSet = [
+                {
+                    statement: "DELETE FROM users WHERE id = ?;",
+                    values: [
+                        [3],
+                        [1]
+                    ]
+                }
+            ];
+            res = await jeepSqlite.executeSet({database: "testNew", set: deleteSet});
+            if(res.changes.changes != 2) {
+                const msg = `executeSet delete "testNew" changes != 2 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+
+            console.log("> delete with executeSet successful\n");
+
+            // save the db to store
+            await jeepSqlite.saveToStore({database: 'testNew'});
+            return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      // ********************************
+      // *** test Import/Export Json  ***
+      // ********************************
+
+      const showUsersMessages = async () => {
+
+        try {
+          // Query the users and associated messages
+          const query = `
+            SELECT users.id AS uid, users.name AS uname, messages.title AS mtitle,
+            users.sql_deleted AS udeleted, users.last_modified AS ulast,
+            messages.sql_deleted AS mdeleted, messages.last_modified AS mlast
+            FROM users
+            LEFT OUTER JOIN messages ON messages.userid = users.id
+            `;
+          const results = await jeepSqlite.query({database: 'db-from-json-del',statement: query});
+          console.log(`**** Show Users Messages ****`)
+          for( const result of results.values) {
+            console.log(`>>> uid: ${result.uid} uname: ${result.uname} udeleted: ${result.udeleted} ulast: ${result.ulast}`);
+            if(result.mtitle != null) {
+              console.log(`           mtitle: ${result.mtitle} mdeleted: ${result.mdeleted} mlast: ${result.mlast}`);
+            }
+          }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+
+      const Images = [
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAkCAYAAAD7PHgWAAAEcElEQVRYR8WYP2hTQRzHfx10aQchi0JcLGpBSBcrlTrpIjoFiy6FDipOHVz8Q0HrUGxdg1N1KBRBackiVoQ6FMVIuzQgpEpdjOiSLUXQIfK9976X37t3l6RNxVuS3Hvv7nPf3+/3vcvraTQaDdlFK4z3yMT8rh7d0Ww97QAzfX12wFq9br4buOk7UpicaQm5F4toCajh9LKnLm23Bex0Ee3k7ArwS/mVvH5elqEzzWmGr0dhDwGGFs3ouMAdA7491y+Dhw5KZuG9UEEA1r6XZfhUPOxgQ0pzPQJIDTi11NtOKOkKkHCcpfDrjQlxaXnGdFE1fAcg2to7sWmgAfVYWCzbPwO06imNHt0Tyd/IyfDlrYRy7kI3fvyUsyvRPbsCxIPIGQ6MAdFWD5RbKnjxZhTSWn0+AqyuS2agEPWNjZhPjrUngBgQkABDQ3hNOJdnmvkXa5UZ6W2CxXBaRoBiLLR2cLgnUSRIbOSLlptVx8LQk7k5iHutah44Pks12+VfApBVh04YsAbV1yR7sslYXU+oSPUK46NWZWPmseJdATLfTJ5UJsxYBNXqoc+EeX7RgpbmRmX1pcjsSq95VkP5AM1czMl63ViS27iNen2QYSUoH+bWVq1WpTh5OAFp1ekbtz7JRVJBPH/+Sk6O5i4YQCxc57Sbq0i1loA2R6hKfDho7rFLqZWzYvXiqCKgSi/6LSC+o7l2ZCIWz5UChHqfH2alvPVVRp/sT4Q7P/1NstmssZ6okNKAyD803+5BICjohjm90qgnAajhcNEHiP7BgQHZqFQkK49FF40uDtyHrZAKEQ6/NWDIoAkcBAQcmpuHoZWG+l1IwlHBjgGp3rP1zchi4kpG3vi+7wQUkMgz5p8tKIwdnzHbhtiatALTRcLvtBnmmc/ANQCuo3JxLGMF6+tmHFUULqgJsUl6Bwy/jXr1elQUWlGnj37JyfQksBhWL/tpM/itK9kHanOQ3rd47bcZxxSIkl97ow67u2Lfouh/+l6EnIvXuU5/TNkMAAjnA7RhUf9RQkWkTRhh9TUCuuO6kUooCMBc/xHzzLG71ZYJjAUhPD6TDUERxoXTC7CRiqOXAIRBZ/J5e3/oXxvhdE6FqpA2g+sslFaA3iLRMmvfYz6l8ixWD/3adF0bwXUNiN87gcP9qfOg72jkepVWkIC6ELQZu5BdAWIwbSl6F9AWQEAXRB8GtOpaxa4BCan3Tp3cemJ3G9R+R/g9DbGenDtLCJQVHIL0AeqKb7fFkaWjdzMIrz4+afdvpWKoslks+Lx9YltufQy/hPICUj1OQAOHR9KGeABwAfk6xOeFOmdrxaI5c6Ktffgjs5/4VzV6QRVUkKcafRMHQh8hQ9udPrm4ChJQw7n3EJYp4D0PPl3YlKtjx+0K3UEAiZ3G9T3fATWRd5UJ8cEBCm3o9D47Fc8CKUCEEw/om/kUD7H4zY2e+Vh8UJb8/fTrDt+BA8/rfZ/j63m9gLSYUHL7Ks99ndZpdYZew3Fub4hbVd3/uvYXfqiMwjPten8AAAAASUVORK5CYII=",
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAU1QTFRFNjtAQEVK////bG9zSk9T/v7+/f39/f3+9vf3O0BETlJWNzxB/Pz8d3t+TFFVzM3O1NXX7u/vUldbRElNs7W3v8HCmZyeRkpPW19j8vLy7u7vvsDC9PT1cHR3Oj9Eo6WnxsjJR0tQOD1Bj5KVgYSHTVFWtri50dLUtLa4YmZqOT5D8vPzRUpOkZOWc3Z64uPjr7Gzuru95+jpX2NnaGxwPkNHp6mrioyPlZeadXh8Q0hNPEBFyszNh4qNc3d6eHx/OD1Cw8XGXGBkfoGEra+xxcbIgoaJu72/m52ggoWIZ2tu8/P0wcLE+vr7kZSXgIOGP0NIvr/BvL6/QUZKP0RJkpWYpKaoqKqtVVldmJqdl5qcZWhstbe5bHB0bnJ1UVVZwsTF5ubnT1RYcHN3oaSm3N3e3NzdQkdLnJ+h9fX1TlNX+Pj47/DwwsPFVFhcEpC44wAAAShJREFUeNq8k0VvxDAQhZOXDS52mRnKzLRlZmZm+v/HxmnUOlFaSz3su4xm/BkGzLn4P+XimOJZyw0FKufelfbfAe89dMmBBdUZ8G1eCJMba69Al+AABOOm/7j0DDGXtQP9bXjYN2tWGQfyA1Yg1kSu95x9GKHiIOBXLcAwUD1JJSBVfUbwGGi2AIvoneK4bCblSS8b0RwwRAPbCHx52kH60K1b9zQUjQKiULbMDbulEjGha/RQQFDE0/ezW8kR3C3kOJXmFcSyrcQR7FDAi55nuGABZkT5hqpk3xughDN7FOHHHd0LLU9qtV7r7uhsuRwt6pEJJFVLN4V5CT+SErpXt81DbHautkpBeHeaqNDRqUA0Uo5GkgXGyI3xDZ/q/wJMsb7/pwADAGqZHDyWkHd1AAAAAElFTkSuQmCC"
+      ];
+
+      const dataToImport = {
+        database : "db-from-json-del",
+        version : 1,
+        encrypted : false,
+        mode : "full",
+        tables :[
+          {
+            name: "users",
+            schema: [
+                {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+                {column:"email", value:"TEXT UNIQUE NOT NULL"},
+                {column:"name", value:"TEXT"},
+                {column:"age", value:"INTEGER"},
+                {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
+                {column:"last_modified", value:"INTEGER DEFAULT (strftime('%s', 'now'))"}
+            ],
+            indexes: [
+                {name: "index_user_on_name",value: "name"},
+                {name: "index_user_on_last_modified",value: "last_modified DESC"},
+                {name: "index_user_on_email_name", value: "email ASC, name", mode: "UNIQUE"}
+            ],
+            values: [
+                [1,"Whiteley.com","Whiteley",30,0,1582536810],
+                [2,"Jones.com","Jones",44,0,1582812800],
+                [3,"Simpson@example.com","Simpson",69,0,1583570630],
+                [4,"Brown@example.com","Brown",15,0,1590383895]
+            ]
+          },
+          {
+            name: "messages",
+            schema: [
+              {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+              {column:"userid", value: "INTEGER"},
+              {column:"title", value:"TEXT NOT NULL"},
+              {column:"body", value:"TEXT NOT NULL"},
+              {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
+              {column:"last_modified", value:"INTEGER DEFAULT (strftime('%s', 'now'))"},
+              {foreignkey: "userid", value:"REFERENCES users(id) ON DELETE CASCADE"}
+            ],
+            values: [
+                [1,3,"test post 1","content test post 1",0,1587310030],
+                [2,1,"test post 2","content test post 2",0,1590388125]
+            ]
+          },
+          {
+            name: "images",
+            schema: [
+              {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
+              {column:"name", value:"TEXT UNIQUE NOT NULL"},
+              {column:"type", value:"TEXT NOT NULL"},
+              {column:"size", value:"INTEGER"},
+              {column:"img", value:"BLOB"},
+              {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
+              {column:"last_modified", value:"INTEGER DEFAULT (strftime('%s', 'now'))"}
+            ],
+            values: [
+              [1,"feather","png",null,Images[1],0,1582536810],
+              [2,"meowth","png",null,Images[0],0,1590151132]
+            ]
+          }
+        ]
+      };
+      const partialImport1 = {
+        database : "db-from-json-del",
+        version : 1,
+        encrypted : false,
+        mode : "partial",
+        tables :[
+          {
+            name: "messages",
+            indexes: [
+              {name: "index_messages_on_title",value: "title"},
+              {name: "index_messages_on_last_modified",value: "last_modified DESC"}
+
+            ],
+            values: [
+                [2,1,"test post 2","content test post 2",1,1590388125],
+                [3,3,"test post 3","content test post 3",0,1590396146],
+                [4,2,"test post 4","content test post 4",0,1590396288]
+            ]
+          },
+          {
+            name: "users",
+            values: [
+                [5,"Addington.com","Addington",22,0,1590388335],
+                [1,"Whiteley.com","Whiteley",30,1,1590388335],
+                [6,"Bannister.com","Bannister",59,0,1590393015],
+                [2,"Jones@example.com","Jones",45,0,1590393325],
+                [3,"Simpson@example.com","Simpson",69,0,1583570630]
+            ]
+          }
+        ]
+      };
+      const partialImport2 = {
+        database : "db-from-json-del",
+        version : 1,
+        encrypted : false,
+        mode : "partial",
+        tables :[
+          {
+            name: "users",
+            values: [
+                [3,"Simpson@example.com","Simpson",69,1,1583570630]
+            ]
+          },
+
+          {
+            name: "messages",
+            values: [
+              [1,3,"test post 1","content test post 1",1,1587310030],
+              [3,3,"test post 3","content test post 3",1,1590396146],
+            ]
+          }
+        ]
+      };
+      const importFull = async() => {
+        try {
+          const res = (await jeepSqlite.isDatabase({database: 'db-from-json-del'})).result;
+          if(res) {
+            // delete the database
+            await openConnection('db-from-json-del', false,
+                                    'no-encryption', 1,true);
+            // Close Connection db-from-json-del
+            await jeepSqlite.closeConnection({database: 'db-from-json-del'});
+          }
+          // Test Json object validity
+          let result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImport)});
+          if(!result.result) {
+            const msg = `dataToImport is not a valid Json Object `;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          // full import
+          result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImport)});
+          if(result.changes.changes === -1 ) {
+            const msg = `ImportFromJson 'full' dataToImport failed`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          console.log("> importFromJson full successful\n");
+          // open the connection
+          await openConnection('db-from-json-del', false,
+                                'no-encryption', 1,false);
+          // save the database to store
+          await jeepSqlite.saveToStore({database: 'db-from-json-del'});
+
+          return Promise.resolve();
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      const exportFull = async(dbName) => {
+        try {
+          const jsonObj = await jeepSqlite.exportToJson({database: dbName,jsonexportmode: 'full'});
+
+          // test Json object validity
+          result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+          if(!result.result) {
+            const msg = `IsJsonValid 'full' export ${dbName} failed`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          let rValues = [7, 0, 0];
+          if(dbName === 'db-from-json-del') {
+            rValues = [4, 2, 2];
+          }
+          let condition = jsonObj.export.tables.length != 3
+          let i = 0;
+          for(table of jsonObj.export.tables) {
+            const keys = Object.keys(table);
+            if(keys.includes("values")) {
+              condition = condition || table["values"].length != rValues[i];
+              i++;
+            }
+          }
+          if (condition) {
+            const msg = `Export Full Json ${dbName} not correct`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          console.log("> exportToJson full successful\n");
+          return Promise.resolve();
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      const importPartial = async (partialImport, importName) => {
+        try {
+          // Close Connection db-from-json-del
+          await jeepSqlite.closeConnection({database: 'db-from-json-del'});
+          // Test Json object validity
+          let result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(partialImport)});
+          if(!result.result) {
+            const msg = `partialImport ${importName} is not a valid Json Object `;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          // full import
+          result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(partialImport)});
+          if(result.changes.changes === -1 ) {
+            const msg = `ImportFromJson 'partial' ${importName} failed`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          console.log(`> importFromJson 'partial' ${importName} successful\n`);
+          // open the connection
+          await openConnection('db-from-json-del', false,
+                                'no-encryption', 1,false);
+          // Set the Synchronization Date
+          const d = new Date();
+          await jeepSqlite.setSyncDate({database: 'db-from-json-del', syncdate: d.toISOString()});
+          const storedDate = await jeepSqlite.getSyncDate({database: 'db-from-json-del'});
+          // save the database to store
+          await jeepSqlite.saveToStore({database: 'db-from-json-del'});
+
+          console.log(`> import partial ${importName} successful\n`);
+          return Promise.resolve();
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      const doSomeStuff = async() => {
+        try {
+          const stuffSet = [
+            { statement:"INSERT INTO users (name,email,age) VALUES (?,?,?);",
+              values:[
+                  ["Jackson","Jackson@example.com",18],
+                  ["Bush","Bush@example.com",25]
+              ]
+            },
+            { statement:"INSERT INTO users (name,email,age) VALUES (?,?,?);",
+              values:["Kennedy","Kennedy@example.com",45]
+            },
+            { statement:"INSERT INTO users (name,email,age) VALUES (?,?,?);",
+              values:["Jeep","Jeep@example.com",65]
+            },
+            { statement:"UPDATE users SET email = ? WHERE id = ?",
+              values: [
+                ["Addington@example.com",5],
+                ["Bannister@example.com",6]
+              ]
+            },
+            { statement:"INSERT INTO messages (userid, title, body) VALUES (?,?,?);",
+              values: [
+                [2,"test post 5","content test post 5"],
+                [4,"test post 6","content test post 6"],
+                [7,"test post 7","content test post 7"]
+              ]
+            },
+            { statement: "DELETE FROM users WHERE id = ?;",
+              values: [4]
+            }
+          ];
+          let res = await jeepSqlite.executeSet({database: 'db-from-json-del', set: stuffSet});
+          if(res.changes.changes != 11) {
+            const msg = `executeSet delete "db-from-json-del" changes != 11`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          const delExecute = `
+          DELETE FROM users WHERE id = 2;
+          `
+          res = await jeepSqlite.execute({database: 'db-from-json-del', statements: delExecute});
+          if(res.changes.changes != 3) {
+            const msg = `execute delete "db-from-json-del" changes != 3`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+
+          console.log("> doSomeStuff successful\n");
+          return Promise.resolve();
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          return Promise.reject(`Error: ${msg}`);
+        }
+      }
+      const exportPartial = async() => {
+        try {
+          const jsonObj = await jeepSqlite.exportToJson({database: "db-from-json-del",jsonexportmode: 'partial'});
+          // test Json object validity
+          if(Object.keys(jsonObj.export).length <= 0) {
+            const msg = `Returned Json Object is empty, nothing to synchronize`;
+            return Promise.reject(`Error: ${msg}`);
+          }
+          result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+          if(!result.result) {
+            const msg = 'isJsonValid Full returns false';
+            return Promise.reject(`Error: ${msg}`);
+          }
+
+          console.log("> exportPartial successful\n");
+          return Promise.resolve();
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          return Promise.reject(`Error: ${msg}`);
+        }
+      }
+
+      try {
+        var activeTest = 'DatabaseNoEncryption';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database testNew and fill some data
+        await initializeTest();
+        // create synchronization table
+        await createSyncTable('testNew');
+        // test of deleting some data
+        await deleteTest();
+        await showUsers('before full export');
+        // delay before to do an export full
+        await delay(2, 'before full export');
+        // export full
+        await exportFull('testNew');
+        // after loading to remote server set local new synchronization date
+        await localSynchronization('testNew');
+        // Show the final users
+        await showUsers('final');
+        // Close Connection testNew
+        await jeepSqlite.closeConnection({database: 'testNew'});
+        let msg = `> closeConnection "testNew" successful\n`;
+        console.log(msg);
+        await endTest(activeTest,'');
+
+        // test Import/Export Json
+        activeTest = 'ImportExportJson'
+        await startTest(activeTest);
+        // import full
+        await importFull();
+        // create synchronization table
+        await createSyncTable('db-from-json-del');
+        // delay before to do an export full
+        await delay(2, 'before a full export');
+        // export full
+        await exportFull('db-from-json-del');
+        // after loading to remote server set local new synchronization date
+        await localSynchronization('db-from-json-del');
+        // test importing partial with delete
+        await importPartial(partialImport1, "partialImport1");
+        // delay before doing some stuff to get something for the partial export
+        await delay(2, 'before capturing new data');
+        // do some stuff
+        await doSomeStuff();
+        // export partial
+        await exportPartial();
+        // after loading to remote server set local new synchronization date
+        await localSynchronization('db-from-json-del');
+        // test importing partial with delete
+        await importPartial(partialImport2, "partialImport2");
+        // Show the final users/messages
+        await showUsersMessages();
+        // Close Connection db-from-json-del
+        await jeepSqlite.closeConnection({database: 'db-from-json-del'});
+        msg = `> closeConnection "db-from-json-del" successful\n`;
+        console.log(msg);
+        await endTest(activeTest,'');
+
+      } catch (err) {
+        let msg = err.message ? err.message : err;
+        console.log(`Error: ${msg}`);
+        await endTest(activeTest,msg);
+      }
+
+    }
+  })();
+</script>
+

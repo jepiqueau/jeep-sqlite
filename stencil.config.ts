@@ -8,6 +8,7 @@ export const config: Config = {
       nodePolyfills(),
     ]
   },
+  sourceMap: true,
   outputTargets: [
     {
       type: 'dist',

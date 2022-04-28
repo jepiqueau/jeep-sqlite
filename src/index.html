@@ -35,10 +35,10 @@
             // open db testNew
             await jeepSqlite.open({database: "testNew"});
             const isDB = await jeepSqlite.isDBOpen({database: "testNew"})
-            let sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY NOT NULL,email TEXT UNIQUE NOT NULL,name TEXT,company TEXT,size REAL,age INTEGER,last_modified INTEGER DEFAULT (strftime('%s', 'now')));";
+            let sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY NOT NULL,email TEXT UNIQUE NOT NULL,name TEXT,company TEXT,size REAL,age INTEGER,sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),last_modified INTEGER DEFAULT (strftime('%s', 'now')));";
             sql += "CREATE INDEX IF NOT EXISTS users_index_name ON users (name);";
             sql += "CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);";
-            sql += "CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified BEGIN UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id; END;";
+            sql += "CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified BEGIN UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id; END;";
             sql += "PRAGMA user_version = 1;";
             let ret = await jeepSqlite.execute({database: "testNew", statements: sql});
             ret = await jeepSqlite.isTableExists({database: "testNew", table: "users"});
@@ -177,6 +177,7 @@
                       {column:"email", value:"TEXT UNIQUE NOT NULL"},
                       {column:"name", value:"TEXT"},
                       {column:"age", value:"REAL"},
+                      {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                       {column:"last_modified", value:"INTEGER"}
                   ],
                   indexes: [
@@ -185,10 +186,10 @@
                       {name: "index_user_on_email_name", value: "email ASC, name", mode: "unique"}
                   ],
                   values: [
-                      [1,"Whiteley.com","Whiteley",30.5,1582536810],
-                      [2,"Jones.com","Jones",44.2,1582812800],
-                      [3,"Simpson@example.com","Simpson",69,1583570630],
-                      [4,"Brown@example.com","Brown",15,1590383895]
+                      [1,"Whiteley.com","Whiteley",30.5,0,1582536810],
+                      [2,"Jones.com","Jones",44.2,0,1582812800],
+                      [3,"Simpson@example.com","Simpson",69,0,1583570630],
+                      [4,"Brown@example.com","Brown",15,0,1590383895]
                   ]
                 },
                 {
@@ -197,11 +198,12 @@
                     {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
                     {column:"title", value:"TEXT NOT NULL"},
                     {column:"body", value:"TEXT NOT NULL"},
+                    {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                     {column:"last_modified", value:"INTEGER"}
                   ],
                   values: [
-                      [1,"test post 1","content test post 1",1587310030],
-                      [2,"test post 2","content test post 2",1590388125]
+                      [1,"test post 1","content test post 1",0,1587310030],
+                      [2,"test post 2","content test post 2",0,1590388125]
                   ]
                 },
               ]
@@ -259,6 +261,7 @@
                       {column:"name", value:"TEXT"},
                       {column:"age", value:"INTEGER"},
                       {column:"size", value:"REAL"},
+                      {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                       {column:"last_modified", value:"INTEGER"}
                   ],
                   indexes: [
@@ -267,10 +270,10 @@
                       {name: "index_user_on_email_name", value: "email ASC, name", mode: "unique"}
                   ],
                   values: [
-                      [1,"Whiteley.com","Whiteley",30,1.82,1582536810],
-                      [2,"Jones.com","Jones",44,1.74,1582812800],
-                      [3,"Simpson@example.com","Simpson",69,1.93,1583570630],
-                      [4,"Brown@example.com","Brown",15,1.89,1590383895]
+                      [1,"Whiteley.com","Whiteley",30,1.82,0,1582536810],
+                      [2,"Jones.com","Jones",44,1.74,0,1582812800],
+                      [3,"Simpson@example.com","Simpson",69,1.93,0,1583570630],
+                      [4,"Brown@example.com","Brown",15,1.89,0,1590383895]
                   ]
                 },
                 {
@@ -280,13 +283,14 @@
                     {column:"userid", value: "INTEGER"},
                     {column:"title", value:"TEXT NOT NULL"},
                     {column:"body", value:"TEXT NOT NULL"},
+                    {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                     {column:"last_modified", value:"INTEGER"},
                     {foreignkey: "userid", value:"REFERENCES users(id) ON DELETE CASCADE"}
 
                   ],
                   values: [
-                      [1,1,"test post 1","content test post 1",1587310030],
-                      [2,3,"test post 2","content test post 2",1590388125]
+                      [1,1,"test post 1","content test post 1",0,1587310030],
+                      [2,3,"test post 2","content test post 2",0,1590388125]
                   ]
                 },
               ]
@@ -301,6 +305,7 @@
             if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImportV2 failed");
             // try to reload the full import with the same version number
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImportV2)});
+
             if(result.changes.changes != 0 ) throw new Error("ImportFromJson reload 'full' dataToImportV2 failed");
 
             // create the connection to the database
@@ -334,9 +339,9 @@
                 {
                     name: "users",
                     values: [
-                        [5,"Addington.com","Addington",22,1.79,1590388335],
-                        [6,"Bannister.com","Bannister",59,1.85,1590393015],
-                        [2,"Jones@example.com","Jones",45,1.77,1590393325]
+                        [5,"Addington.com","Addington",22,1.79,0,1590388335],
+                        [6,"Bannister.com","Bannister",59,1.85,0,1590393015],
+                        [2,"Jones@example.com","Jones",45,1.77,0,1590393325]
 
                     ]
                 },
@@ -367,8 +372,8 @@
 
                   ],
                   values: [
-                      [3,2,"test post 3","content test post 3",1590396146],
-                      [4,1,"test post 4","content test post 4",1590396288]
+                      [3,2,"test post 3","content test post 3",0,1590396146],
+                      [4,1,"test post 4","content test post 4",0,1590396288]
                   ]
                 }
               ]
@@ -388,6 +393,7 @@
                     {column:"id", value: "TEXT PRIMARY KEY NOT NULL"},
                     {column:"name", value:"TEXT UNIQUE NOT NULL"},
                     {column:"code", value:"TEXT"},
+                    {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                     {column:"last_modified", value:"INTEGER"}
                   ],
                   indexes: [
@@ -396,9 +402,9 @@
 
                   ],
                   values: [
-                      ["ef5c57d5-b885-49a9-9c4d-8b340e4abdbc","valve","BV50",1590396146],
-                      ["bced3262-5d42-470a-9585-d3fd12c45452","pipe","PIPE100",1590396288],
-                      ["ef5c57d5-b885-49a9-9c4d-8b340e4abdbc","valve","BV100",1590396300],
+                      ["ef5c57d5-b885-49a9-9c4d-8b340e4abdbc","valve","BV50",0,1590396146],
+                      ["bced3262-5d42-470a-9585-d3fd12c45452","pipe","PIPE100",0,1590396288],
+                      ["ef5c57d5-b885-49a9-9c4d-8b340e4abdbc","valve","BV100",0,1590396300],
                   ]
                 }
               ]
@@ -478,8 +484,8 @@
             // Select all tables,
             ret = await jeepSqlite.getTableList({database: "myDB"});
             if(ret.values.length !== 2 ||
-                ret.values[0]!== "messages" ||
-                ret.values[1] !== "users"
+                ret.values[0]!== "users" ||
+                ret.values[1] !== "messages"
             ) {
               throw new Error("GetTableList MyDB Tables failed");
             }
@@ -535,13 +541,14 @@
                 company TEXT,
                 size REAL,
                 age INTEGER,
+                sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
                 last_modified INTEGER DEFAULT (strftime('%s', 'now'))
               );
               CREATE INDEX IF NOT EXISTS users_index_name ON users (name);
               CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);
               CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
                 AFTER UPDATE ON users
-                FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+                FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
                 BEGIN
                     UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
                 END;
@@ -581,6 +588,7 @@
                 company TEXT,
                 country TEXT,
                 age INTEGER,
+                sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
                 last_modified INTEGER DEFAULT (strftime('%s', 'now'))
               );
               CREATE TABLE messages (
@@ -588,6 +596,7 @@
                 userid INTEGER,
                 title TEXT NOT NULL,
                 body TEXT NOT NULL,
+                sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
                 last_modified INTEGER DEFAULT (strftime('%s', 'now')),
                 FOREIGN KEY (userid) REFERENCES users(id) ON DELETE SET DEFAULT
               );
@@ -597,13 +606,13 @@
               CREATE INDEX messages_index_last_modified ON messages (last_modified);
               CREATE TRIGGER users_trigger_last_modified
                 AFTER UPDATE ON users
-                FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+                FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
                 BEGIN
                     UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
                 END;
               CREATE TRIGGER messages_trigger_last_modified
                 AFTER UPDATE ON messages
-                FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+                FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
                 BEGIN
                     UPDATE messages SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
                 END;
@@ -696,16 +705,17 @@
                   schema: [
                     {column: "id", value: "INTEGER PRIMARY KEY AUTOINCREMENT" },
                     {column: "name", value: "TEXT NOT NULL" },
+                    {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                     {column:"last_modified", value:"INTEGER"}
                   ],
                   indexes: [
                     {name: "index_departments_on_last_modified",value: "last_modified DESC"}
                   ],
                   values: [
-                    [1,"Admin",1608216034],
-                    [2,"Sales",1608216034],
-                    [3,"Quality Control",1608216034],
-                    [4,"Marketing",1608216034],
+                    [1,"Admin",0,1608216034],
+                    [2,"Sales",0,1608216034],
+                    [3,"Quality Control",0,1608216034],
+                    [4,"Marketing",0,1608216034],
                   ]
                 },
                 {
@@ -716,23 +726,24 @@
                     {column: "last_name", value: "TEXT" },
                     {column: "salary", value: "NUMERIC" },
                     {column: "dept_id", value: "INTEGER" },
+                    {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                     {column: "last_modified", value: "INTEGER"}
                   ],
                   indexes: [
                     {name: "index_departments_on_last_modified",value: "last_modified DESC"}
                   ],
                   values: [
-                    [1,"John","Brown",27500,1,1608216034],
-                    [2,"Sally","Brown",37500,2,1608216034],
-                    [3,'Vinay','Jariwala', 35100,3,1608216034],
-                    [4,'Jagruti','Viras', 9500,2,1608216034],
-                    [5,'Shweta','Rana',12000,3,1608216034],
-                    [6,'sonal','Menpara', 13000,1,1608216034],
-                    [7,'Yamini','Patel', 10000,2,1608216034],
-                    [8,'Khyati','Shah', 50000,3,1608216034],
-                    [9,'Shwets','Jariwala',19400,2,1608216034],
-                    [10,'Kirk','Douglas',36400,4,1608216034],
-                    [11,'Leo','White',45000,4,1608216034],
+                    [1,"John","Brown",27500,1,0,1608216034],
+                    [2,"Sally","Brown",37500,2,0,1608216034],
+                    [3,'Vinay','Jariwala', 35100,3,0,1608216034],
+                    [4,'Jagruti','Viras', 9500,2,0,1608216034],
+                    [5,'Shweta','Rana',12000,3,0,1608216034],
+                    [6,'sonal','Menpara', 13000,1,0,1608216034],
+                    [7,'Yamini','Patel', 10000,2,0,1608216034],
+                    [8,'Khyati','Shah', 50000,3,0,1608216034],
+                    [9,'Shwets','Jariwala',19400,2,0,1608216034],
+                    [10,'Kirk','Douglas',36400,4,0,1608216034],
+                    [11,'Leo','White',45000,4,0,1608216034],
                   ],
                 }
               ],
@@ -847,16 +858,13 @@
             await jeepSqlite.open({database: "dbZip2"});
             statement = `SELECT name FROM sqlite_master WHERE type='table';`;
             // Select all tables
-            ret = await jeepSqlite.query({database: "dbZip2",
-                                          statement: statement});
-            if(ret.values.length !== 3 ||
-                ret.values[0].name !== "users" ||
-                ret.values[1].name !== "messages" ||
-                ret.values[2].name !== "sync_table"
+            ret = await jeepSqlite.getTableList({database: "dbZip2"});
+            if(ret.values.length !== 2 ||
+                ret.values[0]!== "messages" ||
+                ret.values[1] !== "users"
             ) {
-              throw new Error("Query MyDB Tables failed");
+              throw new Error("GetTableList MyDB Tables failed");
             }
-
             // Select all users
             ret = await jeepSqlite.query({database: "dbZip2",
                                           statement: "SELECT * FROM users;"});
@@ -898,17 +906,20 @@
                       {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
                       {column:"email", value:"TEXT UNIQUE NOT NULL"},
                       {column:"name", value:"TEXT"},
-                      {column:"age", value:"REAL"}
+                      {column:"age", value:"REAL"},
+                      {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
+                      {column:"last_modified", value:"INTEGER"}
                   ],
                   indexes: [
-                      {name: "index_user_on_name",value: "name"},
-                      {name: "index_user_on_email_name", value: "email ASC, name", mode: "unique"}
+                      {name: "index_users_on_name",value: "name"},
+                      {name: "index_users_on_email_name", value: "email ASC, name", mode: "unique"},
+                      {name: "index_users_on_last_modified",value: "last_modified DESC"}
                   ],
                   values: [
-                      [1,"Whiteley.com","Whiteley",30.5],
-                      [2,"Jones.com","Jones",44.2],
-                      [3,"Simpson@example.com","Simpson",69],
-                      [4,"Brown@example.com","Brown",15]
+                      [1,"Whiteley.com","Whiteley",30.5,0,1608216034],
+                      [2,"Jones.com","Jones",44.2,0,1608216034],
+                      [3,"Simpson@example.com","Simpson",69,0,1608216034],
+                      [4,"Brown@example.com","Brown",15,0,1608216034]
                   ]
                 },
                 {
@@ -917,10 +928,15 @@
                     {column:"id", value: "INTEGER PRIMARY KEY NOT NULL"},
                     {column:"title", value:"TEXT NOT NULL"},
                     {column:"body", value:"TEXT NOT NULL"},
+                    {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
+                    {column:"last_modified", value:"INTEGER"}
+                  ],
+                  indexes: [
+                      {name: "index_messages_on_last_modified",value: "last_modified DESC"}
                   ],
                   values: [
-                      [1,"test post 1","content test post 1"],
-                      [2,"test post 2","content test post 2"]
+                      [1,"test post 1","content test post 1",0,1608216034],
+                      [2,"test post 2","content test post 2",0,1608216034]
                   ]
                 },
               ]
@@ -939,14 +955,13 @@
             await jeepSqlite.open({database: "db-from-json231"});
             isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json231"})
             if (!isDBJson.result) throw new Error("isDBOpen 'db-from-json231' failed");
-/*  Only for testing
             // create synchronization table
             ret = await jeepSqlite.createSyncTable({database: "db-from-json231"});
             if (result.changes.changes < 0) throw new Error("CreateSyncTable failed");
 
             ret = await jeepSqlite.getSyncDate({database: "db-from-json231"});
             if(ret.length === 0) throw new Error("GetSyncDate failed");
-*/
+
             // Select all users
             ret = await jeepSqlite.query({database: "db-from-json231",
                                           statement: "SELECT * FROM users;"});
@@ -968,9 +983,9 @@
                 {
                     name: "users",
                     values: [
-                        [5,"Addington.com","Addington",22.7],
-                        [6,"Bannister.com","Bannister",59],
-                        [2,"Jones@example.com","Jones",45]
+                        [5,"Addington.com","Addington",22.7,0,1608217135],
+                        [6,"Bannister.com","Bannister",59,0,1608217135],
+                        [2,"Jones@example.com","Jones",45,0,1608217135]
 
                     ]
                 },
@@ -1022,14 +1037,6 @@
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(exObj)});
             console.log(`re-import ovewrite ${exObj.overwrite} ${JSON.stringify(result)}`);
             if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImport231 failed");
-
-/*  Only for testing
-            //test partial export
-            syncDate = "2020-05-20T18:40:00.000Z";
-            await jeepSqlite.setSyncDate({database: "db-from-json231", syncdate: syncDate});
-
-            jsonObj = await jeepSqlite.exportToJson({database: "db-from-json231",jsonexportmode: 'partial'});
-*/
             stmt = `
               DROP TABLE IF EXISTS users;
               DROP TABLE IF EXISTS messages;
@@ -1057,13 +1064,14 @@
                           {column:'country', value:'CHARACTER(20)'},
                           {column:'salary', value:'DECIMAL(10,3)'},
                           {column:'manager', value:'BOOLEAN DEFAULT 0 CHECK (manager IN (0, 1))'},
+                          {column:"sql_deleted", value:"BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1))"},
                           {column:'last_modified', value:'INTEGER'},
                           {constraint:'PK_name_country', value:'PRIMARY KEY (name,country)'}
                       ],
                       values: [
-                          [1,'Jones',55,'Australia',1250,1,1608216034],
-                          [2,'Lawson',32,'Ireland',2345.60,0,1608216034],
-                          [3,'Bush',44,'USA',1850.10,0,1608216034],
+                          [1,'Jones',55,'Australia',1250,1,0,1608216034],
+                          [2,'Lawson',32,'Ireland',2345.60,0,0,1608216034],
+                          [3,'Bush',44,'USA',1850.10,0,0,1608216034],
                       ]
                   },
               ]
@@ -1077,10 +1085,10 @@
                   {
                       name: 'company',
                       values: [
-                          [4,'Addington',56,'South Africa',4500,1,1608218521],
-                          [5,'Bannister',37,'Scotland',2600,0,1608218521],
-                          [2,'Lawson',32,'Ireland',3000.0,0,1608218521],
-                          [1,'Jones',55,'Australia',1250,1,1608216034],
+                          [4,'Addington',56,'South Africa',4500,1,0,1608218521],
+                          [5,'Bannister',37,'Scotland',2600,0,0,1608218521],
+                          [2,'Lawson',32,'Ireland',3000.0,0,0,1608218521],
+                          [1,'Jones',55,'Australia',1250,1,0,1608216034],
                       ]
                   },
               ]
