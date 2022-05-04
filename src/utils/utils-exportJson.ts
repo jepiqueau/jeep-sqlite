@@ -512,7 +512,7 @@ export const getSynchroDate = async (db: any): Promise<number> => {
     const res = await queryAll(db,stmt,[]);
     return Promise.resolve(res[0]["sync_date"]);
   } catch (err) {
-    const msg = `getSyncDate: ${err.message}`;
+    const msg = `GetSynchroDate: ${err.message}`;
     return Promise.reject(new Error(msg));
   }
 }

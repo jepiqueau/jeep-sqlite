@@ -280,7 +280,7 @@ export const  getReferenceColumnName = async (refValue: string): Promise<string>
   }
   return colName;
 }
-const updateWhere = async (whStmt: string, colName: string): Promise<string> => {
+export const updateWhere = async (whStmt: string, colName: string): Promise<string> => {
   var whereStmt = '';
   if (whStmt.length > 0) {
       const index: number = whStmt.toLowerCase().indexOf("WHERE".toLowerCase());
@@ -292,7 +292,7 @@ const updateWhere = async (whStmt: string, colName: string): Promise<string> => 
   return whereStmt;
 }
 
-export const getReferences= async (db: any, tableName: string): Promise<any[]> => {
+export const getReferences = async (db: any, tableName: string): Promise<any[]> => {
   const sqlStmt: string =
   "SELECT sql FROM sqlite_master " +
   "WHERE sql LIKE('%REFERENCES%') AND " +

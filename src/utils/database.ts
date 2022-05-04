@@ -484,6 +484,7 @@ export class Database {
     if (this._isDBOpen) {
       try {
         await delExportedRows(this.mDb);
+        return Promise.resolve();
       } catch (err) {
         return Promise.reject(new Error(`deleteExportedRows: ${err.message}`));
       }
