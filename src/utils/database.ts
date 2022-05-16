@@ -6,7 +6,7 @@ import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade, JsonProgressListener} from
 import { getDBFromStore, setInitialDBToStore, setDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
-         execute, executeSet, run, queryAll, isTableExists, getVersion,
+         execute, executeSet, run, queryAll, isTableExists, getVersion, isSqlDeleted,
          setVersion, isLastModified, getTableList, setForeignKeyConstraintsEnabled } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
@@ -343,7 +343,8 @@ export class Database {
       const retB = await isTableExists(this.mDb, 'sync_table');
       if(!retB) {
         const isLastMod = await isLastModified(this.mDb, this._isDBOpen);
-        if(isLastMod) {
+        const isDel = await isSqlDeleted(this.mDb, this._isDBOpen);
+        if(isLastMod && isDel) {
           const date: number = Math.round(new Date().getTime() / 1000);
           let stmts = `
                           CREATE TABLE IF NOT EXISTS sync_table (

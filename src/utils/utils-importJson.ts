@@ -74,6 +74,7 @@ export const createSchema = async (db: any, jsonData: any): Promise<number> => {
 export const createSchemaStatement = async (jsonData: any): Promise<string[]> => {
   const statements: string[] = [];
   let isLastModified = false;
+  let isSqlDeleted = false;
 
   // Prepare the statement to execute
   try {
@@ -89,6 +90,9 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
               );
               if(jTable.schema[j].column === "last_modified") {
                 isLastModified = true;
+              }
+              if(jTable.schema[j].column === "sql_deleted") {
+                isSqlDeleted = true;
               }
             } else if (jTable.schema[j].foreignkey) {
               statements.push(
@@ -116,7 +120,7 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
           }
         }
         statements.push(');');
-        if(isLastModified) {
+        if(isLastModified && isSqlDeleted) {
           // create trigger last_modified associated with the table
           let trig = 'CREATE TRIGGER IF NOT EXISTS ';
           trig += `${jTable.name}`;

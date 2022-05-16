@@ -205,7 +205,8 @@ export const deleteSQL= async (db: any, statement: string,
   let sqlStmt: string = statement;
   try {
     const isLast: boolean = await isLastModified(db, true);
-    if(isLast) {
+    const isDel: boolean = await isSqlDeleted(db, true);
+    if(isLast && isDel) {
       // Replace DELETE by UPDATE and set sql_deleted to 1
       const wIdx: number = statement.toUpperCase().indexOf("WHERE");
       const preStmt: string = statement.substring(0, wIdx - 1);
@@ -349,7 +350,29 @@ export const isLastModified = async (db: any,isOpen: boolean): Promise<boolean> 
       return Promise.reject(`isLastModified: ${err}`);
     }
 }
-
+/**
+ * isSqlDeleted
+ * @param db
+ * @param isOpen
+ */
+ export const isSqlDeleted = async (db: any,isOpen: boolean): Promise<boolean> => {
+  if (!isOpen) {
+    return Promise.reject('isSqlDeleted: database not opened');
+  }
+  try {
+    const tableList: string[] = await getTablesNames(db);
+    for( const table of tableList) {
+      const tableNamesTypes: any = await getTableColumnNamesTypes(
+                                      db, table);
+      const tableColumnNames: string[] = tableNamesTypes.names;
+      if(tableColumnNames.includes("sql_deleted")) {
+        return Promise.resolve(true);
+      }
+    }
+  } catch (err) {
+    return Promise.reject(`isSqlDeleted: ${err}`);
+  }
+}
 export const replaceUndefinedByNull = async (values: any[]): Promise<any[]> => {
   const retValues: any[] = [];
   for( const val of values) {
