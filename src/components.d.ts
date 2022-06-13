@@ -44,6 +44,10 @@ export namespace Components {
         "setSyncDate": (options: SQLiteSyncDateOptions) => Promise<void>;
     }
 }
+export interface JeepSqliteCustomEvent<T> extends CustomEvent<T> {
+    detail: T;
+    target: HTMLJeepSqliteElement;
+}
 declare global {
     interface HTMLJeepSqliteElement extends Components.JeepSqlite, HTMLStencilElement {
     }
@@ -61,8 +65,8 @@ declare namespace LocalJSX {
           * AutoSave
          */
         "autoSave"?: boolean;
-        "onJeepSqliteExportProgress"?: (event: CustomEvent<JsonProgressListener>) => void;
-        "onJeepSqliteImportProgress"?: (event: CustomEvent<JsonProgressListener>) => void;
+        "onJeepSqliteExportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
+        "onJeepSqliteImportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
     }
     interface IntrinsicElements {
         "jeep-sqlite": JeepSqlite;
