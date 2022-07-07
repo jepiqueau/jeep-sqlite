@@ -356,7 +356,7 @@ export class Database {
           changes = await execute(this.mDb, stmts, false);
           return Promise.resolve(changes);
         } else {
-          return Promise.reject(new Error('No last_modified column in tables'));
+          return Promise.reject(new Error('No last_modified/sql_deleted columns in tables'));
         }
       } else {
         return Promise.resolve(0);
@@ -460,7 +460,10 @@ export class Database {
     inJson.mode = mode;
     if (this._isDBOpen) {
       try {
-        await setLastExportDate(this.mDb, (new Date()).toISOString());
+        const isTable = await isTableExists(this.mDb, 'sync_table');
+        if(isTable) {
+          await setLastExportDate(this.mDb, (new Date()).toISOString());
+        }
         const retJson: JsonSQLite = await createExportObject(this.mDb, inJson, exportProgress);
         const keys = Object.keys(retJson);
         if(keys.length === 0) {
