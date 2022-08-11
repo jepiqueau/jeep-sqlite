@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Starter</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+        </div>
+      </div>
+    </div>
+    <h1>Issue11 Page 2</h1>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+</body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
+    if(await jeepSqlite.isStoreOpen()) {
+      const randomIntFromInterval = (min, max) => {
+        return Math.floor(Math.random() * (max - min + 1) + min)
+      }
+      const initIssue11Connection = async (withConn) => {
+        try {
+          await jeepSqlite.createConnection({
+                  database:"testIssue11",
+                  version: 1
+              });
+          // open db testIssue11
+          await jeepSqlite.open({database: "testIssue11"});
+          const isDB = await jeepSqlite.isDBOpen({database: "testIssue11"})
+          if(!isDB) {
+            throw new Error(`in initIssue11Connection: TestIssue11 not opened`);
+          }
+          ret = (await jeepSqlite.isTableExists({database: "testIssue11", table: "users"})).result;
+          if(!ret) {
+            throw new Error(`in initIssue11Connection: run Issue11 Page 1 first`);
+          }
+          if (withConn) {
+            // close Connection
+            await jeepSqlite.closeConnection({database:"testIssue11"});
+          }
+        } catch (err) {
+          console.log(`Error ${err}`);
+          throw new Error(`in initIssue11Connection: ${err}`);
+        }
+      }
+      const queryAllUsers = async (nUser, withConn) => {
+        try {
+          if (withConn) {
+            await jeepSqlite.createConnection({
+                  database:"testIssue11",
+                  version: 1
+              });
+            // open db testIssue11
+            await jeepSqlite.open({database: "testIssue11"});
+            const isDB = await jeepSqlite.isDBOpen({database: "testIssue11"})
+            if(!isDB) {
+              throw new Error(`in queryAllUsers: TestIssue11 not opened`);
+            }
+          }
+          const ret = await jeepSqlite.query({database: "testIssue11",
+                                          statement: "SELECT * FROM users;"});
+          if (withConn) {
+            // close Connection
+            await jeepSqlite.closeConnection({database:"testIssue11"});
+
+          }
+         if(ret.values.length !== nUser) {
+            throw new Error(`in queryAllUsers: returned users not equal ${nUser}`);
+          }
+        } catch (err) {
+          console.log(`Error ${err}`);
+          throw new Error(`in queryAllUsers: ${err}`);
+        }
+
+      }
+      // Main test
+      try {
+        const nUser = 10000; // number of users to fill
+        const withConn = false // true open/close connection at each transaction
+                              // open and close only once
+        // *** Initialize testIssue11 database
+        await initIssue11Connection(withConn);
+
+        // *** Query the Users
+
+        await queryAllUsers(nUser, withConn)
+
+        // *** Close connection if required
+
+        const isConn = (await jeepSqlite.isConnection({database: "testIssue11"})).result;
+        if (isConn) {
+          await jeepSqlite.closeConnection({database:"testIssue11"});
+        }
+        console.log(`Test issue11 Page 2 successful`)
+      } catch (err) {
+        console.log(`Error ${err}`);
+      }
+    } else {
+      console.log("store creation failed")
+    }
+  })();
+</script>

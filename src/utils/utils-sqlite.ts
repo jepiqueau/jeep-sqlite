@@ -226,27 +226,50 @@ export const findReferencesAndUpdate = async (db: any, tableName: string,
                                               values: any[]): Promise<void> => {
   try {
     const references = await getReferences(db, tableName);
+    const tableNameWithRefs = references.pop();
     for ( const refe of references) {
       // get the tableName of the reference
-      const refTable: string = await getReferenceTableName(refe.sql);
+      const refTable: string = await getReferencedTableName(refe );
       if (refTable.length <= 0) {
           continue;
       }
-      // get the columnName
-      const colName: string = await getReferenceColumnName(refe.sql);
-      if (colName.length <= 0) {
+      // get the with references columnName
+      const withRefsNames: string[] = await getWithRefsColumnName(refe);
+      if (withRefsNames.length <= 0) {
+          continue;
+      }
+      // get the referenced columnName
+      const colNames: string[] = await getReferencedColumnName(refe);
+      if (colNames.length <= 0) {
           continue;
       }
       // update the where clause
-      const uWhereStmt: string = await updateWhere(whereStmt, colName);
-      if (uWhereStmt.length <= 0) {
+      const uWhereStmt: string = await updateWhere(whereStmt, withRefsNames, colNames);
+      if (uWhereStmt.length <= 6) {
           continue;
       }
+      let updTableName: string = tableNameWithRefs;
+      let updColNames: string[] = colNames;
+      if (tableNameWithRefs === tableName) {
+        updTableName = refTable;
+        updColNames = withRefsNames;
+      }
       //update sql_deleted for this reference
-      const stmt: string = "UPDATE " + refTable + " SET sql_deleted = 1 " + uWhereStmt;
+      const stmt: string = "UPDATE " + updTableName + " SET sql_deleted = 1 " + uWhereStmt;
       if(values != null && values.length > 0) {
         const mVal: any[] = await replaceUndefinedByNull(values);
-        await db.exec(stmt, mVal);
+        let arrVal: string[] = whereStmt.split('?');
+        if (arrVal[arrVal.length-1] === ';') arrVal = arrVal.slice(0,-1);
+        let selValues: any[] = [];
+        for (const [j,val] of arrVal.entries()) {
+          for (let i = 0; i < updColNames.length; i++) {
+            const idxVal = val.indexOf(updColNames[i]);
+            if(idxVal > -1) {
+              selValues.push(mVal[j]);
+            }
+          }
+        }
+        await db.exec(stmt, selValues);
       } else {
         await db.exec(stmt);
       }
@@ -256,39 +279,97 @@ export const findReferencesAndUpdate = async (db: any, tableName: string,
           return Promise.reject(new Error(`findReferencesAndUpdate: ${msg}`));
         }
 
-      return;
     }
+    return;
   } catch (err) {
     return Promise.reject(new Error(`findReferencesAndUpdate: ${err.message}`));
   }
 }
-export const getReferenceTableName = async (refValue: string): Promise<string> => {
-  var tableName = '';
-  if (refValue.length > 0 && refValue.substring(0, 12).toLowerCase() === 'CREATE TABLE'.toLowerCase()) {
-      const oPar = refValue.indexOf("(");
-      tableName = refValue.substring(13, oPar).trim();
+export const getReferencedTableName = async (refValue: string): Promise<string> => {
+  var tableName: string = '';
+
+  if (refValue.length > 0) {
+    const arr: string[] = refValue.split(new RegExp('REFERENCES','i'));
+    if (arr.length === 2) {
+      const oPar: number = arr[1].indexOf("(");
+      tableName = arr[1].substring(0, oPar).trim();
+    }
   }
   return tableName;
 }
-export const  getReferenceColumnName = async (refValue: string): Promise<string> => {
-  var colName = '';
+
+export const  getReferencedColumnName = async (refValue: string): Promise<string[]> => {
+  let colNames: string[] = [];
   if (refValue.length > 0) {
-      const index: number = refValue.toLowerCase().indexOf("FOREIGN KEY".toLowerCase());
-      const stmt: string = refValue.substring(index + 12);
-      const oPar: number = stmt.indexOf("(");
-      const cPar: number = stmt.indexOf(")");
-      colName = stmt.substring(oPar + 1, cPar).trim();
+    const arr: string[] = refValue.split(new RegExp('REFERENCES','i'));
+    if (arr.length === 2) {
+      const oPar: number = arr[1].indexOf("(");
+      const cPar: number = arr[1].indexOf(")");
+      const colStr = arr[1].substring(oPar + 1, cPar).trim();
+      colNames = colStr.split(',');
+    }
   }
-  return colName;
+  return colNames;
 }
-export const updateWhere = async (whStmt: string, colName: string): Promise<string> => {
+export const  getWithRefsColumnName = async (refValue: string): Promise<string[]> => {
+  let colNames: string[] = [];
+  if (refValue.length > 0) {
+    const arr: string[] = refValue.split(new RegExp('REFERENCES','i'));
+    if (arr.length === 2) {
+      const oPar: number = arr[0].indexOf("(");
+      const cPar: number = arr[0].indexOf(")");
+      const colStr = arr[0].substring(oPar + 1, cPar).trim();
+      colNames = colStr.split(',');
+    }
+  }
+  return colNames;
+}
+
+export const updateWhere = async (whStmt: string, withRefsNames: string[], colNames: string[]): Promise<string> => {
   var whereStmt = '';
   if (whStmt.length > 0) {
-      const index: number = whStmt.toLowerCase().indexOf("WHERE".toLowerCase());
-      const stmt: string = whStmt.substring(index + 6);
+    const index: number = whStmt.toLowerCase().indexOf("WHERE".toLowerCase());
+    const stmt: string = whStmt.substring(index + 6);
+    if(withRefsNames.length === colNames.length) {
+      for(let i = 0; i < withRefsNames.length; i++) {
+        let colType: string = 'withRefsNames';
+        let idx = stmt.indexOf(withRefsNames[i]);
+        if (idx === -1) {
+          idx = stmt.indexOf(colNames[i]);
+          colType = 'colNames';
+        }
+        if (idx > -1) {
+          let valStr = "";
+          const fEqual = stmt.indexOf("=",idx);
+          if (fEqual > -1) {
+            const iAnd = stmt.indexOf("AND",fEqual);
+            const ilAnd = stmt.indexOf("and",fEqual);
+            if (iAnd > -1) {
+              valStr = (stmt.substring(fEqual + 1, iAnd - 1)).trim();
+            } else if (ilAnd > -1) {
+              valStr = (stmt.substring(fEqual + 1, ilAnd - 1)).trim();
+            } else {
+              valStr = (stmt.substring(fEqual + 1, stmt.length)).trim();
+            }
+            if (i > 0) {
+             whereStmt += ' AND ';
+            }
+            if(colType === 'withRefsNames') {
+              whereStmt += `${colNames[i]} = ${valStr}`;
+            } else {
+              whereStmt += `${withRefsNames[i]} = ${valStr}`;
+            }
+          }
+        }
+      }
+
+      /*
       const fEqual: number = stmt.indexOf("=");
       const whereColName: string = stmt.substring(0, fEqual).trim();
       whereStmt = whStmt.replace(whereColName, colName);
+      */
+     whereStmt = "WHERE " + whereStmt;
+    }
   }
   return whereStmt;
 }
@@ -296,13 +377,16 @@ export const updateWhere = async (whStmt: string, colName: string): Promise<stri
 export const getReferences = async (db: any, tableName: string): Promise<any[]> => {
   const sqlStmt: string =
   "SELECT sql FROM sqlite_master " +
-  "WHERE sql LIKE('%REFERENCES%') AND " +
-  "sql LIKE('%" +
-  tableName +
-  "%') AND sql LIKE('%ON DELETE%');";
+  "WHERE sql LIKE('%FOREIGN KEY%') AND sql LIKE('%REFERENCES%') AND " +
+  "sql LIKE('%" + tableName + "%') AND sql LIKE('%ON DELETE%');";
   try {
     const res: any[] = await queryAll(db,sqlStmt,[]);
-    return Promise.resolve(res);
+    // get the reference's string(s)
+    let retRefs: string[] = [];
+    if(res.length > 0) {
+      retRefs = getRefs(res[0].sql);
+    }
+    return Promise.resolve(retRefs);
   } catch (err) {
     return Promise.reject(new Error(`getReferences: ${err.message}`));
   }
@@ -486,6 +570,23 @@ const arraysIntersection = (a1: any[], a2: any[]): any[] => {
   } else {
     return [];
   }
+}
+
+const getRefs = (str: string) => {
+  let retRefs: string[] = []
+  const arrFor: string[] = str.split(new RegExp('FOREIGN KEY','i'));
+  // Loop through Foreign Keys
+  for (let i: number = 1; i< arrFor.length; i++) {
+    retRefs.push((arrFor[i].split(new RegExp('ON DELETE','i')))[0].trim());
+  }
+  // find table name with references
+  if (str.substring(0, 12).toLowerCase() === 'CREATE TABLE'.toLowerCase()) {
+    const oPar = str.indexOf("(");
+    const tableName = str.substring(13, oPar).trim();
+    retRefs.push(tableName);
+  }
+
+  return retRefs
 }
 export const updateNewTablesData = async (db: any, commonColumns: Record<string, string[]> ): Promise<void> => {
   try {
