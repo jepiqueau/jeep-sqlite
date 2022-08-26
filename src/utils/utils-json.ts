@@ -68,6 +68,8 @@ export const isTable = async (obj: any): Promise<boolean> => {
           column?: string;
           value: string;
           foreignkey?: string;
+          primarykey?: string;
+          constraint?: string;
         }) => {
           if (element.column) {
             nbColumn++;
@@ -108,6 +110,7 @@ export const isSchema = async (obj: any): Promise<boolean> => {
     'column',
     'value',
     'foreignkey',
+    'primarykey',
     'constraint',
   ];
   if (
@@ -120,6 +123,7 @@ export const isSchema = async (obj: any): Promise<boolean> => {
     if (key === 'column' && typeof obj[key] != 'string') return false;
     if (key === 'value' && typeof obj[key] != 'string') return false;
     if (key === 'foreignkey' && typeof obj[key] != 'string') return false;
+    if (key === 'primarykey' && typeof obj[key] != 'string') return false;
     if (key === 'constraint' && typeof obj[key] != 'string') return false;
   }
   return true;

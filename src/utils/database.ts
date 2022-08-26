@@ -436,14 +436,15 @@ export class Database {
         // set Foreign Keys On
         await setForeignKeyConstraintsEnabled(this.mDb, true);
 
-        if( this.autoSave ) {
-          try {
+//        if( this.autoSave ) {
+//          try {
             await setDBToStore(this.mDb, this.dbName, this.store);
-          } catch (err) {
-            this._isDBOpen = false;
-            return Promise.reject(`in close ${err}`);
-          }
-        }
+//          } catch (err) {
+//            this._isDBOpen = false;
+//            return Promise.reject(`in close ${err}`);
+//          }
+//        }
+
         return Promise.resolve(changes);
       } catch (err) {
         return Promise.reject(new Error(`ImportJson: ${err.message}`));

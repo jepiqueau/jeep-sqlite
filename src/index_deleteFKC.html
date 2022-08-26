@@ -368,42 +368,46 @@ const someData1 = `
       `;
 
       const createSchema2 = `
-CREATE TABLE IF NOT EXISTS album (
-    album_artist TEXT NOT NULL,
-    album_name TEXT NOT NULL,
-    album_date TEXT,
-    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-    last_modified INTEGER DEFAULT (strftime('%s', 'now')),
-    FOREIGN KEY (album_artist, album_name) REFERENCES song(song_artist,song_album) ON DELETE CASCADE,
-    PRIMARY KEY (album_artist, album_name)
-);
+      CREATE TABLE IF NOT EXISTS album (
+          album_artist TEXT NOT NULL,
+          album_name TEXT NOT NULL,
+          album_date TEXT,
+          sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+          last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+          PRIMARY KEY (album_artist, album_name)
+      );
 
-CREATE INDEX IF NOT EXISTS album_index_last_modified ON album (last_modified);
-CREATE TRIGGER IF NOT EXISTS album_trigger_last_modified
-AFTER UPDATE ON album
-FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-BEGIN
-    UPDATE album SET last_modified = (strftime('%s', 'now')) WHERE album_artist=OLD.album_artist AND album_name=OLD.album_name;
-END;
-CREATE TABLE IF NOT EXISTS song (
-    song_id INTEGER PRIMARY KEY NOT NULL,
-    song_artist TEXT NOT NULL,
-    song_album TEXT NOT NULL,
-    song_name TEXT NOT NULL,
-    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-    last_modified INTEGER DEFAULT (strftime('%s', 'now'))
-);
-CREATE INDEX IF NOT EXISTS song_index_last_modified ON song (last_modified);
-CREATE TRIGGER IF NOT EXISTS song_trigger_last_modified
-AFTER UPDATE ON song
-FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-BEGIN
-    UPDATE song SET last_modified = (strftime('%s', 'now')) WHERE song_id=OLD.song_id;
-END;
+      CREATE INDEX IF NOT EXISTS album_index_last_modified ON album (last_modified);
+      CREATE TRIGGER IF NOT EXISTS album_trigger_last_modified
+      AFTER UPDATE ON album
+      FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+      BEGIN
+          UPDATE album SET last_modified = (strftime('%s', 'now')) WHERE album_artist=OLD.album_artist AND album_name=OLD.album_name;
+      END;
+      CREATE TABLE IF NOT EXISTS song (
+        song_id INTEGER PRIMARY KEY NOT NULL,
+          song_artist TEXT NOT NULL,
+          song_album TEXT NOT NULL,
+          song_name TEXT NOT NULL,
+          sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+          last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+          FOREIGN KEY (song_artist, song_album) REFERENCES album(album_artist,album_name) ON DELETE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS song_index_last_modified ON song (last_modified);
+      CREATE TRIGGER IF NOT EXISTS song_trigger_last_modified
+      AFTER UPDATE ON song
+      FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+      BEGIN
+          UPDATE song SET last_modified = (strftime('%s', 'now')) WHERE song_id=OLD.song_id;
+      END;
 
-PRAGMA user_version = 1;
-`;
-const someData2 = `
+      PRAGMA user_version = 1;
+      `;
+      const someData2 = `
+      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Rolling Stones','Sticky Fingers','1971');
+      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Rolling Stones','Hyde Park Live','2013');
+      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Beatles','Abbey Road','1969');
+      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Beatles','Help!','1965');
       INSERT INTO song (song_id,song_artist,song_album,song_name) VALUES (1,'The Rolling Stones','Sticky Fingers','Brown Sugar');
       INSERT INTO song (song_id,song_artist,song_album,song_name) VALUES (2,'The Rolling Stones','Sticky Fingers','Sway');
       INSERT INTO song (song_id,song_artist,song_album,song_name) VALUES (3,'The Rolling Stones','Sticky Fingers','Wild Horses');
@@ -420,10 +424,6 @@ const someData2 = `
       INSERT INTO song (song_id,song_artist,song_album,song_name) VALUES (14,'The Beatles','Help!','Help!');
       INSERT INTO song (song_id,song_artist,song_album,song_name) VALUES (15,'The Beatles','Help!','The Night Before');
       INSERT INTO song (song_id,song_artist,song_album,song_name) VALUES (16,'The Beatles','Help!',"You’ve Got To Hide Your Love Away");
-      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Rolling Stones','Sticky Fingers','1971');
-      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Rolling Stones','Hyde Park Live','2013');
-      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Beatles','Abbey Road','1969');
-      INSERT INTO album (album_artist,album_name,album_date) VALUES ('The Beatles','Help!','1965');
       `;
 
 
@@ -690,6 +690,50 @@ const someData2 = `
               return Promise.reject(msg);
           }
           console.log("> Select someData2 successful\n");
+
+          // *** test Export to Json
+          // test full export
+          let jsonObj = await jeepSqlite.exportToJson({database: "test285",jsonexportmode: 'full'});
+          console.log(`Json Object Exported: ${JSON.stringify(jsonObj.export)} `);
+          // test Json object validity
+          result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+          if(!result.result) {
+            throw new Error("IsJsonValid 'full' export failed");
+          }
+          // Delete the database to import the exported jsonObj
+          await jeepSqlite.deleteDatabase({database: 'test285'});
+          await jeepSqlite.closeConnection({database: 'test285'});
+          // test Json object validity
+          result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+          if(!result.result) {
+            throw new Error("IsJsonValid 'full' failed");
+          }
+          console.log("> IsJsonValid successful\n");
+          console.log(`${JSON.stringify(jsonObj.export)}`)
+          // full import
+          result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(jsonObj.export)});
+          if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' jsonObj failed");
+          console.log(`>>> result.changes.changes ${result.changes.changes}`);
+          console.log("> ImportFromJson successful\n");
+          await openConnection('test285', false,
+                                    'no-encryption', 1,false);
+          // save the db to store
+          await jeepSqlite.saveToStore({database: 'test285'});
+          res = await jeepSqlite.getTableList({database: "test285"});
+          console.log(`>>> getTableList res ${JSON.stringify(res)}`)
+          // Query the album
+          res = await jeepSqlite.query({database: 'test285',statement: "SELECT * FROM album"});
+          if(res.values.length !== 4 ) {
+              const msg = `Query not returning 4 data`;
+              return Promise.reject(msg);
+          }
+          // Query the song
+          res = await jeepSqlite.query({database: 'test285',statement: "SELECT * FROM song"});
+          if(res.values.length !== 16 ) {
+              const msg = `Query not returning 16 data from song`;
+              return Promise.reject(msg);
+          }
+          console.log("> Select from JsonObj successful\n");
 
           return Promise.resolve();
         } catch (err) {

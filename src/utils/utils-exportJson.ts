@@ -175,17 +175,29 @@ export const getSchema = async (sqlStmt: string/*, tableName: string*/): Promise
     // first word as key
     for (let j: number = 0; j < sch.length; j++) {
       let row: string[] = [];
-      const scht: string = sch[j].trim();
+      const scht: string = sch[j].replace(/\n/g,"").trim();
       row[0] = scht.substring(0, scht.indexOf(" "));
       row[1] = scht.substring(scht.indexOf(" ") + 1);
 
       const jsonRow: JsonColumn = {} as JsonColumn;
       if (row[0].toUpperCase() === "FOREIGN") {
-        const oPar: number = sch[j].indexOf("(");
-        const cPar: number = sch[j].indexOf(")");
-        row[0] = sch[j].substring(oPar + 1, cPar);
-        row[1] = sch[j].substring(cPar + 2);
+        const oPar: number = scht.indexOf("(");
+        const cPar: number = scht.indexOf(")");
+        const fk = scht.substring(oPar + 1, cPar);
+        const fknames: string[] = fk.split('§');
+        row[0] = fknames.join(',');
+        row[0] = row[0].replace(/, /g,",")
+        row[1] = scht.substring(cPar + 2);
         jsonRow['foreignkey'] = row[0];
+      } else if (row[0].toUpperCase() === "PRIMARY") {
+        const oPar: number = scht.indexOf("(");
+        const cPar: number = scht.indexOf(")");
+        const pk: string = scht.substring(oPar + 1, cPar);
+        const pknames: string[] = pk.split('§');
+        row[0] = "CPK_" + pknames.join('_');
+        row[0] = row[0].replace(/_ /g,"_")
+        row[1] = scht;
+        jsonRow['constraint'] = row[0];
       } else if (row[0].toUpperCase() === "CONSTRAINT") {
         let tRow: string[] = [];
         const row1t: string = row[1].trim();

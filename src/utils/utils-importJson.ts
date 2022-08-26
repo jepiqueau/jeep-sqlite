@@ -112,6 +112,10 @@ export const createSchemaStatement = async (jsonData: any): Promise<string[]> =>
               statements.push(
                 `FOREIGN KEY (${jTable.schema[j].foreignkey}) ${jTable.schema[j].value},`,
               );
+            } else if (jTable.schema[j].primarykey) {
+              statements.push(
+                `FOREIGN KEY ${jTable.schema[j].value},`,
+              );
             } else if (jTable.schema[j].constraint) {
               statements.push(
                 `CONSTRAINT ${jTable.schema[j].constraint} ${jTable.schema[j].value},`,
