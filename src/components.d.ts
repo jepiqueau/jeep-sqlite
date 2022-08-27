@@ -42,6 +42,10 @@ export namespace Components {
         "run": (options: SQLiteRunOptions) => Promise<SQLiteChanges>;
         "saveToStore": (options: SQLiteOptions) => Promise<void>;
         "setSyncDate": (options: SQLiteSyncDateOptions) => Promise<void>;
+        /**
+          * WasmPath
+         */
+        "wasmPath": string;
     }
 }
 export interface JeepSqliteCustomEvent<T> extends CustomEvent<T> {
@@ -67,6 +71,10 @@ declare namespace LocalJSX {
         "autoSave"?: boolean;
         "onJeepSqliteExportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
         "onJeepSqliteImportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
+        /**
+          * WasmPath
+         */
+        "wasmPath"?: string;
     }
     interface IntrinsicElements {
         "jeep-sqlite": JeepSqlite;

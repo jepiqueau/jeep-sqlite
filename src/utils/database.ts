@@ -21,9 +21,10 @@ export class Database {
   private mDb: any;
   private vUpgDict: Record<number, SQLiteVersionUpgrade> = {};
   private autoSave: boolean = false;
+  private wasmPath: string = '/assets';
 
   constructor(databaseName: string, version: number, upgDict: Record<number, SQLiteVersionUpgrade>,
-              store: LocalForage, autoSave: boolean) {
+              store: LocalForage, autoSave: boolean, wasmPath: string) {
     this.dbName = databaseName;
     this.store = store;
     this.version = version;
@@ -31,11 +32,12 @@ export class Database {
     this.vUpgDict = upgDict;
     this._isDBOpen = false;
     this.autoSave = autoSave;
+    this.wasmPath = wasmPath;
   }
   public async open(): Promise<void> {
     try {
       const SQL = await initSqlJs({
-        locateFile: file => `/assets/${file}`
+        locateFile: file => `${this.wasmPath}/${file}`
       });
       // retrieve the database if stored on localforage
       const retDB: Uint8Array = await getDBFromStore(this.dbName, this.store);

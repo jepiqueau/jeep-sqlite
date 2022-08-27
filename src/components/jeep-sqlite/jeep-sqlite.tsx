@@ -30,12 +30,20 @@ export class JeepSqlite {
     attribute: "autosave",
     reflect: true
   }) autoSave: boolean;
+  /**
+   * WasmPath
+   */
+   @Prop({
+    attribute: "wasmpath",
+    reflect: true
+  }) wasmPath: string;
 
   //*********************
   //* State Definitions *
   //*********************
 
   @State() innerAutoSave: boolean;
+  @State() innerWasmPath: string;
 
   //*****************************
   //* Watch on Property Changes *
@@ -44,6 +52,10 @@ export class JeepSqlite {
   @Watch('autoSave')
   parseAutoSave(newValue: boolean) {
     this.innerAutoSave = newValue;
+  }
+  @Watch('wasmPath')
+  parseWasmPath(newValue: string) {
+    this.innerWasmPath = newValue;
   }
 
   //*********************
@@ -614,6 +626,7 @@ export class JeepSqlite {
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
     this.parseAutoSave(this.autoSave != undefined ? this.autoSave : false);
+    this.parseWasmPath(this.wasmPath != undefined ? this.wasmPath : '/assets');
   }
   componentDidLoad() {
     if(!this.isStore) {
@@ -633,7 +646,7 @@ export class JeepSqlite {
     }
     try {
       const mDB: Database = new Database(database + 'SQLite.db', version, upgDict,
-                                         this.store, this.innerAutoSave);
+                                         this.store, this.innerAutoSave, this.innerWasmPath);
       this._dbDict[database] = mDB;
       return Promise.resolve();
     } catch(err) {
@@ -946,7 +959,8 @@ export class JeepSqlite {
     const mode: string = vJsonObj.mode;
     const overwrite: boolean = vJsonObj.overwrite ?? false;
     // Create the database
-    const mDb: Database = new Database(dbName, dbVersion, {}, this.store, this.innerAutoSave);
+    const mDb: Database = new Database(dbName, dbVersion, {}, this.store,
+                                       this.innerAutoSave, this.innerWasmPath);
     try {
       if(overwrite && mode === 'full') {
         const isExists = isDBInStore(dbName,this.store);

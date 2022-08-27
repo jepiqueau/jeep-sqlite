@@ -16,6 +16,23 @@ Integration in other frameworks (`Vue`, `React`, `Ionic/Vue`, `Ionic/React`,`Sol
 
 Stencil is also great for building entire apps. For that, use the [stencil-app-starter](https://github.com/ionic-team/stencil-app-starter) instead.
 
+🚨 Release 1.5.7 ->> 🚨
+    The path for the `sql-wasm.wasm` file which is by default `/assets` can now be specified by adding the property `wasmPath` to `jeep-sqlite`
+
+    - default
+
+    ```
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+    ```
+
+    - given the wasm file path
+
+    ```
+    <jeep-sqlite autoSave="true" wasmPath="/assets/wasm"></jeep-sqlite>
+    ```
+
+🚨 Release 1.5.7 <<- 🚨
+
 🚨 Release 1.5.0 ->> 🚨
 
 The main change is related to the delete table's rows when a synchronization table exists as well as a last_mofidied table's column, allowing for database synchronization of the local database with a remote server database.
