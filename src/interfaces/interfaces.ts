@@ -151,10 +151,8 @@ export interface SQLiteUpgradeOptions {
   upgrade?: SQLiteVersionUpgrade[];
 }
 export interface SQLiteVersionUpgrade {
-  fromVersion: number;
   toVersion: number;
-  statement: string;
-  set?: SQLiteSet[];
+  statements: string[];
 }
 
 export interface SQLiteSet {

@@ -3,11 +3,11 @@ import { EventEmitter } from '@stencil/core';
 
 import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade, JsonProgressListener} from '../interfaces/interfaces';
 
-import { getDBFromStore, setInitialDBToStore, setDBToStore,
+import { getDBFromStore, setInitialDBToStore, setDBToStore, copyDBToStore,
          removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
 import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
          execute, executeSet, run, queryAll, isTableExists, getVersion, isSqlDeleted,
-         setVersion, isLastModified, getTableList, setForeignKeyConstraintsEnabled } from './utils-sqlite';
+         isLastModified, getTableList, setForeignKeyConstraintsEnabled } from './utils-sqlite';
 import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
 import { isJsonSQLite } from './utils-json';
 import { createExportObject, getSynchroDate, setLastExportDate, delExportedRows } from './utils-exportJson';
@@ -22,6 +22,8 @@ export class Database {
   private vUpgDict: Record<number, SQLiteVersionUpgrade> = {};
   private autoSave: boolean = false;
   private wasmPath: string = '/assets';
+  private isBackup: boolean = false;
+
 
   constructor(databaseName: string, version: number, upgDict: Record<number, SQLiteVersionUpgrade>,
               store: LocalForage, autoSave: boolean, wasmPath: string) {
@@ -51,50 +53,46 @@ export class Database {
       }
       // get the current version
       let curVersion: number = await getVersion(this.mDb);
-      if(curVersion === 0) {
-        await setVersion(this.mDb, 1);
-        curVersion = await getVersion(this.mDb);
-      }
       this._isDBOpen = true;
       if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
-        const keys: string[] = Object.keys(this.vUpgDict);
+        try {
+          // copy the db
+          const isDB: boolean = await isDBInStore(this.dbName, this.store);
+          if (isDB) {
+            await copyDBToStore(this.dbName, `backup-${this.dbName}`, this.store);
+            this.isBackup = true;
+          }
 
-        if (keys.length > 0) {
-          try {
-            // execute the upgrade flow process
-            const changes: number = await onUpgrade(
-                                    this.mDb,
-                                    this.vUpgDict,
-                                    this.dbName,
-                                    curVersion,
-                                    this.version,
-                                    this.store
-            );
-            if(changes === -1) {
-              // restore the database from backup
-              try {
-                await restoreDBFromStore(this.dbName, 'backup',this.store);
-              } catch (err) {
-                return Promise.reject(new Error(`Open: ${err.message}`));
-              }
-            }
-            // delete the backup database
-            await removeDBFromStore(`backup-${this.dbName}`,this.store);
-          } catch (err) {
+          // execute the upgrade flow process
+          const changes: number = await onUpgrade(
+                                  this.mDb,
+                                  this.vUpgDict,
+                                  curVersion,
+                                  this.version
+          );
+          if(changes === -1) {
             // restore the database from backup
             try {
-              await restoreDBFromStore(this.dbName, 'backup',this.store);
+              if(this.isBackup) {
+                await restoreDBFromStore(this.dbName, `backup-${this.dbName}`,this.store);
+              }
             } catch (err) {
               return Promise.reject(new Error(`Open: ${err.message}`));
             }
           }
-        } else {
+          // delete the backup database
+          if(this.isBackup) {
+            await removeDBFromStore(`backup-${this.dbName}`,this.store);
+          }
+
+        } catch (err) {
+          // restore the database from backup
           try {
-            await setVersion(this.mDb, this.version);
+            if(this.isBackup) {
+              await restoreDBFromStore(this.dbName, 'backup',this.store);
+            }
           } catch (err) {
-            return Promise.reject(
-              new Error(`SetVersion: ${this.version} ${err.message}`),
-            );
+            return Promise.reject(new Error(`Open: ${err.message}`));
           }
         }
 
@@ -104,7 +102,7 @@ export class Database {
           await setDBToStore(this.mDb, this.dbName, this.store);
         } catch (err) {
           this._isDBOpen = false;
-          return Promise.reject(`in close ${err}`);
+          return Promise.reject(`in open ${err}`);
         }
       }
       return Promise.resolve();

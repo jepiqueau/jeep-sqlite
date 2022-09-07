@@ -16,7 +16,13 @@ Integration in other frameworks (`Vue`, `React`, `Ionic/Vue`, `Ionic/React`,`Sol
 
 Stencil is also great for building entire apps. For that, use the [stencil-app-starter](https://github.com/ionic-team/stencil-app-starter) instead.
 
-🚨 Release 1.5.7 ->> 🚨
+## Notes
+
+ - Release 1.5.8 ->> 
+    The API method `addUpgradeStatement` has been modified to define the new structure of the database as a list of incremental upgrades. Every upgrade is executed over the previous version.
+    see https://github.com/capacitor-community/sqlite/blob/master/docs/UpgradeDatabaseVersion.md
+
+ - Release 1.5.7 ->> 
     The path for the `sql-wasm.wasm` file which is by default `/assets` can now be specified by adding the property `wasmPath` to `jeep-sqlite`
 
     - default
@@ -31,9 +37,7 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
     <jeep-sqlite autoSave="true" wasmPath="/assets/wasm"></jeep-sqlite>
     ```
 
-🚨 Release 1.5.7 <<- 🚨
-
-🚨 Release 1.5.0 ->> 🚨
+ - Release 1.5.0 ->> 
 
 The main change is related to the delete table's rows when a synchronization table exists as well as a last_mofidied table's column, allowing for database synchronization of the local database with a remote server database.
 
@@ -62,8 +66,6 @@ The main change is related to the delete table's rows when a synchronization tab
 
 An example of using this new feature is given in the `index_delete.html` file. It has been used to test the validity of the implementation.
 
-
-🚨 Release 1.5.0 <<- 🚨
 
 ## Getting Started
 

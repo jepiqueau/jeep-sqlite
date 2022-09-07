@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Incremental Upgrade Version</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+        </div>
+      </div>
+    </div>
+    <h1>Incremental Upgrade Version Page</h1>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
+      console.log(`Import: ${event.detail.progress}`)
+    });
+    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
+      console.log(`Export: ${event.detail.progress}`)
+    });
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+      };
+      const endTest = async(name,msg) => {
+        if(msg.length === 0) {
+          console.log(`\n* The set of tests ${name} was successful *\n`);
+        } else {
+          console.log(`${msg}`);
+          console.log(`\n* The set of tests ${name} failed *\n`);
+        }
+      }
+      const openConnection = async (dbName, encrypted, mode, version,
+                                    isDelete) => {
+        try {
+          const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName]})).result;
+          const isConn = (await jeepSqlite.isConnection({database: dbName})).result;
+          if(retCC && isConn) {
+              await jeepSqlite.retrieveConnection({database: dbName});
+          } else {
+              await jeepSqlite.createConnection({database: dbName, encrypted: encrypted, mode: mode,
+                                                 version: version});
+          }
+          if (isDelete) {
+                await deleteDatabase(dbName);
+          }
+          await jeepSqlite.open({database: dbName});
+          return Promise.resolve();
+        } catch (err) {
+            return Promise.reject(err);
+        }
+      }
+      const deleteDatabase = async (dbName) => {
+        try {
+            const ret = (await jeepSqlite.isDBExists({database: dbName})).result;
+            if(ret) {
+                await jeepSqlite.deleteDatabase({database: dbName});
+                return Promise.resolve();
+            } else {
+                return Promise.resolve();
+            }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+      const initializeTest = async() => {
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+          await openConnection('test-updversion', false,
+                                    'no-encryption', 1,true);
+
+          console.log("> Open connection 'test-updversion' successful\n");
+          // Close Connection test-updversion
+          await jeepSqlite.closeConnection({database: 'test-updversion'});
+          let msg = `> closeConnection "test-updversion" successful\n`;
+          console.log(msg);
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+
+      const showUsers = async (message) => {
+        try {
+          let res = await jeepSqlite.query({database: 'test-updversion',statement: 'SELECT * FROM users'});
+          console.log(`**** Show Users ${message} ****`)
+          for( const user of res.values) {
+            console.log(`>>> id: ${user.id} name: ${user.name} age: ${user.age}`);
+          }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+      const showMessages = async (message) => {
+
+        const query = `SELECT users.name,messages.title,messages.body FROM users,
+        messages WHERE users.id = messages.userid ORDER BY users.id;
+        `;
+        try {
+
+          let res = await jeepSqlite.query({database: 'test-updversion',statement: query});
+          console.log(`**** Show Messages ${message} ****`)
+          for( const u_m of res.values) {
+            console.log(`>>> name: ${u_m.name} title: ${u_m.title} body: ${u_m.body}`);
+          }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+
+      // ********************************
+      // *** test with SQL statements ***
+      // ********************************
+      const versionUpgrades = [
+        {
+          toVersion: 1,
+          statements: [
+            `CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                name TEXT,
+                company TEXT,
+                size REAL,
+                age INTEGER,
+                last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+            );`,
+            `CREATE INDEX IF NOT EXISTS users_index_name ON users (name);`,
+            `CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);`,
+            `CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
+             AFTER UPDATE ON users
+             FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+             BEGIN
+                UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
+             END;`,
+            `INSERT INTO users (name,email,age) VALUES ('Whiteley', 'whiteley@local.host', 30);`,
+            `INSERT INTO users (name,email,age) VALUES ('Jones', 'jones@local.host', 44);`,
+          ]
+        },
+      ]
+      const createVersion1 = async() => {
+        try {
+
+          await jeepSqlite.addUpgradeStatement({database: "test-updversion",
+                                                upgrade: [versionUpgrades[0]]});
+          await openConnection('test-updversion', false,
+                                'no-encryption', 1, false);
+
+          // Select all users
+          ret = await jeepSqlite.query({database: "test-updversion",
+                                        statement: "SELECT * FROM users;"});
+          if(ret.values.length !== 2 ||
+                ret.values[0].name !== "Whiteley" ||
+                ret.values[1].name !== "Jones") {
+            return Promise.reject("Query 2 Users failed");
+          }
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const createVersion2 = async() => {
+        try {
+
+          await jeepSqlite.addUpgradeStatement({database: "test-updversion",
+                                                upgrade: [versionUpgrades[1]]});
+          await openConnection('test-updversion', false,
+                                'no-encryption', 2, false);
+
+          // select all user's country in db
+          ret = await jeepSqlite.query({database: "test-updversion",
+                                        statement: "SELECT country FROM users;"});
+          if(ret.values.length !== 2 ||
+              ret.values[0].country !== "United Kingdom" ||
+              ret.values[1].country !== "Australia") {
+            return Promise.reject(new Error("Query 2 Users Version 2 failed"));
+          }
+          const userMessages = `
+            SELECT users.name,messages.title,messages.body FROM users
+            INNER JOIN messages ON users.id = messages.userid
+            WHERE users.id = ?;
+          `;
+          // select all messages for user 1
+          ret = await jeepSqlite.query({database: "test-updversion",
+                                        statement: userMessages,
+                                        values: ["1"]});
+          if(ret.values.length !== 2 ||
+            ret.values[0].name !== "Whiteley" ||
+            ret.values[0].title !== "test message 1" ||
+            ret.values[1].name !== "Whiteley" ||
+            ret.values[1].title !== "test message 3") {
+            return Promise.reject(new Error("Query 2 Messages Version 2 failed"));
+          }
+          // select all messages for user 2
+          ret = await jeepSqlite.query({database: "test-updversion",
+                                        statement: userMessages,
+                                        values: ["2"]});
+          if(ret.values.length !== 1 ||
+            ret.values[0].name !== "Jones" ||
+            ret.values[0].title !== "test message 2") {
+            return Promise.reject(new Error("Query 1 Messages for Users 2 Version 2 failed"));
+          }
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      try {
+        var activeTest = 'DatabaseUpgradeVersion';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database testNew and fill some data
+        await initializeTest();
+        // create version 1
+        await createVersion1();
+        await showUsers('after Version 1');
+        await jeepSqlite.closeConnection({database: 'test-updversion'});
+        let msg = `> closeConnection "test-updversion" successful\n`;
+        console.log(msg);
+
+        console.log(`******** version 1 successful ********\n`)
+
+        const v2 = {
+          toVersion: 2,
+          statements: [
+            `ALTER TABLE users ADD COLUMN country TEXT;`,
+            `ALTER TABLE users ADD COLUMN sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1));`,
+            `CREATE TABLE messages (
+                id INTEGER PRIMARY KEY NOT NULL,
+                userid INTEGER,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+                last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+                FOREIGN KEY (userid) REFERENCES users(id) ON DELETE SET DEFAULT
+            );`,
+            `CREATE INDEX messages_index_title ON messages (title);`,
+            `CREATE INDEX messages_index_last_modified ON messages (last_modified);`,
+            `INSERT INTO messages (userid,title,body) VALUES (1,'test message 1','content test message 1');`,
+            `INSERT INTO messages (userid,title,body) VALUES (2,'test message 2','content test message 2');`,
+            `INSERT INTO messages (userid,title,body) VALUES (1,'test message 3','content test message 3');`,
+            `UPDATE users SET country = 'United Kingdom'  WHERE id = 1;`,
+            `UPDATE users SET country = 'Australia'  WHERE id = 2;`,
+          ]
+        }
+        versionUpgrades.push(v2);
+        // create version 2
+        await createVersion2();
+        await showMessages('final');
+        // Close Connection test-updversion
+        const isConn = await jeepSqlite.isConnection({database: 'test-updversion'});
+        if (isConn.result) {
+          await jeepSqlite.closeConnection({database: 'test-updversion'});
+          let msg = `> closeConnection "test-updversion" successful\n`;
+          console.log(msg);
+        }
+        console.log(`******** version 2 successful ********\n`)
+
+        await endTest(activeTest,'');
+      } catch (err) {
+        let msg = err.message ? err.message : err;
+        console.log(`Error: ${msg}`);
+        await endTest(activeTest,msg);
+      }
+
+    }
+  })();
+</script>
+
