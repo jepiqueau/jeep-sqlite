@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 1.6.0 ->> 
+    Update sql.js@1.8.0
+    
  - Release 1.5.8 ->> 
     The API method `addUpgradeStatement` has been modified to define the new structure of the database as a list of incremental upgrades. Every upgrade is executed over the previous version.
     see https://github.com/capacitor-community/sqlite/blob/master/docs/UpgradeDatabaseVersion.md

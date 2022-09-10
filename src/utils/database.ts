@@ -37,79 +37,91 @@ export class Database {
     this.wasmPath = wasmPath;
   }
   public async open(): Promise<void> {
-    try {
-      const SQL = await initSqlJs({
-        locateFile: file => `${this.wasmPath}/${file}`
-      });
-      // retrieve the database if stored on localforage
-      const retDB: Uint8Array = await getDBFromStore(this.dbName, this.store);
-      if(retDB != null) {
-        // Open existing database
-        this.mDb = new SQL.Database(retDB);
-      } else {
-        // Create a new database
-        this.mDb = new SQL.Database();
-        await setInitialDBToStore( this.dbName, this.store);
-      }
-      // get the current version
-      let curVersion: number = await getVersion(this.mDb);
-      this._isDBOpen = true;
-      if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
-        try {
-          // copy the db
-          const isDB: boolean = await isDBInStore(this.dbName, this.store);
-          if (isDB) {
-            await copyDBToStore(this.dbName, `backup-${this.dbName}`, this.store);
-            this.isBackup = true;
-          }
-
-          // execute the upgrade flow process
-          const changes: number = await onUpgrade(
-                                  this.mDb,
-                                  this.vUpgDict,
-                                  curVersion,
-                                  this.version
-          );
-          if(changes === -1) {
-            // restore the database from backup
-            try {
-              if(this.isBackup) {
-                await restoreDBFromStore(this.dbName, `backup-${this.dbName}`,this.store);
-              }
-            } catch (err) {
-              return Promise.reject(new Error(`Open: ${err.message}`));
-            }
-          }
-          // delete the backup database
-          if(this.isBackup) {
-            await removeDBFromStore(`backup-${this.dbName}`,this.store);
-          }
-
-        } catch (err) {
-          // restore the database from backup
-          try {
-            if(this.isBackup) {
-              await restoreDBFromStore(this.dbName, 'backup',this.store);
-            }
-          } catch (err) {
-            return Promise.reject(new Error(`Open: ${err.message}`));
-          }
-        }
-
-      }
-      if( this.autoSave ) {
-        try {
-          await setDBToStore(this.mDb, this.dbName, this.store);
-        } catch (err) {
-          this._isDBOpen = false;
-          return Promise.reject(`in open ${err}`);
-        }
-      }
-      return Promise.resolve();
-    } catch (err) {
-      this._isDBOpen = false;
-      return Promise.reject(`in open ${err}`);
+    const config ={
+      locateFile: (file: any) => `${this.wasmPath}/${file}`
     }
+
+    return new Promise((resolve,reject) => {
+      try {
+        initSqlJs(config).then(async (SQL) => {
+
+          // retrieve the database if stored on localforage
+          const retDB: Uint8Array = await getDBFromStore(this.dbName, this.store);
+          if(retDB != null) {
+            // Open existing database
+            this.mDb = new SQL.Database(retDB);
+          } else {
+            // Create a new database
+            this.mDb = new SQL.Database();
+            await setInitialDBToStore( this.dbName, this.store);
+          }
+          console.log(`ìn jeep-sqlite open mDb: ${JSON.stringify(this.mDb)}`);
+
+          console.log(`version : ${this.version}`);
+          // get the current version
+          let curVersion: number = await getVersion(this.mDb);
+          console.log(`curVersion : ${curVersion}`);
+          this._isDBOpen = true;
+          console.log(`_isDBOpen : ${this._isDBOpen}`);
+          if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
+            try {
+              // copy the db
+              const isDB: boolean = await isDBInStore(this.dbName, this.store);
+              if (isDB) {
+                await copyDBToStore(this.dbName, `backup-${this.dbName}`, this.store);
+                this.isBackup = true;
+              }
+
+              // execute the upgrade flow process
+              const changes: number = await onUpgrade(
+                                      this.mDb,
+                                      this.vUpgDict,
+                                      curVersion,
+                                      this.version
+              );
+              if(changes === -1) {
+                // restore the database from backup
+                try {
+                  if(this.isBackup) {
+                    await restoreDBFromStore(this.dbName, `backup-${this.dbName}`,this.store);
+                  }
+                } catch (err) {
+                  return reject(new Error(`Open: ${err.message}`));
+                }
+              }
+              // delete the backup database
+              if(this.isBackup) {
+                await removeDBFromStore(`backup-${this.dbName}`,this.store);
+              }
+
+            } catch (err) {
+              // restore the database from backup
+              try {
+                if(this.isBackup) {
+                  await restoreDBFromStore(this.dbName, 'backup',this.store);
+                }
+              } catch (err) {
+                return reject(new Error(`Open: ${err.message}`));
+              }
+            }
+
+          }
+          if( this.autoSave ) {
+            try {
+              await setDBToStore(this.mDb, this.dbName, this.store);
+            } catch (err) {
+              this._isDBOpen = false;
+              return reject(`in open ${err}`);
+            }
+          }
+          return resolve();
+        });
+      } catch (err) {
+        this._isDBOpen = false;
+        return reject(`in open ${err}`);
+      }
+
+    });
   }
   public isDBOpen(): boolean {
     return this._isDBOpen;
