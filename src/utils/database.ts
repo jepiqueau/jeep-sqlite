@@ -55,14 +55,10 @@ export class Database {
             this.mDb = new SQL.Database();
             await setInitialDBToStore( this.dbName, this.store);
           }
-          console.log(`ìn jeep-sqlite open mDb: ${JSON.stringify(this.mDb)}`);
 
-          console.log(`version : ${this.version}`);
           // get the current version
           let curVersion: number = await getVersion(this.mDb);
-          console.log(`curVersion : ${curVersion}`);
           this._isDBOpen = true;
-          console.log(`_isDBOpen : ${this._isDBOpen}`);
           if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
             try {
               // copy the db
