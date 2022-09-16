@@ -22,18 +22,32 @@ export interface ConnectionOptions {
    * ["encryption", "secret", "newsecret"]
    */
   mode?: string;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
+
 }
 export interface AllConnectionsOptions {
   /**
    * the dbName of all connections
    */
   dbNames?: string[];
+  /**
+   * the openMode ("RW" read&write, "RO" readonly) of all connections
+   */
+
+  openModes?: string[];
 }
 export interface SQLiteOptions {
   /**
    * The database name
    */
   database?: string;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 export interface SQLiteExecuteOptions {
   /**
@@ -49,6 +63,11 @@ export interface SQLiteExecuteOptions {
    * default Enable (true)
    */
   transaction?: boolean;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
+
 }
 export interface SQLiteSetOptions {
   /**
@@ -64,6 +83,10 @@ export interface SQLiteSetOptions {
    * default Enable (true)
    */
   transaction?: boolean;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 export interface SQLiteRunOptions {
   /**
@@ -83,6 +106,10 @@ export interface SQLiteRunOptions {
    * default Enable (true)
    */
   transaction?: boolean;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 export interface SQLiteQueryOptions {
   /**
@@ -97,6 +124,10 @@ export interface SQLiteQueryOptions {
    * A set of values for a statement
    */
   values?: any[];
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 export interface SQLiteSyncDateOptions {
   /**
@@ -108,6 +139,10 @@ export interface SQLiteSyncDateOptions {
    * Format yyyy-MM-dd'T'HH:mm:ss.SSSZ
    */
   syncdate?: string;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 export interface SQLiteTableOptions {
   /**
@@ -118,6 +153,10 @@ export interface SQLiteTableOptions {
    * The table name
    */
   table?: string;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 
 export interface SQLiteImportOptions {
@@ -138,6 +177,10 @@ export interface SQLiteExportOptions {
    *
    */
   jsonexportmode?: string;
+  /**
+   * Set to true (database in read-only mode) / false
+   */
+  readonly?: boolean;
 }
 export interface SQLiteUpgradeOptions {
   /**

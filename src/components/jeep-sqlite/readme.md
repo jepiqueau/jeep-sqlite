@@ -86,16 +86,20 @@
 | **`version`**    | <code>number</code>    | The database version                                       |
 | **`encrypted`**  | <code>boolean</code>   | Set to false (no encryption)                               |
 | **`mode`**       | <code>string</code>    | Set the mode for database encryption  `no-encryption`      |
+| **`readonly`**   | <code>boolean</code>   | The database readonly mode                                 |
 
 ### AllConnectionsOptions
 | Prop             | Type                   | Description                                                |
 | ---------------- | ---------------------- | ---------------------------------------------------------- |
 | **`dbNames`**    | <code>string[]</code>  | the dbName of all connections                              |
+| **`openModes`**  | <code>string[]</code>  | the open mode ("RW", "RO") of all connections              |
+
 
 ### SQLiteOptions
 | Prop             | Type                   | Description                                                |
 | ---------------- | ---------------------- | ---------------------------------------------------------- |
 | **`database`**   | <code>string</code>    | The database name                                          |
+| **`readonly`**   | <code>boolean</code>   | The database readonly mode                                 |
 
 ### SQLiteExecuteOptions
 | Prop                | Type                   | Description                                             |
@@ -103,6 +107,7 @@
 | **`database`**      | <code>string</code>    | The database name                                       |
 | **`statements`**    | <code>string</code>    | Batch of raw SQL statements as string                   |
 | **`transaction`**   | <code>boolean</code>   | Enable / Disable transactions default Enable (true)     |
+| **`readonly`**   | <code>boolean</code>   | The database readonly mode                                 |
 
 ### SQLiteSetOptions
 | Prop              | Type                    | Description                                             |
@@ -110,6 +115,7 @@
 | **`database`**    | <code>string</code>     | The database name                                       |
 | **`set`**         | <code>SQLiteSet[]</code>| Batch of raw SQL statements as Array of capSQLLiteSet   |
 | **`transaction`** | <code>boolean</code>    | Enable / Disable transactions default Enable (true)     |
+| **`readonly`**    | <code>boolean</code>    | The database readonly mode                              |
 
 ### SQLiteRunOptions
 | Prop              | Type                  | Description                                             |
@@ -118,6 +124,7 @@
 | **`statement`**   | <code>string</code>   | A SQL statement                                         |
 | **`values`**      | <code>any[]</code>    | An array of values for the statement                    |
 | **`transaction`** | <code>boolean</code>  | Enable / Disable transactions default Enable (true)     |
+| **`readonly`**    | <code>boolean</code>  | The database readonly mode                              |
 
 ### SQLiteQueryOptions
 | Prop              | Type                  | Description                                             |
@@ -125,18 +132,21 @@
 | **`database`**    | <code>string</code>   | The database name                                       |
 | **`statement`**   | <code>string</code>   | A SQL statement                                         |
 | **`values`**      | <code>any[]</code>    | An array of values for the statement                    |
+| **`readonly`**    | <code>boolean</code>  | The database readonly mode                              |
 
 ### SQLiteSyncDateOptions
 | Prop              | Type                 | Description                                                |
 | ----------------- | -------------------- | ---------------------------------------------------------- |
 | **`database`**    | <code>string</code>  | The database name                                          |
 | **`syncdate`**    | <code>string</code>  | The synchronization date Format yyyy-MM-dd'T'HH:mm:ss.SSSZ |
+| **`readonly`**    | <code>boolean</code> | The database readonly mode                                 |
 
 ###  SQLiteTableOptions
 | Prop              | Type                 | Description                                                |
 | ----------------- | -------------------- | ---------------------------------------------------------- |
 | **`database`**    | <code>string</code>  | The database name                                          |
 | **`table`**       | <code>string</code>  | The table name                                             |
+| **`readonly`**    | <code>boolean</code> | The database readonly mode                                 |
 
 ### SQLiteImportOptions
 | Prop              | Type                 | Description                                                |
@@ -148,6 +158,7 @@
 | -------------------- | -------------------- | ------------------------------------------------------- |
 | **`database`**       | <code>string</code>  | The database name                                       |
 | **`jsonexportmode`** | <code>string</code>  | The mode to export JSON Object `full` or `partial`      |
+| **`readonly`**       | <code>boolean</code> | The database readonly mode                              |
 
 ### SQLiteUpgradeOptions 
 | Prop           | Type                                | Description                                   |
@@ -158,10 +169,8 @@
 ### SQLiteVersionUpgrade
 | Prop              | Type                     | Description                                           |
 | ----------------- | ------------------------ | ----------------------------------------------------- |
-| **`fromVersion`** | <code>number</code>      | The current database version                          |
 | **`toVersion`**   | <code>number</code>      | The new database version                              |
-| **`statement`**   | <code>string</code>      | A SQL statement defining the schemas                  |
-| **`set`**         | <code>SQLiteSet[]</code> | Batch of raw SQL statements as Array of capSQLLiteSet |
+| **`statements`**  | <code>string[]</code>    | A SQL statement defining the schemas                  |
 
 ### SQLiteSet 
 | Prop              | Type                  | Description                                             |

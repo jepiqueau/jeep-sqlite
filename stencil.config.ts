@@ -30,6 +30,7 @@ export const config: Config = {
         { src: 'index_page1_issue11.html', dest: 'index_page1_issue11.html' },
         { src: 'index_page2_issue11.html', dest: 'index_page2_issue11.html' },
         { src: 'index_incremental_upgrade_version.html', dest: 'index_incremental_upgrade_version.html' },
+        { src: 'index_readonly.html', dest: 'index_readonly.html' },
       ]
     },
   ],

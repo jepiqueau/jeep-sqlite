@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 1.6.2 ->> 
+    add database read-only mode
+
  - Release 1.6.0 ->> 
     Update sql.js@1.8.0
     

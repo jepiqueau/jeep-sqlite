@@ -92,6 +92,7 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly & WAL2</a>
         </div>
       </div>
     </div>
@@ -124,21 +125,21 @@
           console.log(`\n* The set of tests ${name} failed *\n`);
         }
       }
-      const openConnection = async (dbName, encrypted, mode, version,
+      const openConnection = async (dbName, encrypted, mode, version, readonly,
                                     isDelete) => {
         try {
-          const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName]})).result;
-          const isConn = (await jeepSqlite.isConnection({database: dbName})).result;
-          if(retCC && isConn) {
-              await jeepSqlite.retrieveConnection({database: dbName});
-          } else {
+          const openMode = readonly ? "RO" : "RW";
+          const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName],openModes:[openMode]})).result;
+          const isConn = (await jeepSqlite.isConnection({database: dbName, readonly: readonly})).result;
+          if(!retCC || !isConn) {
+            console.log('*** create connection \n')
               await jeepSqlite.createConnection({database: dbName, encrypted: encrypted, mode: mode,
-                                                 version: version});
+                                                 version: version, readonly: readonly});
           }
-          if (isDelete) {
+          if (isDelete && !readonly) {
                 await deleteDatabase(dbName);
           }
-          await jeepSqlite.open({database: dbName});
+          await jeepSqlite.open({database: dbName, readonly: readonly});
           return Promise.resolve();
         } catch (err) {
             return Promise.reject(err);
@@ -314,14 +315,13 @@ PRAGMA user_version = 1;
           }
           console.log("> Echo successful\n");
           await openConnection('testNew', false,
-                                    'no-encryption', 1,true);
+                                    'no-encryption', 1, false, true);
 
           console.log("> Open connection 'testNew' successful\n");
           // create tables in db
           const isDB = await jeepSqlite.isDBOpen({database: 'testNew'});
-          if(!isDB) return Promise.reject('Database "testNew" not opened')
+          if(!isDB.result) return Promise.reject('Database "testNew" not opened')
           let ret = await jeepSqlite.execute({database: 'testNew', statements: createSchema});
-          console.log(`>>> createSchema ret ${JSON.stringify(ret)}`)
           if (ret.changes.changes < 0) {
               const msg = "Error: Execute createSchema failed";
               return Promise.reject(msg);
@@ -404,7 +404,6 @@ PRAGMA user_version = 1;
             DELETE FROM users WHERE id = 5;
             `;
             var res = await jeepSqlite.execute({database: 'testNew',statements: stmt});
-            console.log(`>>> delete execute res: ${JSON.stringify(res)}`)
             if(res.changes.changes != 2) {
                 const msg = `createSyncTable "testNew" changes < 0 `;
                 return Promise.reject(`Error: ${msg}`);
@@ -601,7 +600,7 @@ PRAGMA user_version = 1;
           if(res) {
             // delete the database
             await openConnection('db-from-json-del', false,
-                                    'no-encryption', 1,true);
+                                    'no-encryption', 1,false,true);
             // Close Connection db-from-json-del
             await jeepSqlite.closeConnection({database: 'db-from-json-del'});
           }
@@ -620,7 +619,7 @@ PRAGMA user_version = 1;
           console.log("> importFromJson full successful\n");
           // open the connection
           await openConnection('db-from-json-del', false,
-                                'no-encryption', 1,false);
+                                'no-encryption', 1,false,false);
           // save the database to store
           await jeepSqlite.saveToStore({database: 'db-from-json-del'});
 
@@ -683,7 +682,7 @@ PRAGMA user_version = 1;
           console.log(`> importFromJson 'partial' ${importName} successful\n`);
           // open the connection
           await openConnection('db-from-json-del', false,
-                                'no-encryption', 1,false);
+                                'no-encryption', 1,false,false);
           // Set the Synchronization Date
           const d = new Date();
           await jeepSqlite.setSyncDate({database: 'db-from-json-del', syncdate: d.toISOString()});

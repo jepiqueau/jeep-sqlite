@@ -25,7 +25,8 @@ export class Database {
   private isBackup: boolean = false;
 
 
-  constructor(databaseName: string, version: number, upgDict: Record<number, SQLiteVersionUpgrade>,
+  constructor(databaseName: string, version: number,
+              upgDict: Record<number, SQLiteVersionUpgrade>,
               store: LocalForage, autoSave: boolean, wasmPath: string) {
     this.dbName = databaseName;
     this.store = store;
@@ -55,10 +56,9 @@ export class Database {
             this.mDb = new SQL.Database();
             await setInitialDBToStore( this.dbName, this.store);
           }
-
+          this._isDBOpen = true;
           // get the current version
           let curVersion: number = await getVersion(this.mDb);
-          this._isDBOpen = true;
           if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
             try {
               // copy the db
@@ -104,10 +104,10 @@ export class Database {
           }
           if( this.autoSave ) {
             try {
-              await setDBToStore(this.mDb, this.dbName, this.store);
+              await this.saveToStore();
             } catch (err) {
               this._isDBOpen = false;
-              return reject(`in open ${err}`);
+              return reject(`Open: ${err}`);
             }
           }
           return resolve();
@@ -126,7 +126,7 @@ export class Database {
     if (this.mDb != null && this._isDBOpen) {
       try {
         // save the database to store
-        await setDBToStore(this.mDb, this.dbName, this.store);
+        await this.saveToStore();
         // close the database
         this.mDb.close();
         this._isDBOpen = false;
@@ -206,10 +206,10 @@ export class Database {
       if(transaction) await commitTransaction(this.mDb, this._isDBOpen);
       if( this.autoSave ) {
         try {
-          await setDBToStore(this.mDb, this.dbName, this.store);
+          await this.saveToStore();
         } catch (err) {
           this._isDBOpen = false;
-          return Promise.reject(`in close ${err}`);
+          return Promise.reject(`ExecuteSQL: ${err}`);
         }
       }
       return Promise.resolve(changes);
@@ -244,10 +244,10 @@ export class Database {
       retRes.lastId = lastId;
       if( this.autoSave ) {
         try {
-          await setDBToStore(this.mDb, this.dbName, this.store);
+          await this.saveToStore();
         } catch (err) {
           this._isDBOpen = false;
-          return Promise.reject(`in close ${err}`);
+          return Promise.reject(`ExecSet: ${err}`);
         }
       }
       return Promise.resolve(retRes);
@@ -295,10 +295,10 @@ export class Database {
       retRes.lastId = lastId;
       if( this.autoSave ) {
         try {
-          await setDBToStore(this.mDb, this.dbName, this.store);
+          await this.saveToStore();
         } catch (err) {
           this._isDBOpen = false;
-          return Promise.reject(`in close ${err}`);
+          return Promise.reject(`RunSQL: ${err}`);
         }
       }
       return Promise.resolve(retRes);
@@ -444,14 +444,7 @@ export class Database {
         // set Foreign Keys On
         await setForeignKeyConstraintsEnabled(this.mDb, true);
 
-//        if( this.autoSave ) {
-//          try {
-            await setDBToStore(this.mDb, this.dbName, this.store);
-//          } catch (err) {
-//            this._isDBOpen = false;
-//            return Promise.reject(`in close ${err}`);
-//          }
-//        }
+        await this.saveToStore();
 
         return Promise.resolve(changes);
       } catch (err) {

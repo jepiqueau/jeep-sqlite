@@ -92,8 +92,9 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const version: number = options.version ? options.version : 1;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      await this._createConnection(dbName, version);
+      await this._createConnection(dbName, version, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
@@ -109,7 +110,8 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
-    const ret: SQLiteResult = await this._isConnection(dbName);
+    const readonly: boolean = options.readonly ? options.readonly : false;
+    const ret: SQLiteResult = await this._isConnection(dbName, readonly);
     return Promise.resolve(ret);
   }
   @Method()
@@ -122,14 +124,16 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      await this._closeConnection(dbName);
+      await this._closeConnection(dbName, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
     }
   }
-  @Method()
+
+@Method()
   async open(options: SQLiteOptions): Promise<void> {
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
@@ -139,8 +143,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      await this._open(dbName);
+      await this._open(dbName, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
@@ -156,8 +161,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      await this._close(dbName);
+      await this._close(dbName, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
@@ -173,8 +179,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const res: SQLiteVersion = await this._getVersion(dbName);
+      const res: SQLiteVersion = await this._getVersion(dbName, readonly);
       return Promise.resolve(res);
     } catch(err) {
       return Promise.reject(err);
@@ -195,9 +202,10 @@ export class JeepSqlite {
     const dbName: string = options.database;
     const statements: string = options.statements;
     let transaction: boolean= true;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     if (keys.includes('transaction')) transaction = options.transaction;
     try {
-      const changes: SQLiteChanges = await this._execute(dbName, statements, transaction);
+      const changes: SQLiteChanges = await this._execute(dbName, statements, transaction, readonly);
       return Promise.resolve(changes);
     } catch(err) {
       return Promise.reject(err);
@@ -219,8 +227,9 @@ export class JeepSqlite {
     const setOfStatements: SQLiteSet[] = options.set;
     let transaction: boolean= true;
     if (keys.includes('transaction')) transaction = options.transaction;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const changes: SQLiteChanges = await this._executeSet(dbName, setOfStatements, transaction);
+      const changes: SQLiteChanges = await this._executeSet(dbName, setOfStatements, transaction, readonly);
       return Promise.resolve(changes);
     } catch(err) {
       return Promise.reject(err);
@@ -246,8 +255,9 @@ export class JeepSqlite {
     }
     let transaction: boolean= true;
     if (keys.includes('transaction')) transaction = options.transaction;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const retChanges:  SQLiteChanges = await this._run(dbName, statement, values, transaction);
+      const retChanges:  SQLiteChanges = await this._run(dbName, statement, values, transaction, readonly);
       return Promise.resolve(retChanges);
     } catch(err) {
       return Promise.reject(err);
@@ -271,8 +281,9 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const statement: string = options.statement;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const retValues = await this._query(dbName, statement, values);
+      const retValues = await this._query(dbName, statement, values, readonly);
       return Promise.resolve(retValues);
     } catch(err) {
       return Promise.reject(err);
@@ -288,8 +299,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const retValues = await this._getTableList(dbName);
+      const retValues = await this._getTableList(dbName, readonly);
       return Promise.resolve(retValues);
     } catch(err) {
       return Promise.reject(err);
@@ -305,8 +317,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const ret: SQLiteResult = await this._isDBExists(dbName);
+      const ret: SQLiteResult = await this._isDBExists(dbName, readonly);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -322,8 +335,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const ret: SQLiteResult = await this._isDBOpen(dbName);
+      const ret: SQLiteResult = await this._isDBOpen(dbName, readonly);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -339,8 +353,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      return await this._deleteDatabase(dbName);
+      return await this._deleteDatabase(dbName, readonly);
     }
     catch (err) {
       return Promise.reject(err);
@@ -384,8 +399,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a table name');
     }
     const tableName: string = options.table;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const ret: SQLiteResult = await this._isTableExists(dbName, tableName);
+      const ret: SQLiteResult = await this._isTableExists(dbName, tableName, readonly);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -401,8 +417,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const ret: SQLiteChanges = await this._createSyncTable(dbName);
+      const ret: SQLiteChanges = await this._createSyncTable(dbName, readonly);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -418,8 +435,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const ret: SQLiteSyncDate = await this._getSyncDate(dbName);
+      const ret: SQLiteSyncDate = await this._getSyncDate(dbName, readonly);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -439,8 +457,9 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const syncDate: string = options.syncdate;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      await this._setSyncDate(dbName, syncDate);
+      await this._setSyncDate(dbName, syncDate, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
@@ -491,8 +510,9 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const exportMode: string = options.jsonexportmode;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      const ret = await this._exportToJson(dbName, exportMode);
+      const ret = await this._exportToJson(dbName, exportMode, readonly);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -505,8 +525,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
-    try {
-      await this._deleteExportedRows(dbName);
+    const readonly: boolean = options.readonly ? options.readonly : false;
+   try {
+      await this._deleteExportedRows(dbName, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
@@ -584,8 +605,12 @@ export class JeepSqlite {
       return Promise.reject(`Must provide a list of connection's name`);
     }
     const dbNames: string[] = options.dbNames;
+    if (!keys.includes('openModes')) {
+      return Promise.reject(`Must provide a list of connection's open mode`);
+    }
+    const openModes: string[] = options.openModes;
     try {
-      const ret = await this._checkConnectionsConsistency(dbNames);
+      const ret = await this._checkConnectionsConsistency(dbNames, openModes);
       return Promise.resolve(ret);
     } catch(err) {
       return Promise.reject(err);
@@ -601,8 +626,9 @@ export class JeepSqlite {
       return Promise.reject('Must provide a database name');
     }
     const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
     try {
-      await this._saveToStore(dbName);
+      await this._saveToStore(dbName, readonly);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err);
@@ -639,36 +665,52 @@ export class JeepSqlite {
   //* Private Method Definitions *
   //******************************
 
-  private async _createConnection(database: string, version: number): Promise<void> {
+  private async _createConnection(database: string, version: number,
+                                  readonly: boolean): Promise<void> {
     let upgDict: Record<number, SQLiteVersionUpgrade> = {};
     const vUpgKeys: string[] = Object.keys(this._versionUpgrades);
     if (vUpgKeys.length !== 0 && vUpgKeys.includes(database)) {
       upgDict = this._versionUpgrades[database];
     }
+    const dbDictKeys = Object.keys(this._dbDict);
+    let mDB: Database;
     try {
-      const mDB: Database = new Database(database + 'SQLite.db', version, upgDict,
-                                         this.store, this.innerAutoSave, this.innerWasmPath);
-      this._dbDict[database] = mDB;
+      if (dbDictKeys.length > 0 && (
+              dbDictKeys.includes("RW_" + database) ||
+              dbDictKeys.includes("RO_" + database)
+          ))
+      {
+        mDB = dbDictKeys.includes("RW_" + database)  ? this._dbDict["RW_" + database]
+                                                     : this._dbDict["RO_" + database];
+
+      } else {
+        mDB = new Database(database + 'SQLite.db', version, upgDict,
+                           this.store, this.innerAutoSave, this.innerWasmPath);
+      }
+      const connName = readonly ? "RO_" + database : "RW_" + database;
+      this._dbDict[connName] = mDB;
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(err.message);
     }
   }
-  private async _isConnection(database: string): Promise<SQLiteResult> {
+  private async _isConnection(database: string, readonly: boolean): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
-    if (keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (keys.includes(connName)) {
       return {result: true};
     } else {
       return {result: false};
     }
   }
-  private async _closeConnection(database: string): Promise<void> {
+  private async _closeConnection(database: string, readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`CloseConnection: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       if (mDB.isDBOpen()) {
         // close the database
@@ -680,19 +722,21 @@ export class JeepSqlite {
         }
       }
       // remove the connection from dictionary
-      delete this._dbDict[database];
+      delete this._dbDict[connName];
       return Promise.resolve();
     } catch (err) {
       return Promise.reject(`CloseConnection: ${err.message}`);
     }
   }
-  private async _open(database: string): Promise<void> {
+
+  private async _open(database: string, readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`Open: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       await mDB.open();
       return Promise.resolve();
@@ -700,13 +744,14 @@ export class JeepSqlite {
       return Promise.reject(`Open: ${err.message}`);
     }
   }
-  private async _close(database: string): Promise<void> {
+  private async _close(database: string, readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`Close: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       await mDB.close();
       return Promise.resolve();
@@ -714,13 +759,14 @@ export class JeepSqlite {
       return Promise.reject(`Close: ${err.message}`);
     }
   }
-  private async _saveToStore(database: string): Promise<void> {
+  private async _saveToStore(database: string, readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`SaveToStore: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       await mDB.saveToStore();
       return Promise.resolve();
@@ -728,13 +774,14 @@ export class JeepSqlite {
       return Promise.reject(`SaveToStore: ${err.message}`);
     }
   }
-  private async _getVersion(database: string): Promise<SQLiteVersion> {
+  private async _getVersion(database: string, readonly: boolean): Promise<SQLiteVersion> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`Open: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       const version: number = await mDB.getVersion();
       const ret: SQLiteVersion = {} as SQLiteVersion;
@@ -745,13 +792,17 @@ export class JeepSqlite {
     }
   }
 
-  private async _execute(database:string, statements: string, transaction: boolean): Promise<SQLiteChanges> {
+  private async _execute(database:string, statements: string, transaction: boolean,
+                         readonly: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`Execute: No available connection for ${database}`);
     }
-
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`Execute: not allowed in read-only mode`);
+    }
     try {
       const ret: number = await mDB.executeSQL(statements, transaction);
       const changes: SQLiteChanges = {changes: {changes: ret}};
@@ -760,13 +811,18 @@ export class JeepSqlite {
       return Promise.reject(`Execute: ${err.message}`);
     }
   }
-  private async _executeSet(database:string, setOfStatements: SQLiteSet[], transaction: boolean): Promise<SQLiteChanges> {
+  private async _executeSet(database:string, setOfStatements: SQLiteSet[], transaction: boolean,
+                            readonly: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`ExecuteSet: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`ExecuteSet: not allowed in read-only mode`);
+    }
     for (const sStmt of setOfStatements) {
       if (!('statement' in sStmt) || !('values' in sStmt)) {
         return Promise.reject(
@@ -782,13 +838,18 @@ export class JeepSqlite {
       return Promise.reject(`ExecuteSet: ${err.message}`);
     }
   }
-    private async _run(database: string, statement: string, values: any[], transaction: boolean): Promise<SQLiteChanges> {
+  private async _run(database: string, statement: string, values: any[], transaction: boolean,
+                    readonly: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`Run: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`Run: not allowed in read-only mode`);
+    }
     try {
       const ret: any = await mDB.runSQL(statement, values, transaction);
       const changes: SQLiteChanges = {changes: {changes: ret.changes, lastId: ret.lastId}};
@@ -797,12 +858,14 @@ export class JeepSqlite {
       return Promise.reject(`Run: ${err.message}`);
     }
   }
-  private async _query(database: string, statement: string, values: any[]): Promise<SQLiteValues> {
+  private async _query(database: string, statement: string, values: any[],
+                      readonly: boolean): Promise<SQLiteValues> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`Query: No available connection for ${database}`);
     }
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     let ret: any[] = [];
     try {
       ret = await mDB.selectSQL(statement, values);
@@ -811,12 +874,13 @@ export class JeepSqlite {
       return Promise.reject(`Query failed: ${err.message}`);
     }
   }
-  private async _getTableList(database: string): Promise<SQLiteValues> {
+  private async _getTableList(database: string, readonly: boolean): Promise<SQLiteValues> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`GetTableList: No available connection for ${database}`);
     }
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     let ret: any[] = [];
     try {
       ret = await mDB.getTableNames();
@@ -825,13 +889,14 @@ export class JeepSqlite {
       return Promise.reject(`GetTableList failed: ${err.message}`);
     }
   }
-  private async _isDBExists(database:string): Promise<SQLiteResult> {
+  private async _isDBExists(database:string, readonly: boolean): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`IsDBExists: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       const ret: boolean = await mDB.isDBExists(database + 'SQLite.db');
       const result: SQLiteResult = {result: ret};
@@ -841,13 +906,14 @@ export class JeepSqlite {
     }
 
   }
-  private async _isDBOpen(database:string): Promise<SQLiteResult> {
+  private async _isDBOpen(database:string, readonly: boolean): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`IsDBOpen: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       const ret: boolean = await mDB.isDBOpen(database + 'SQLite.db');
       const result = {result: ret};
@@ -856,13 +922,17 @@ export class JeepSqlite {
       return Promise.reject(`IsDBOpen: ${err.message}`);
     }
   }
-  private async _deleteDatabase(database: string): Promise<void> {
+  private async _deleteDatabase(database: string, readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`DeleteDatabase: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`DeleteDatabase: not allowed in read-only mode`);
+    }
     try {
       await mDB.deleteDB(database + 'SQLite.db');
       return Promise.resolve();
@@ -870,13 +940,15 @@ export class JeepSqlite {
       return Promise.reject(`DeleteDatabase: ${err.message}`);
     }
   }
-  private async _isTableExists(database: string, table: string): Promise<SQLiteResult> {
+  private async _isTableExists(database: string, table: string,
+                              readonly: boolean): Promise<SQLiteResult> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(`IsTableExists: No available connection for ${database}`);
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       const ret: boolean = await mDB.isTable(table);
       const result = {result: ret};
@@ -885,15 +957,20 @@ export class JeepSqlite {
       return Promise.reject(`IsTableExists: ${err.message}`);
     }
   }
-  private async _createSyncTable(database: string): Promise<SQLiteChanges> {
+  private async _createSyncTable(database: string, readonly: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(
         'CreateSyncTable: No available connection for ' + `${database}`,
       );
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`CreateSyncTable: not allowed in read-only mode`);
+    }
+
     try {
       const ret: number = await mDB.createSyncTable();
       return Promise.resolve({ changes: { changes: ret } });
@@ -901,15 +978,16 @@ export class JeepSqlite {
       return Promise.reject(`CreateSyncTable: ${err.message}`);
     }
   }
-  private async _getSyncDate(database: string): Promise<SQLiteSyncDate>  {
+  private async _getSyncDate(database: string, readonly: boolean): Promise<SQLiteSyncDate>  {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(
         'GetSyncDate: No available connection for ' + `${database}`,
       );
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
     try {
       const ret: number = await mDB.getSyncDate();
       return Promise.resolve({syncDate:ret});
@@ -918,15 +996,20 @@ export class JeepSqlite {
     }
 
   }
-  private async _setSyncDate(database: string, syncDate: string): Promise<void> {
+  private async _setSyncDate(database: string, syncDate: string,
+                            readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(
         'SetSyncDate: No available connection for ' + `${database}`,
       );
     }
 
-    const mDB = this._dbDict[database];
+    const mDB = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`SetSyncDate: not allowed in read-only mode`);
+    }
     try {
       const ret = await mDB.setSyncDate(syncDate);
       if(ret.result) {
@@ -991,14 +1074,16 @@ export class JeepSqlite {
       return Promise.reject(`ImportFromJson: ${err.message}`);
     }
   }
-  async _exportToJson(database: string, exportMode: string): Promise<SQLiteJson> {
+  async _exportToJson(database: string, exportMode: string,
+                      readonly: boolean): Promise<SQLiteJson> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = readonly ? "RO_" + database : "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(
         'ExportToJson: No available connection for ' + `${database}`,
       );
     }
-    const mDb = this._dbDict[database];
+    const mDb = this._dbDict[connName];
     try {
       const ret: any = await mDb.exportJson(exportMode, this.exportProgress);
       const keys = Object.keys(ret);
@@ -1012,14 +1097,18 @@ export class JeepSqlite {
     }
 
   }
-  async _deleteExportedRows(database: string): Promise<void> {
+  async _deleteExportedRows(database: string, readonly: boolean): Promise<void> {
     const keys = Object.keys(this._dbDict);
-    if (!keys.includes(database)) {
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
       return Promise.reject(
         'ExportToJson: No available connection for ' + `${database}`,
       );
     }
-    const mDb = this._dbDict[database];
+    const mDb = this._dbDict[connName];
+    if(readonly) {
+      return Promise.reject(`SetSyncDate: not allowed in read-only mode`);
+    }
     try {
       await mDb.deleteExportedRows();
     } catch (err) {
@@ -1072,12 +1161,16 @@ export class JeepSqlite {
       return Promise.reject(`GetDatabaseList: ${err.message}`);
     }
   }
-  async _checkConnectionsConsistency(dbNames: string[]): Promise<SQLiteResult> {
+  async _checkConnectionsConsistency(dbNames: string[], openModes: string[]): Promise<SQLiteResult> {
     const ret: SQLiteResult = {} as SQLiteResult;
     ret.result = false;
+    const dbConns: string[] = [];
+    dbNames.forEach((value, i) => {
+      dbConns.push(`${openModes[i]}_${value}`);
+    });
     try {
       let inConnectionsSet: Set<string> = new Set(Object.keys(this._dbDict));
-      const outConnectionSet: Set<string> = new Set(dbNames);
+      const outConnectionSet: Set<string> = new Set(dbConns);
       if(outConnectionSet.size === 0 ) {
         await this._resetDbDict(Object.keys(this._dbDict));
         return Promise.resolve(ret);
@@ -1087,9 +1180,16 @@ export class JeepSqlite {
         return Promise.resolve(ret);
       }
       if(inConnectionsSet.size > outConnectionSet.size) {
+        const opt: SQLiteOptions = {} as SQLiteOptions;
         for ( const key of inConnectionsSet) {
           if(!Array.from(outConnectionSet.keys()).includes(key) ) {
-            await this._closeConnection(key);
+            let readonly = false;
+            if (key.substring(0,3) === "RO_") {
+              readonly = true;
+            }
+            opt.database = key.substring(3);
+            opt.readonly = readonly;
+            await this._closeConnection(opt.database, opt.readonly);
           }
         }
       }
@@ -1114,7 +1214,14 @@ export class JeepSqlite {
   private async _resetDbDict(keys: string[]): Promise<void> {
     try {
       for (const key of keys) {
-        await this._closeConnection(key);
+        const opt: SQLiteOptions = {} as SQLiteOptions;
+        let readonly = false;
+        if (key.substring(0,3) === "RO_") {
+          readonly = true;
+        }
+        opt.database = key.substring(3);
+        opt.readonly = readonly;
+        await this._closeConnection(opt.database, opt.readonly);
       }
     } catch (err) {
       return Promise.reject(`ResetDbDict: ${err.message}`);
@@ -1122,15 +1229,22 @@ export class JeepSqlite {
 
   }
   private async symmetricDifference(setA: Set<string>, setB: Set<string>): Promise<Set<string>> {
-    let _difference: Set<string> = new Set(setA)
-    for (const elem of setB) {
+    let _difference: Set<string> = new Set()
+    setA.forEach(element => {
+      _difference.add(element.substring(3));
+    });
+    let _compare: Set<string> = new Set()
+    setB.forEach(element => {
+      _compare.add(element.substring(3));
+    });
+    for (const elem of _compare) {
         if (_difference.has(elem)) {
-            _difference.delete(elem)
+            _difference.delete(elem);
         } else {
-            _difference.add(elem)
+            _difference.add(elem);
         }
     }
-    return _difference
+    return _difference;
 }
 private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void> {
   return new Promise ((resolve,reject) => {

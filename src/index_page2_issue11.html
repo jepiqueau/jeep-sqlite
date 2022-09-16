@@ -92,6 +92,7 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly & WAL2</a>
         </div>
       </div>
     </div>
@@ -165,7 +166,7 @@
       }
       // Main test
       try {
-        const nUser = 10000; // number of users to fill
+        const nUser = 1000; // number of users to fill
         const withConn = false // true open/close connection at each transaction
                               // open and close only once
         // *** Initialize testIssue11 database
