@@ -20,7 +20,7 @@
 * [`executeSet(...)`](#executeset)
 * [`exportToJson(...)`](#exporttojson)
 * [`getDatabaseList()`](#getdatabaselist)
-* [`getFromHTTPRequest(...)`](#getsyncdateoptions-sqlitesyncdateoptions--promisesqlitesyncdate)
+* [`getFromHTTPRequest(...)`](#getfromhttprequest)
 * [`getSyncDate(...)`](#getsyncdate)
 * [`getVersion(...)`](#getversion)
 * [`importFromJson(...)`](#importfromjson)
@@ -464,6 +464,17 @@ Type: `Promise<SQLiteJson>`
 #### Returns
 
 Type: `Promise<SQLiteValues>`
+
+
+### getFromHTTPRequest
+
+`getFromHTTPRequest(options: SQLiteHTTPOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
 
 
 
