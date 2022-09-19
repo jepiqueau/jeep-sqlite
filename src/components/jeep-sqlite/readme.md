@@ -20,7 +20,7 @@
 * [`executeSet(...)`](#executeset)
 * [`exportToJson(...)`](#exporttojson)
 * [`getDatabaseList()`](#getdatabaselist)
-* [`getFromHTTPRequest(...)`](#getfromhttprequest)
+* [`getFromHTTPRequest(...)`](#getsyncdateoptions-sqlitesyncdateoptions--promisesqlitesyncdate)
 * [`getSyncDate(...)`](#getsyncdate)
 * [`getVersion(...)`](#getversion)
 * [`importFromJson(...)`](#importfromjson)
