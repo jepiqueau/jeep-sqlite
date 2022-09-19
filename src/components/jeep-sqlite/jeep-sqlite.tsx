@@ -6,7 +6,8 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteSyncDateOptions, SQLiteImportOptions, SQLiteExportOptions, JsonSQLite,
          SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
-         SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions } from '../../interfaces/interfaces';
+         SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions,
+         SQLiteHTTPOptions } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
 import * as JSZip from 'jszip';
@@ -634,6 +635,26 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
+  @Method()
+  async getFromHTTPRequest(options: SQLiteHTTPOptions): Promise<void> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    let keys = Object.keys(options);
+    if (!keys.includes('url')) {
+      return Promise.reject('Must provide an url');
+    }
+    const url: string = options.url;
+    const overwrite: boolean = options.overwrite ? options.overwrite : true;
+    try {
+      await this._getFromHTTPRequest(url, overwrite);
+      return Promise.resolve();
+    }
+    catch (err) {
+      return Promise.reject(err);
+    }
+
+  }
   //********************************
   //* Component Internal Variables *
   //********************************
@@ -1142,6 +1163,20 @@ export class JeepSqlite {
       return Promise.reject(`CopyFromAssets: no databases.json file in assets/databases folder`);
     }
   }
+  async _getFromHTTPRequest(url: string, overwrite: boolean): Promise<void> {
+    try {
+      if( url.substring(url.length - 3) === ".db") {
+        await this.copyDatabase(url, overwrite);
+      }
+      if( url.substring(url.length - 4) === ".zip") {
+        await this.unzipDatabase(url, overwrite);
+      }
+      return Promise.resolve();
+    } catch (err) {
+      return Promise.reject(`GetFromHTTPRequest: ${err.message}`);
+    }
+
+  }
   async _isDatabase(database:string): Promise<SQLiteResult> {
     try {
       const ret: boolean = await isDBInStore(database + 'SQLite.db', this.store);
@@ -1252,57 +1287,76 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     xhr.open('GET', dbZipName, true);
     xhr.responseType = 'arraybuffer';
     xhr.onerror = () => {
-      reject(`unzipDatabase: failed`);
+      reject(new Error(`unzipDatabase: failed`));
     }
     xhr.onload =  () => {
-      try {
 
-        JSZip.loadAsync(xhr.response).then( (zip) => {
-          Object.keys(zip.files).forEach( (filename) => {
-            zip.files[filename].async('nodebuffer').then(async (fileData) => {
-              const uInt8Array = new Uint8Array(fileData);
-              const dbName = this.setPathSuffix(filename);
-              // check if dbName exists
-              const isExist: boolean = await isDBInStore(dbName, this.store);
-              if (!isExist || overwrite) {
-                if(overwrite && isExist) {
-                  await removeDBFromStore(dbName, this.store);
-                }
-                await saveDBToStore(dbName, uInt8Array, this.store);
-              }
-            })
-          })
+      JSZip.loadAsync(xhr.response).then( async (zip) => {
+        const keys = Object.keys(zip.files);
+        try {
+          // loop through file in the zip
+          for (const filename of keys) {
+            await this.retrieveDBFromZip(zip.files,filename,overwrite);
+          }
           resolve();
-        })
-      } catch (err) {
-        reject(`unzipDatabase Error: ${err}`);
-      }
+        } catch (err) {
+          reject(new Error(`unzipDatabase Error: ${err.message}`));
+        }
+      });
     };
     xhr.send();
   });
 }
-
-  private async copyDatabase(dbAssetName: string, overwrite: boolean): Promise<void> {
+  private async retrieveDBFromZip(zipFiles: {[key: string]: JSZip.JSZipObject}, fileName: string, overwrite: boolean ): Promise<void> {
+    return new Promise ((resolve,reject) => {
+      zipFiles[fileName].async('nodebuffer').then(async (fileData) => {
+        try {
+          const uInt8Array = new Uint8Array(fileData);
+          const dbName = this.setPathSuffix(fileName);
+          // check if dbName exists
+          const isExist: boolean = await isDBInStore(dbName, this.store);
+          if (!isExist) {
+            await saveDBToStore(dbName, uInt8Array, this.store);
+          } else  {
+            if(overwrite) {
+              await removeDBFromStore(dbName, this.store);
+              await saveDBToStore(dbName, uInt8Array, this.store);
+              } else {
+              reject(new Error(`retrieveDBFromZip: cannot overwrite ${dbName}`));
+            }
+          }
+          resolve();
+        } catch (err) {
+          reject(new Error(`retrieveDBFromZip:: ${err.message}`));
+        }
+      });
+    });
+  }
+  private async copyDatabase(dbInName: string, overwrite: boolean): Promise<void> {
     return new Promise ((resolve,reject) => {
       var xhr = new XMLHttpRequest();
       var uInt8Array: Uint8Array;
-      xhr.open('GET', dbAssetName, true);
+      xhr.open('GET', dbInName, true);
       xhr.responseType = 'arraybuffer';
       xhr.onerror = () => {
-        reject(`CopyDatabase: failed`);
+        reject(new Error(`CopyDatabase: failed`));
       }
       xhr.onload =  () => {
           uInt8Array = new Uint8Array(xhr.response);
       };
       xhr.onloadend= async () => {
-        const dbName = this.setPathSuffix(dbAssetName);
+        const dbName = this.setPathSuffix(dbInName);
         // check if dbName exists
         const isExist: boolean = await isDBInStore(dbName, this.store);
-        if (!isExist || overwrite) {
-          if(overwrite && isExist) {
-            await removeDBFromStore(dbName, this.store);
-          }
+        if (!isExist) {
           await saveDBToStore(dbName, uInt8Array, this.store);
+        } else  {
+          if(overwrite) {
+            await removeDBFromStore(dbName, this.store);
+            await saveDBToStore(dbName, uInt8Array, this.store);
+          } else {
+            reject(new Error(`CopyDatabase Error: cannot overwrite ${dbName}`));
+          }
         }
         resolve();
       };
@@ -1315,7 +1369,7 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
       xobj.overrideMimeType("application/json");
       xobj.open('GET', jsonFileName, true);
       xobj.onerror = () => {
-        reject(`LoadJSON: failed`);
+        reject(new Error(`LoadJSON: failed`));
       }
 
       xobj.onreadystatechange = function () {

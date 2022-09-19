@@ -93,6 +93,7 @@
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
           <a href="index_readonly.html">DB Readonly & WAL2</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
         </div>
       </div>
     </div>
@@ -564,7 +565,7 @@
 
             // *** test copy from asset ***
 
-            await jeepSqlite.copyFromAssets({overwrite: false});
+            await jeepSqlite.copyFromAssets({overwrite: true});
             // create connection to myDB
             await jeepSqlite.createConnection({database:"myDB",version: 1});
             // open db myDB
@@ -572,8 +573,8 @@
             // Select all tables,
             ret = await jeepSqlite.getTableList({database: "myDB"});
             if(ret.values.length !== 2 ||
-                ret.values[0]!== "users" ||
-                ret.values[1] !== "messages"
+              !ret.values.includes("users") ||
+              !ret.values.includes("messages")
             ) {
               throw new Error("GetTableList MyDB Tables failed");
             }

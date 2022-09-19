@@ -5,7 +5,7 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
+import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, JsonProgressListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteHTTPOptions, SQLiteImportOptions, SQLiteJson, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "addUpgradeStatement": (options: SQLiteUpgradeOptions) => Promise<void>;
@@ -26,6 +26,7 @@ export namespace Components {
         "executeSet": (options: SQLiteSetOptions) => Promise<SQLiteChanges>;
         "exportToJson": (options: SQLiteExportOptions) => Promise<SQLiteJson>;
         "getDatabaseList": () => Promise<SQLiteValues>;
+        "getFromHTTPRequest": (options: SQLiteHTTPOptions) => Promise<void>;
         "getSyncDate": (options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>;
         "getTableList": (options: SQLiteOptions) => Promise<SQLiteValues>;
         "getVersion": (options: SQLiteOptions) => Promise<SQLiteVersion>;

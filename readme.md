@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 1.6.3 ->> 
+    add `getFromHTTPRequest` to get database or zip containing multiple database files from a remote server.
+
  - Release 1.6.2 ->> 
     add database read-only mode
 
@@ -130,6 +133,7 @@ in the head of your index.html
 | getTableList                | ✅      |
 | checkConnectionsConsistency | ✅      |
 | saveToStore                 | ✅      |
+| getFromHTTPRequest          | ✅      | New in 1.6.3
 
 
 The database is saved when you run the methods `close`or `closeConnection`, in the Browser Storage `IndexedDB` as a `localforage` store under the `jeepSqliteStore` name and `databases`table name.

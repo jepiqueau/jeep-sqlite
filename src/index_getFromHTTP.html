@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-    <title>Stencil Component Test DB Read Only & WAL2</title>
+    <title>Stencil Component Test DB Get From HTTP Request</title>
 
     <script type="module" src="/build/jeep-sqlite.esm.js"></script>
     <script nomodule src="/build/jeep-sqlite.js"></script>
@@ -97,7 +97,7 @@
         </div>
       </div>
     </div>
-    <h1>DB Readonly & WAL2</h1>
+    <h1>Get FROM HTTP Request</h1>
     <jeep-sqlite></jeep-sqlite>
   </body>
 </html>
@@ -167,14 +167,6 @@
               return Promise.reject(msg);
           }
           console.log("> Echo successful\n");
-          await openConnection('test-readonly', false,
-                                'no-encryption', 1, false, true);
-
-          console.log("> Open connection 'test-readonly' successful\n");
-          // Close Connection test-readonly
-          await jeepSqlite.closeConnection({database: 'test-readonly', readonly: false});
-          let msg = `> closeConnection "test-readonly" successful\n`;
-          console.log(msg);
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
@@ -182,154 +174,125 @@
             return Promise.reject(msg);
         }
       }
-
-      const showUsers = async (message) => {
+      const readMyDB = async () => {
         try {
-          let res = await jeepSqlite.query({database: 'test-readonly',statement: 'SELECT * FROM users'});
-          console.log(`**** Show Users ${message} ****`)
-          for( const user of res.values) {
-            console.log(`>>> id: ${user.id} name: ${user.name} age: ${user.age}`);
+          const url = 'https://raw.githack.com/jepiqueau/angular-sqlite-app-starter/26ca67486713fc9b6ea4a37a889f0fd189c18926/src/assets/databases/myDBSQLite.db';
+          await jeepSqlite.getFromHTTPRequest({url: url, overwrite: true});
+          // create connection to myDB
+          await jeepSqlite.createConnection({database:"myDB",version: 1});
+          // open db myDB
+          await jeepSqlite.open({database: "myDB"});
+          // Select all tables,
+          ret = await jeepSqlite.getTableList({database: "myDB"});
+          console.log(`>>> readMyDB getTableList ret: ${JSON.stringify(ret)} `)
+          if(ret.values.length !== 2 ||
+              !ret.values.includes("users") ||
+              !ret.values.includes("messages")
+          ) {
+            return Promise.reject("GetTableList MyDB Tables failed");
           }
-        } catch(err) {
-            return Promise.reject(err);
+
+          // Select all users
+          ret = await jeepSqlite.query({database: "myDB",
+                                          statement: "SELECT * FROM users;"});
+          if(ret.values.length != 7 ||
+              ret.values[0].name !== "Whiteley" ||
+              ret.values[1].name !== "Jones" ||
+              ret.values[2].name !== "Simpson" ||
+              ret.values[3].name !== "Brown" ||
+              ret.values[4].name !== "Jackson" ||
+              ret.values[5].name !== "Kennedy" ||
+              ret.values[6].name !== "Bush"
+          ) {
+            return Promise.reject("Query MyDB Users failed");
+          }
+          await jeepSqlite.closeConnection({database:"myDB"});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
         }
+
       }
-      const totalUsers = async (message)  => {
+      const readZipped = async () => {
         try {
-//          await openConnection('test-readonly', false,
-//                                  'no-encryption', 1, true, false);
-          await jeepSqlite.saveToStore({database: 'test-readonly'});
-          const res = await jeepSqlite.query({database: 'test-readonly',statement: 'SELECT * FROM users',
-                                        readonly: true});
-          console.log(`>>> total Users: ${res.values.length}`);
-
-        } catch(err) {
-            return Promise.reject(err);
+          const url = 'https://raw.githack.com/jepiqueau/angular-sqlite-app-starter/26ca67486713fc9b6ea4a37a889f0fd189c18926/src/assets/databases/Archive.zip';
+          await jeepSqlite.getFromHTTPRequest({url: url, overwrite: true});
+          // create connection to dbZip1
+          await jeepSqlite.createConnection({database:"dbZip1",version: 1});
+          // open db dbZip1
+          await jeepSqlite.open({database: "dbZip1"});
+          // Select all tables,
+          ret = await jeepSqlite.getTableList({database: "dbZip1"});
+          console.log(`>>> readZipped dbZip1 getTableList ret: ${JSON.stringify(ret)} `)
+          if(ret.values.length !== 3 ||
+              !ret.values.includes("areas") ||
+              !ret.values.includes("elements") ||
+              !ret.values.includes("issues")
+          ) {
+            return Promise.reject("GetTableList dbZip1 Tables failed");
+          }
+          ret = await jeepSqlite.query({database: "dbZip1",
+                                          statement: "SELECT * FROM areas;"});
+          if(ret.values.length != 3           ) {
+            return Promise.reject("Query dbZip1 Areas failed");
+          }
+          ret = await jeepSqlite.query({database: "dbZip1",
+                                          statement: "SELECT * FROM elements;"});
+          if(ret.values.length != 4           ) {
+            return Promise.reject("Query dbZip1 Elements failed");
+          }
+          ret = await jeepSqlite.query({database: "dbZip1",
+                                          statement: "SELECT * FROM issues;"});
+          if(ret.values.length != 4           ) {
+            return Promise.reject("Query dbZip1 Issues failed");
+          }
+          await jeepSqlite.closeConnection({database:"dbZip1"});
+          // create connection to dbZip2
+          await jeepSqlite.createConnection({database:"dbZip2",version: 1});
+          // open db dbZip2
+          await jeepSqlite.open({database: "dbZip2"});
+          // Select all tables,
+          ret = await jeepSqlite.getTableList({database: "dbZip2"});
+          console.log(`>>> readZipped dbZip2 getTableList ret: ${JSON.stringify(ret)} `)
+          if(ret.values.length !== 2 ||
+              !ret.values.includes("users") ||
+              !ret.values.includes("messages")
+          ) {
+            return Promise.reject("GetTableList dbZip2 Tables failed");
+          }
+          ret = await jeepSqlite.query({database: "dbZip2",
+                                          statement: "SELECT * FROM users;"});
+          if(ret.values.length != 7           ) {
+            return Promise.reject("Query dbZip2 Users failed");
+          }
+          ret = await jeepSqlite.query({database: "dbZip2",
+                                          statement: "SELECT * FROM messages;"});
+          if(ret.values.length != 0           ) {
+            return Promise.reject("Query dbZip2 Messages failed");
+          }
+          await jeepSqlite.closeConnection({database:"dbZip2"});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
         }
       }
-
-
       // ********************************
       // *** test with SQL statements ***
       // ********************************
-      const versionUpgrades = [
-        {
-          toVersion: 1,
-          statements: [
-            `CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                name TEXT,
-                company TEXT,
-                size REAL,
-                age INTEGER,
-                last_modified INTEGER DEFAULT (strftime('%s', 'now'))
-            );`,
-            `CREATE INDEX IF NOT EXISTS users_index_name ON users (name);`,
-            `CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);`,
-            `CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
-             AFTER UPDATE ON users
-             FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-             BEGIN
-                UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
-             END;`,
-            `INSERT INTO users (name,email,age) VALUES ('Whiteley', 'whiteley@local.host', 30);`,
-            `INSERT INTO users (name,email,age) VALUES ('Jones', 'jones@local.host', 44);`,
-          ]
-        },
-      ]
-      const createVersion1 = async() => {
-        try {
-
-          await jeepSqlite.addUpgradeStatement({database: "test-readonly",
-                                                upgrade: [versionUpgrades[0]]});
-          // open readwrite connection on "test-readonly"
-          await openConnection('test-readonly', false,
-                                'no-encryption', 1, false, false);
-
-          const walStmt = 'PRAGMA journal_mode=WAL2;';
-          let ret = await jeepSqlite.execute({database: "test-readonly", statements: walStmt,
-                                              transaction: false, readonly: false});
-          // Select all users
-          ret = await jeepSqlite.query({database: "test-readonly",
-                                        statement: "SELECT * FROM users;",
-                                        readonly: false});
-          if(ret.values.length !== 2 ||
-                ret.values[0].name !== "Whiteley" ||
-                ret.values[1].name !== "Jones") {
-            return Promise.reject("Query 2 Users failed");
-          }
-          await jeepSqlite.saveToStore({database: 'test-readonly'});
-          return Promise.resolve();
-        } catch (err) {
-            let msg = err.message ? err.message : err;
-            console.log(`Error: ${msg}`);
-            return Promise.reject(msg);
-        }
-      }
-      const createUsers = async() => {
-        try {
-          // open readonly connection on "test-readonly"
-          await openConnection('test-readonly', false,
-                                  'no-encryption', 1, true, false);
-          console.log(`>>> in createUsers after  openConnection readonly\n`)
-          // Select all users
-          const ret = await jeepSqlite.query({database: "test-readonly",
-                                        statement: "SELECT * FROM users;",
-                                        readonly: true});
-          if(ret.values.length !== 2 ||
-                ret.values[0].name !== "Whiteley" ||
-                ret.values[1].name !== "Jones") {
-            return Promise.reject("Query 2 Users failed from readonly");
-          }
-          for (let i=0; i< 400; i++) {
-//            await openConnection('test-readonly', false,
-//                                  'no-encryption', 1, false, false);
-            const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${i}","testemail${i}",${Math.floor(Math.random() * 105 +18)});`;
-            await jeepSqlite.run({database: 'test-readonly', statement: stmt,
-                                              transaction: true, readonly: false});
-
-            if (i % 100 === 0) await totalUsers();
-            if (i === 399) {
-              await totalUsers();
-              return Promise.resolve();
-            }
-          }
-
-        } catch (err) {
-            let msg = err.message ? err.message : err;
-            console.log(`Error: ${msg}`);
-            return Promise.reject(msg);
-        }
-
-      }
       try {
-        var activeTest = 'DatabaseReadOnly&Wal2';
+        var activeTest = 'DatabaseGetFromHTTPRequest';
         // test standard SQL statements
         await startTest(activeTest);
         // initialize the database testNew and fill some data
         await initializeTest();
-        // create version 1
-        await createVersion1();
-        await showUsers('after Version 1');
-
-        console.log(`******** version 1 successful ********\n`)
-        await createUsers();
-        console.log(`******** after create users successful ********\n`)
-        // Close Connection ReadWrite for "test-readonly"
-        if ((await jeepSqlite.isConnection({database: 'test-readonly', readonly: false})).result) {
-          await jeepSqlite.closeConnection({database: 'test-readonly', readonly: false});
-          let msg = `> closeConnection readwrite "test-readonly" successful\n`;
-          console.log(msg);
-        }
-        // Close Connection ReadOnly for "test-readonly"
-        if ((await jeepSqlite.isConnection({database: 'test-readonly', readonly: true})).result) {
-          await jeepSqlite.closeConnection({database: 'test-readonly', readonly: true});
-          let msg = `> closeConnection readonly "test-readonly" successful\n`;
-          console.log(msg);
-        }
-        console.log(`******** close connections successful ********\n`)
-
+        await readMyDB();
+        console.log(`******** readMyDB successful ********\n`)
+        await readZipped();
+        console.log(`******** readZipped successful ********\n`)
         await endTest(activeTest,'');
       } catch (err) {
         let msg = err.message ? err.message : err;

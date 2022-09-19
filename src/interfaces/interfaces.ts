@@ -208,6 +208,16 @@ export interface SQLiteSet {
    */
   values?: any[];
 }
+export interface SQLiteHTTPOptions {
+  /**
+   * The url
+   */
+  url?: string;
+  /**
+   * the overwrite value true/false default true
+   */
+  overwrite?: boolean;
+}
 export interface EchoResult {
   /**
    * String returned

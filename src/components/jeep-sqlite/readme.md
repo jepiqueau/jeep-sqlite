@@ -20,6 +20,7 @@
 * [`executeSet(...)`](#executeset)
 * [`exportToJson(...)`](#exporttojson)
 * [`getDatabaseList()`](#getdatabaselist)
+* [`getFromHTTPRequest(...)`](#getfromhttprequest)
 * [`getSyncDate(...)`](#getsyncdate)
 * [`getVersion(...)`](#getversion)
 * [`importFromJson(...)`](#importfromjson)
@@ -67,6 +68,7 @@
 * [`SQLiteValues`](#sqlitevalues)
 * [`SQLiteVersion`](#sqliteversion)
 * [`SQLiteVersionUpgrade`](#sqliteversionupgrade)
+* [`SQLiteHTTPOptions`](#sqlitehttpoptions)
 
 ### Events Index
 * [`jeepSqliteExportProgress`](#jeepsqliteexportprogress)
@@ -177,6 +179,14 @@
 | ----------------- | --------------------- | ------------------------------------------------------- |
 | **`statement`**   | <code>string</code>   | A SQL statement                                         |
 | **`values`**      | <code>any[]</code>    | An array of data values list                            |
+
+### SQLiteHTTPOptions
+
+| Prop              | Type                  | Description                                             |
+| ----------------- | --------------------- | ------------------------------------------------------- |
+| **`url`**         | <code>string</code>   | An http url                                             |
+| **`overwrite`**   | <code>boolean</code>  | An overwrite value true/false default true              |
+
 
 ### EchoResult {
 | Prop          | Type                  | Description                                             |
@@ -782,6 +792,16 @@ Type: `Promise<SQLiteJson>`
 #### Returns
 
 Type: `Promise<SQLiteValues>`
+
+
+
+### `getFromHTTPRequest(options: SQLiteHTTPOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
 
 
 
