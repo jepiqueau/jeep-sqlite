@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 1.6.4 ->> 
+    add `jeepSqliteHTTPRequestEnded` event listener
+
  - Release 1.6.3 ->> 
     add `getFromHTTPRequest` to get database or zip containing multiple database files from a remote server.
 
@@ -157,6 +160,7 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
 | :-------------------------- | :------ |
 | jeepSqliteImportProgress    | ✅      |
 | jeepSqliteExportProgress    | ✅      |
+| jeepSqliteHTTPRequestEnded  | ✅      |
 
 
 
