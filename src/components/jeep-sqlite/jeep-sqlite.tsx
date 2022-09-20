@@ -7,7 +7,7 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
          SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions,
-         SQLiteHTTPOptions } from '../../interfaces/interfaces';
+         SQLiteHTTPOptions, HTTPRequestEndedListener } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
 import * as JSZip from 'jszip';
@@ -73,6 +73,11 @@ export class JeepSqlite {
       cancelable: true,
       bubbles: true,
   }) exportProgress: EventEmitter<JsonProgressListener>;
+  @Event({eventName:'jeepSqliteHTTPRequestEnded',
+      composed: true,
+      cancelable: true,
+      bubbles: true,
+  }) HTTPRequestEnded: EventEmitter<HTTPRequestEndedListener>;
 
   //**********************
   //* Method Definitions *
@@ -1165,12 +1170,16 @@ export class JeepSqlite {
   }
   async _getFromHTTPRequest(url: string, overwrite: boolean): Promise<void> {
     try {
+      let message: string;
       if( url.substring(url.length - 3) === ".db") {
         await this.copyDatabase(url, overwrite);
+        message = "db";
       }
       if( url.substring(url.length - 4) === ".zip") {
         await this.unzipDatabase(url, overwrite);
+        message = "zip";
       }
+      this.HTTPRequestEnded.emit({message:message});
       return Promise.resolve();
     } catch (err) {
       return Promise.reject(`GetFromHTTPRequest: ${err.message}`);

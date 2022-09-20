@@ -105,27 +105,148 @@
   (async () => {
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
-    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
-      console.log(`Import: ${event.detail.progress}`)
-    });
-    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
-      console.log(`Export: ${event.detail.progress}`)
-    });
-    if(await jeepSqlite.isStoreOpen()) {
-
-      const startTest = async (name)  => {
+    const startTest = async (name)  => {
         console.log(`************************************`);
         console.log(`* Starting ${name} *`);
         console.log(`************************************\n\n`);
-      };
-      const endTest = async(name,msg) => {
-        if(msg.length === 0) {
-          console.log(`\n* The set of tests ${name} was successful *\n`);
-        } else {
-          console.log(`${msg}`);
-          console.log(`\n* The set of tests ${name} failed *\n`);
-        }
+    };
+    const endTest = async(name,msg) => {
+      if(msg.length === 0) {
+        console.log(`\n* The set of tests ${name} was successful *\n`);
+      } else {
+        console.log(`${msg}`);
+        console.log(`\n* The set of tests ${name} failed *\n`);
       }
+    }
+    const openMyDB = async () => {
+      try {
+        // create connection to myDB
+        await jeepSqlite.createConnection({database:"myDB",version: 1});
+        // open db myDB
+        await jeepSqlite.open({database: "myDB"});
+        // Select all tables,
+        ret = await jeepSqlite.getTableList({database: "myDB"});
+        console.log(`>>> openMyDB getTableList ret: ${JSON.stringify(ret)} `)
+        if(ret.values.length !== 2 ||
+            !ret.values.includes("users") ||
+            !ret.values.includes("messages")
+        ) {
+          return Promise.reject("GetTableList MyDB Tables failed");
+        }
+
+        // Select all users
+        ret = await jeepSqlite.query({database: "myDB",
+                                        statement: "SELECT * FROM users;"});
+        if(ret.values.length != 7 ||
+            ret.values[0].name !== "Whiteley" ||
+            ret.values[1].name !== "Jones" ||
+            ret.values[2].name !== "Simpson" ||
+            ret.values[3].name !== "Brown" ||
+            ret.values[4].name !== "Jackson" ||
+            ret.values[5].name !== "Kennedy" ||
+            ret.values[6].name !== "Bush"
+        ) {
+          return Promise.reject("Query MyDB Users failed");
+        }
+        await jeepSqlite.closeConnection({database:"myDB"});
+        console.log(`>>> openMyDB successful <<<`)
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+
+    }
+    const openDbZip1 = async () => {
+      try {
+        // create connection to dbZip1
+        await jeepSqlite.createConnection({database:"dbZip1",version: 1});
+        // open db dbZip1
+        await jeepSqlite.open({database: "dbZip1"});
+        // Select all tables,
+        ret = await jeepSqlite.getTableList({database: "dbZip1"});
+        console.log(`>>> openDbZip1 getTableList ret: ${JSON.stringify(ret)} `)
+        if(ret.values.length !== 3 ||
+            !ret.values.includes("areas") ||
+            !ret.values.includes("elements") ||
+            !ret.values.includes("issues")
+        ) {
+          return Promise.reject("GetTableList dbZip1 Tables failed");
+        }
+        ret = await jeepSqlite.query({database: "dbZip1",
+                                        statement: "SELECT * FROM areas;"});
+        if(ret.values.length != 3           ) {
+          return Promise.reject("Query dbZip1 Areas failed");
+        }
+        ret = await jeepSqlite.query({database: "dbZip1",
+                                        statement: "SELECT * FROM elements;"});
+        if(ret.values.length != 4           ) {
+          return Promise.reject("Query dbZip1 Elements failed");
+        }
+        ret = await jeepSqlite.query({database: "dbZip1",
+                                        statement: "SELECT * FROM issues;"});
+        if(ret.values.length != 4           ) {
+          return Promise.reject("Query dbZip1 Issues failed");
+        }
+        await jeepSqlite.closeConnection({database:"dbZip1"});
+        console.log(`>>> openDbZip1 successful <<<`)
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+    }
+    const openDbZip2 = async () => {
+      try {
+        // create connection to dbZip2
+        await jeepSqlite.createConnection({database:"dbZip2",version: 1});
+        // open db dbZip2
+        await jeepSqlite.open({database: "dbZip2"});
+        // Select all tables,
+        ret = await jeepSqlite.getTableList({database: "dbZip2"});
+        console.log(`>>> openDbZip2 getTableList ret: ${JSON.stringify(ret)} `)
+        if(ret.values.length !== 2 ||
+            !ret.values.includes("users") ||
+            !ret.values.includes("messages")
+        ) {
+          return Promise.reject("GetTableList dbZip2 Tables failed");
+        }
+        ret = await jeepSqlite.query({database: "dbZip2",
+                                        statement: "SELECT * FROM users;"});
+        if(ret.values.length != 7           ) {
+          return Promise.reject("Query dbZip2 Users failed");
+        }
+        ret = await jeepSqlite.query({database: "dbZip2",
+                                        statement: "SELECT * FROM messages;"});
+        if(ret.values.length != 0           ) {
+          return Promise.reject("Query dbZip2 Messages failed");
+        }
+        await jeepSqlite.closeConnection({database:"dbZip2"});
+        console.log(`>>> openDbZip2 successful <<<`)
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+    }
+
+    jeepSqlite.addEventListener('jeepSqliteHTTPRequestEnded', async (event) => {
+      if(event.detail.message === "db") {
+        await openMyDB();
+        console.log(`******** readDB successful ********\n`)
+        await endTest(activeTest,'');
+      }
+      if(event.detail.message === "zip") {
+        await openDbZip1();
+        await openDbZip2();
+        console.log(`******** readZipped successful ********\n`)
+      }
+    });
+    if(await jeepSqlite.isStoreOpen()) {
+
       const openConnection = async (dbName, encrypted, mode, version, readonly,
                                     isDelete) => {
         try {
@@ -167,6 +288,7 @@
               return Promise.reject(msg);
           }
           console.log("> Echo successful\n");
+          console.log(`******** initializeTest successful ********\n`)
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
@@ -174,105 +296,21 @@
             return Promise.reject(msg);
         }
       }
-      const readMyDB = async () => {
+      const readDB = async () => {
         try {
           const url = 'https://raw.githack.com/jepiqueau/angular-sqlite-app-starter/26ca67486713fc9b6ea4a37a889f0fd189c18926/src/assets/databases/myDBSQLite.db';
           await jeepSqlite.getFromHTTPRequest({url: url, overwrite: true});
-          // create connection to myDB
-          await jeepSqlite.createConnection({database:"myDB",version: 1});
-          // open db myDB
-          await jeepSqlite.open({database: "myDB"});
-          // Select all tables,
-          ret = await jeepSqlite.getTableList({database: "myDB"});
-          console.log(`>>> readMyDB getTableList ret: ${JSON.stringify(ret)} `)
-          if(ret.values.length !== 2 ||
-              !ret.values.includes("users") ||
-              !ret.values.includes("messages")
-          ) {
-            return Promise.reject("GetTableList MyDB Tables failed");
-          }
-
-          // Select all users
-          ret = await jeepSqlite.query({database: "myDB",
-                                          statement: "SELECT * FROM users;"});
-          if(ret.values.length != 7 ||
-              ret.values[0].name !== "Whiteley" ||
-              ret.values[1].name !== "Jones" ||
-              ret.values[2].name !== "Simpson" ||
-              ret.values[3].name !== "Brown" ||
-              ret.values[4].name !== "Jackson" ||
-              ret.values[5].name !== "Kennedy" ||
-              ret.values[6].name !== "Bush"
-          ) {
-            return Promise.reject("Query MyDB Users failed");
-          }
-          await jeepSqlite.closeConnection({database:"myDB"});
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
             console.log(`Error: ${msg}`);
             return Promise.reject(msg);
         }
-
       }
       const readZipped = async () => {
         try {
           const url = 'https://raw.githack.com/jepiqueau/angular-sqlite-app-starter/26ca67486713fc9b6ea4a37a889f0fd189c18926/src/assets/databases/Archive.zip';
           await jeepSqlite.getFromHTTPRequest({url: url, overwrite: true});
-          // create connection to dbZip1
-          await jeepSqlite.createConnection({database:"dbZip1",version: 1});
-          // open db dbZip1
-          await jeepSqlite.open({database: "dbZip1"});
-          // Select all tables,
-          ret = await jeepSqlite.getTableList({database: "dbZip1"});
-          console.log(`>>> readZipped dbZip1 getTableList ret: ${JSON.stringify(ret)} `)
-          if(ret.values.length !== 3 ||
-              !ret.values.includes("areas") ||
-              !ret.values.includes("elements") ||
-              !ret.values.includes("issues")
-          ) {
-            return Promise.reject("GetTableList dbZip1 Tables failed");
-          }
-          ret = await jeepSqlite.query({database: "dbZip1",
-                                          statement: "SELECT * FROM areas;"});
-          if(ret.values.length != 3           ) {
-            return Promise.reject("Query dbZip1 Areas failed");
-          }
-          ret = await jeepSqlite.query({database: "dbZip1",
-                                          statement: "SELECT * FROM elements;"});
-          if(ret.values.length != 4           ) {
-            return Promise.reject("Query dbZip1 Elements failed");
-          }
-          ret = await jeepSqlite.query({database: "dbZip1",
-                                          statement: "SELECT * FROM issues;"});
-          if(ret.values.length != 4           ) {
-            return Promise.reject("Query dbZip1 Issues failed");
-          }
-          await jeepSqlite.closeConnection({database:"dbZip1"});
-          // create connection to dbZip2
-          await jeepSqlite.createConnection({database:"dbZip2",version: 1});
-          // open db dbZip2
-          await jeepSqlite.open({database: "dbZip2"});
-          // Select all tables,
-          ret = await jeepSqlite.getTableList({database: "dbZip2"});
-          console.log(`>>> readZipped dbZip2 getTableList ret: ${JSON.stringify(ret)} `)
-          if(ret.values.length !== 2 ||
-              !ret.values.includes("users") ||
-              !ret.values.includes("messages")
-          ) {
-            return Promise.reject("GetTableList dbZip2 Tables failed");
-          }
-          ret = await jeepSqlite.query({database: "dbZip2",
-                                          statement: "SELECT * FROM users;"});
-          if(ret.values.length != 7           ) {
-            return Promise.reject("Query dbZip2 Users failed");
-          }
-          ret = await jeepSqlite.query({database: "dbZip2",
-                                          statement: "SELECT * FROM messages;"});
-          if(ret.values.length != 0           ) {
-            return Promise.reject("Query dbZip2 Messages failed");
-          }
-          await jeepSqlite.closeConnection({database:"dbZip2"});
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
@@ -280,6 +318,7 @@
             return Promise.reject(msg);
         }
       }
+
       // ********************************
       // *** test with SQL statements ***
       // ********************************
@@ -287,13 +326,18 @@
         var activeTest = 'DatabaseGetFromHTTPRequest';
         // test standard SQL statements
         await startTest(activeTest);
+        // Run readZipped in background
+        if ("requestIdleCallback" in window) {
+          console.log("Hey, I'm Processng my low priority job now 🦄!");
+          readZipped();
+        }
         // initialize the database testNew and fill some data
         await initializeTest();
-        await readMyDB();
-        console.log(`******** readMyDB successful ********\n`)
-        await readZipped();
-        console.log(`******** readZipped successful ********\n`)
-        await endTest(activeTest,'');
+        // Simulate a main thread free for 2 seconds
+        // this should allow to start running the process in background
+        const mTimeout = setTimeout(async () => {
+          await readDB();
+        },2000);
       } catch (err) {
         let msg = err.message ? err.message : err;
         console.log(`Error: ${msg}`);

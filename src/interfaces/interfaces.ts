@@ -394,6 +394,12 @@ export interface JsonProgressListener {
    */
   progress?: string;
 }
+export interface HTTPRequestEndedListener {
+  /**
+   * Message
+   */
+  message?: string;
+}
 export interface JsonView {
   /**
    * The view name
