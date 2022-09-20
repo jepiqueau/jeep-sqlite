@@ -73,6 +73,7 @@
 ### Events Index
 * [`jeepSqliteExportProgress`](#jeepsqliteexportprogress)
 * [`jeepSqliteImportProgress`](#jeepsqliteimportprogress)
+* [`jeepSqliteHTTPRequestEnded`](#jeepsqlitehttprequestended)
 
 ## Interfaces
 
@@ -234,6 +235,11 @@
 | ------------- | ------------------------ | ----------------------------------------------------- |
 | **`export`**  | <code>JsonSQLite</code>  | Returned an export JSON object                        |
 
+### HTTPRequestEndedListener {
+| Prop            | Type                 | Description                                           |
+| --------------- | -------------------- | ----------------------------------------------------- |
+| **`message`**  | <code>string</code>  | message can be either 'db' or 'zip'                    |
+
 ### JsonProgressListener {
 | Prop            | Type                 | Description                                           |
 | --------------- | -------------------- | ----------------------------------------------------- |
@@ -308,6 +314,11 @@ The index value can have the following formats:
 | Event                      | Description | Type                                |
 | -------------------------- | ----------- | ----------------------------------- |
 | `jeepSqliteImportProgress` |             | `CustomEvent<JsonProgressListener>` |
+
+### jeepSqliteHTTPRequestEnded
+| Event                        | Description | Type                                |
+| ---------------------------- | ----------- | ----------------------------------- |
+| `jeepSqliteHTTPRequestEnded` |             | `CustomEvent<HTTPRequestEndedListener>` |
 
 ## Methods
 
@@ -658,10 +669,11 @@ Type: `Promise<void>`
 
 ## Events
 
-| Event                      | Description | Type                                |
-| -------------------------- | ----------- | ----------------------------------- |
-| `jeepSqliteExportProgress` |             | `CustomEvent<JsonProgressListener>` |
-| `jeepSqliteImportProgress` |             | `CustomEvent<JsonProgressListener>` |
+| Event                        | Description | Type                                    |
+| ---------------------------- | ----------- | --------------------------------------- |
+| `jeepSqliteExportProgress`   |             | `CustomEvent<JsonProgressListener>`     |
+| `jeepSqliteHTTPRequestEnded` |             | `CustomEvent<HTTPRequestEndedListener>` |
+| `jeepSqliteImportProgress`   |             | `CustomEvent<JsonProgressListener>`     |
 
 
 ## Methods
