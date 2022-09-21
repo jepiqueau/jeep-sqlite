@@ -326,7 +326,7 @@
         var activeTest = 'DatabaseGetFromHTTPRequest';
         // test standard SQL statements
         await startTest(activeTest);
-        // Run readZipped in background
+        // Run readZipped in background (not working on Safari)
         if ("requestIdleCallback" in window) {
           console.log("Hey, I'm Processng my low priority job now 🦄!");
           readZipped();
