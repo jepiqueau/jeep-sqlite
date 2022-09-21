@@ -567,9 +567,14 @@ export class JeepSqlite {
       return Promise.reject('upgrade.toVersion must be a number');
     }
 
-    const upgVDict: Record<number, SQLiteVersionUpgrade> = {};
-    upgVDict[firstUpgrade.toVersion] = firstUpgrade;
-    this._versionUpgrades[dbName] = upgVDict;
+    if (this._versionUpgrades[dbName]) {
+      this._versionUpgrades[dbName][firstUpgrade.toVersion] = firstUpgrade;
+    } else {
+      const upgVDict: Record<number, SQLiteVersionUpgrade> = {};
+      upgVDict[firstUpgrade.toVersion] = firstUpgrade;
+      this._versionUpgrades[dbName] = upgVDict;
+    }
+
     return Promise.resolve();
   }
   @Method()

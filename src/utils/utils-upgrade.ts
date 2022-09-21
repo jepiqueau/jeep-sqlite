@@ -28,13 +28,14 @@ export const onUpgrade = async (
         // set Foreign Keys On
         await setForeignKeyConstraintsEnabled(mDb, true);
         changes = (await dbChanges(mDb)) - initChanges;
-        return Promise.resolve(changes);
       } catch (err) {
         return Promise.reject(new Error(`onUpgrade: ${err.message}`));
       }
     }
   }
-}
+
+  return Promise.resolve(changes);
+};
 
 export const executeStatementsProcess = async (mDb: any, statements: string[]): Promise<void> => {
   try {
