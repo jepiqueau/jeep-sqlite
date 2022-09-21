@@ -176,6 +176,14 @@
           await jeepSqlite.closeConnection({database: 'test-updversion'});
           let msg = `> closeConnection "test-updversion" successful\n`;
           console.log(msg);
+          await openConnection('test-updversion-all', false,
+                                    'no-encryption', 2, false, true);
+
+          console.log("> Open connection 'test-updversion-all' successful\n");
+          // Close Connection test-updversion
+          await jeepSqlite.closeConnection({database: 'test-updversion-all'});
+          msg = `> closeConnection "test-updversion-all" successful\n`;
+          console.log(msg);
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
@@ -202,7 +210,7 @@
         `;
         try {
 
-          let res = await jeepSqlite.query({database: 'test-updversion',statement: query});
+          let res = await jeepSqlite.query({database: 'test-updversion-all',statement: query});
           console.log(`**** Show Messages ${message} ****`)
           for( const u_m of res.values) {
             console.log(`>>> name: ${u_m.name} title: ${u_m.title} body: ${u_m.body}`);
@@ -267,13 +275,15 @@
       const createVersion2 = async() => {
         try {
 
-          await jeepSqlite.addUpgradeStatement({database: "test-updversion",
+          await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
+                                                upgrade: [versionUpgrades[0]]});
+          await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
                                                 upgrade: [versionUpgrades[1]]});
-          await openConnection('test-updversion', false,
+          await openConnection('test-updversion-all', false,
                                 'no-encryption', 2, false, false);
 
           // select all user's country in db
-          ret = await jeepSqlite.query({database: "test-updversion",
+          ret = await jeepSqlite.query({database: "test-updversion-all",
                                         statement: "SELECT country FROM users;"});
           if(ret.values.length !== 2 ||
               ret.values[0].country !== "United Kingdom" ||
@@ -286,7 +296,7 @@
             WHERE users.id = ?;
           `;
           // select all messages for user 1
-          ret = await jeepSqlite.query({database: "test-updversion",
+          ret = await jeepSqlite.query({database: "test-updversion-all",
                                         statement: userMessages,
                                         values: ["1"]});
           if(ret.values.length !== 2 ||
@@ -297,7 +307,7 @@
             return Promise.reject(new Error("Query 2 Messages Version 2 failed"));
           }
           // select all messages for user 2
-          ret = await jeepSqlite.query({database: "test-updversion",
+          ret = await jeepSqlite.query({database: "test-updversion-all",
                                         statement: userMessages,
                                         values: ["2"]});
           if(ret.values.length !== 1 ||
@@ -355,9 +365,9 @@
         await createVersion2();
         await showMessages('final');
         // Close Connection test-updversion
-        const isConn = await jeepSqlite.isConnection({database: 'test-updversion'});
+        const isConn = await jeepSqlite.isConnection({database: 'test-updversion-all'});
         if (isConn.result) {
-          await jeepSqlite.closeConnection({database: 'test-updversion'});
+          await jeepSqlite.closeConnection({database: 'test-updversion-all'});
           let msg = `> closeConnection "test-updversion" successful\n`;
           console.log(msg);
         }
