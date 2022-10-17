@@ -199,6 +199,11 @@ export class Database {
     }
     try {
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
+    } catch(err) {
+      let msg = `executeSQL: ${err.message}`;
+      return Promise.reject(new Error(`${msg}`));
+    }
+    try {
       const changes = await execute(this.mDb, sql, false);
       if (changes < 0) {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
@@ -234,6 +239,11 @@ export class Database {
     try {
       initChanges = await dbChanges(this.mDb);
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
+    } catch(err) {
+      let msg = `ExecSet: ${err.message}`;
+      return Promise.reject(new Error(`${msg}`));
+    }
+    try {
       const lastId = await executeSet(this.mDb, set, false);
       if (lastId < 0) {
         return Promise.reject(new Error('ExecSet: changes < 0'));
@@ -275,6 +285,7 @@ export class Database {
     }
   }
   public async runSQL(statement: string, values: any[], transaction: boolean = true): Promise<any> {
+    let lastId = -1;
     if (!this._isDBOpen) {
       let msg = `RunSQL: Database ${this.dbName} `;
       msg += `not opened`;
@@ -285,7 +296,13 @@ export class Database {
     try {
       initChanges = await dbChanges(this.mDb);
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
-      const lastId = await run(this.mDb, statement, values, false);
+    } catch(err) {
+      let msg = `RunSQL: ${err.message}`;
+      return Promise.reject(new Error(`${msg}`));
+    }
+    try {
+      lastId = await run(this.mDb, statement, values, false);
+
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
@@ -309,7 +326,7 @@ export class Database {
       } catch (err) {
         msg += ` : ${err.message}`;
       }
-      return Promise.reject(new Error(`RunSQL: ${msg}`));
+      return Promise.reject(new Error(`${msg}`));
     }
   }
   async getTableNames(): Promise<any[]> {

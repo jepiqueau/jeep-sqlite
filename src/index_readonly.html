@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-    <title>Stencil Component Test DB Read Only & WAL2</title>
+    <title>Stencil Component Test DB Read Only & WAL</title>
 
     <script type="module" src="/build/jeep-sqlite.esm.js"></script>
     <script nomodule src="/build/jeep-sqlite.js"></script>
@@ -92,12 +92,13 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
-          <a href="index_readonly.html">DB Readonly & WAL2</a>
+          <a href="index_readonly.html">DB Readonly & WAL</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
         </div>
       </div>
     </div>
-    <h1>DB Readonly & WAL2</h1>
+    <h1>DB Readonly & WAL</h1>
     <jeep-sqlite></jeep-sqlite>
   </body>
 </html>
@@ -196,9 +197,6 @@
       }
       const totalUsers = async (message)  => {
         try {
-//          await openConnection('test-readonly', false,
-//                                  'no-encryption', 1, true, false);
-          await jeepSqlite.saveToStore({database: 'test-readonly'});
           const res = await jeepSqlite.query({database: 'test-readonly',statement: 'SELECT * FROM users',
                                         readonly: true});
           console.log(`>>> total Users: ${res.values.length}`);
@@ -247,7 +245,7 @@
           await openConnection('test-readonly', false,
                                 'no-encryption', 1, false, false);
 
-          const walStmt = 'PRAGMA journal_mode=WAL2;';
+          const walStmt = 'PRAGMA journal_mode=WAL;';
           let ret = await jeepSqlite.execute({database: "test-readonly", statements: walStmt,
                                               transaction: false, readonly: false});
           // Select all users
@@ -267,12 +265,22 @@
             return Promise.reject(msg);
         }
       }
+      const insertUser = async(idx) => {
+        const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)});`;
+            try {
+              await jeepSqlite.run({database: 'test-readonly', statement: stmt,
+                              transaction: false, readonly: false});
+            } catch(err) {
+              const msg = err.message ? err.message : err;
+              return Promise.reject(msg);
+            }
+      }
       const createUsers = async() => {
+        let inTransaction = false;
         try {
           // open readonly connection on "test-readonly"
           await openConnection('test-readonly', false,
                                   'no-encryption', 1, true, false);
-          console.log(`>>> in createUsers after  openConnection readonly\n`)
           // Select all users
           const ret = await jeepSqlite.query({database: "test-readonly",
                                         statement: "SELECT * FROM users;",
@@ -282,29 +290,45 @@
                 ret.values[1].name !== "Jones") {
             return Promise.reject("Query 2 Users failed from readonly");
           }
-          for (let i=0; i< 400; i++) {
-//            await openConnection('test-readonly', false,
-//                                  'no-encryption', 1, false, false);
-            const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${i}","testemail${i}",${Math.floor(Math.random() * 105 +18)});`;
-            await jeepSqlite.run({database: 'test-readonly', statement: stmt,
-                                              transaction: true, readonly: false});
+          await jeepSqlite.run({database: "test-readonly", statement: 'BEGIN TRANSACTION;',
+                                    transaction: false, readonly: false});
+          inTransaction = true;
+          let promises = [];
 
-            if (i % 100 === 0) await totalUsers();
-            if (i === 399) {
+          for (let i=0; i< 400; i++) {
+            promises.push(insertUser(i));
+            if (i % 100 === 0) {
+              await Promise.all(promises);
               await totalUsers();
+              promises = [];
+            }
+            if (i === 399) {
+              await Promise.all(promises);
+              if(inTransaction) {
+                await jeepSqlite.run({database: "test-readonly", statement: 'COMMIT TRANSACTION;',
+                                      transaction: false, readonly: false});
+                inTransaction = false;
+              }
+              await totalUsers();
+              promises = [];
+              await jeepSqlite.saveToStore({database: 'test-readonly'});
               return Promise.resolve();
             }
           }
-
         } catch (err) {
-            let msg = err.message ? err.message : err;
-            console.log(`Error: ${msg}`);
-            return Promise.reject(msg);
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          if(inTransaction) {
+            await jeepSqlite.run({database: "test-readonly", statement: 'ROLLBACK TRANSACTION;',
+                                  transaction: false, readonly: false});
+          }
+          await totalUsers();
+          return Promise.reject(msg);
         }
 
       }
       try {
-        var activeTest = 'DatabaseReadOnly&Wal2';
+        var activeTest = 'DatabaseReadOnly&Wal';
         // test standard SQL statements
         await startTest(activeTest);
         // initialize the database testNew and fill some data
@@ -315,7 +339,10 @@
 
         console.log(`******** version 1 successful ********\n`)
         await createUsers();
-        console.log(`******** after create users successful ********\n`)
+
+//        await showUsers('after createUsers ');
+
+        console.log(`******** create users successful ********\n`)
         // Close Connection ReadWrite for "test-readonly"
         if ((await jeepSqlite.isConnection({database: 'test-readonly', readonly: false})).result) {
           await jeepSqlite.closeConnection({database: 'test-readonly', readonly: false});

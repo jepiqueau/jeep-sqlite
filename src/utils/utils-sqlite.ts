@@ -8,10 +8,10 @@ export const beginTransaction = async (db: any, isOpen: boolean): Promise<void> 
     }
     const sql = 'BEGIN TRANSACTION;';
     try {
-      await db.run(sql);
+      await db.exec(sql);
       return Promise.resolve();
     } catch (err) {
-      return Promise.reject(new Error(`DbChanges failed: ${err}`));
+      return Promise.reject(new Error(`${msg}${err.message}`));
     }
 }
 export const rollbackTransaction = async (db: any, isOpen: boolean): Promise<void> => {
@@ -21,7 +21,7 @@ export const rollbackTransaction = async (db: any, isOpen: boolean): Promise<voi
     }
     const sql = 'ROLLBACK TRANSACTION;';
     try {
-      await db.run(sql);
+      await db.exec(sql);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(new Error(`${msg}${err.message}`));
@@ -34,7 +34,7 @@ export const commitTransaction = async (db: any, isOpen: boolean): Promise<void>
     }
     const sql = 'COMMIT TRANSACTION;';
     try {
-      await db.run(sql);
+      await db.exec(sql);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(new Error(`${msg}${err.message}`));

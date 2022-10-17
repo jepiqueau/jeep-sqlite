@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-    <title>Stencil Component Test Incremental Upgrade Version</title>
+    <title>Stencil Component Test Concurrent</title>
 
     <script type="module" src="/build/jeep-sqlite.esm.js"></script>
     <script nomodule src="/build/jeep-sqlite.js"></script>
@@ -98,8 +98,8 @@
         </div>
       </div>
     </div>
-    <h1>Incremental Upgrade Version Page</h1>
-    <jeep-sqlite autoSave="true"></jeep-sqlite>
+    <h1>DB Concurrent Test</h1>
+    <jeep-sqlite></jeep-sqlite>
   </body>
 </html>
 <script>
@@ -134,7 +134,6 @@
           const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName],openModes:[openMode]})).result;
           const isConn = (await jeepSqlite.isConnection({database: dbName, readonly: readonly})).result;
           if(!retCC || !isConn) {
-            console.log('*** create connection \n')
               await jeepSqlite.createConnection({database: dbName, encrypted: encrypted, mode: mode,
                                                  version: version, readonly: readonly});
           }
@@ -169,21 +168,13 @@
               return Promise.reject(msg);
           }
           console.log("> Echo successful\n");
-          await openConnection('test-updversion', false,
-                                    'no-encryption', 1, false, true);
+          await openConnection('test-concurrent', false,
+                                'no-encryption', 1, false, true);
 
-          console.log("> Open connection 'test-updversion' successful\n");
-          // Close Connection test-updversion
-          await jeepSqlite.closeConnection({database: 'test-updversion'});
-          let msg = `> closeConnection "test-updversion" successful\n`;
-          console.log(msg);
-          await openConnection('test-updversion-all', false,
-                                    'no-encryption', 2, false, true);
-
-          console.log("> Open connection 'test-updversion-all' successful\n");
-          // Close Connection test-updversion
-          await jeepSqlite.closeConnection({database: 'test-updversion-all'});
-          msg = `> closeConnection "test-updversion-all" successful\n`;
+          console.log("> Open connection 'test-concurrent' successful\n");
+          // Close Connection test-concurrent
+          await jeepSqlite.closeConnection({database: 'test-concurrent', readonly: false});
+          let msg = `> closeConnection "test-concurrent" successful\n`;
           console.log(msg);
           return Promise.resolve();
         } catch (err) {
@@ -195,7 +186,8 @@
 
       const showUsers = async (message) => {
         try {
-          let res = await jeepSqlite.query({database: 'test-updversion',statement: 'SELECT * FROM users'});
+          let res = await jeepSqlite.query({database: 'test-concurrent',statement: 'SELECT * FROM users',
+                                            readonly: false});
           console.log(`**** Show Users ${message} ****`)
           for( const user of res.values) {
             console.log(`>>> id: ${user.id} name: ${user.name} age: ${user.age}`);
@@ -204,22 +196,17 @@
             return Promise.reject(err);
         }
       }
-      const showMessages = async (message) => {
-
-        const query = `SELECT users.name,messages.title,messages.body FROM users,
-        messages WHERE users.id = messages.userid ORDER BY users.id;
-        `;
+      const totalUsers = async (message)  => {
         try {
+          const res = await jeepSqlite.query({database: 'test-concurrent',statement: 'SELECT * FROM users',
+                                              readonly: false});
+          console.log(`>>> total Users: ${res.values.length}`);
 
-          let res = await jeepSqlite.query({database: 'test-updversion-all',statement: query});
-          console.log(`**** Show Messages ${message} ****`)
-          for( const u_m of res.values) {
-            console.log(`>>> name: ${u_m.name} title: ${u_m.title} body: ${u_m.body}`);
-          }
         } catch(err) {
             return Promise.reject(err);
         }
       }
+
 
       // ********************************
       // *** test with SQL statements ***
@@ -253,19 +240,39 @@
       const createVersion1 = async() => {
         try {
 
-          await jeepSqlite.addUpgradeStatement({database: "test-updversion",
+          await jeepSqlite.addUpgradeStatement({database: "test-concurrent",
                                                 upgrade: [versionUpgrades[0]]});
-          await openConnection('test-updversion', false,
+          // open readwrite connection on "test-concurrent"
+          await openConnection('test-concurrent', false,
                                 'no-encryption', 1, false, false);
 
+          const walStmt = 'PRAGMA journal_mode=WAL;';
+          let ret = await jeepSqlite.execute({database: "test-concurrent", statements: walStmt,
+                                              transaction: false, readonly: false});
+          const syncStmt = 'PRAGMA synchronous=1;';
+          ret = await jeepSqlite.execute({database: "test-concurrent", statements: syncStmt,
+                                              transaction: false, readonly: false});
+
+          ret = await jeepSqlite.query({database: "test-concurrent",
+                                        statement: "PRAGMA journal_mode;",
+                                        readonly: false});
+          console.log(`&&& PRAGMA journal_mode: ${ret.values[0].journal_mode}`);
+
+          ret = await jeepSqlite.query({database: "test-concurrent",
+                                        statement: "PRAGMA synchronous;",
+                                        readonly: false});
+          console.log(`&&& PRAGMA synchronous: ${ret.values[0].synchronous}`);
           // Select all users
-          ret = await jeepSqlite.query({database: "test-updversion",
-                                        statement: "SELECT * FROM users;"});
+          ret = await jeepSqlite.query({database: "test-concurrent",
+                                        statement: "SELECT * FROM users;",
+                                        readonly: false});
+          console.log(`&&& ret Users: ${ret.values.length}`);
           if(ret.values.length !== 2 ||
                 ret.values[0].name !== "Whiteley" ||
                 ret.values[1].name !== "Jones") {
             return Promise.reject("Query 2 Users failed");
           }
+          await jeepSqlite.saveToStore({database: 'test-concurrent'});
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
@@ -273,58 +280,67 @@
             return Promise.reject(msg);
         }
       }
-      const createVersion2 = async() => {
+      const insertUser = async(idx) => {
+        const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)});`;
+            try {
+              await jeepSqlite.run({database: 'test-concurrent', statement: stmt,
+                              transaction: false, readonly: false});
+            } catch(err) {
+              const msg = err.message ? err.message : err;
+              return Promise.reject(msg);
+            }
+      }
+      const createUsers = async() => {
+        let inTransaction = false;
         try {
-
-          await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
-                                                upgrade: [versionUpgrades[0]]});
-          await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
-                                                upgrade: [versionUpgrades[1]]});
-          await openConnection('test-updversion-all', false,
-                                'no-encryption', 2, false, false);
-
-          // select all user's country in db
-          ret = await jeepSqlite.query({database: "test-updversion-all",
-                                        statement: "SELECT country FROM users;"});
+          // Select all users
+          const ret = await jeepSqlite.query({database: "test-concurrent",
+                                        statement: "SELECT * FROM users;",
+                                        readonly: false});
           if(ret.values.length !== 2 ||
-              ret.values[0].country !== "United Kingdom" ||
-              ret.values[1].country !== "Australia") {
-            return Promise.reject(new Error("Query 2 Users Version 2 failed"));
+                ret.values[0].name !== "Whiteley" ||
+                ret.values[1].name !== "Jones") {
+            return Promise.reject("Query 2 Users failed from concurrent");
           }
-          const userMessages = `
-            SELECT users.name,messages.title,messages.body FROM users
-            INNER JOIN messages ON users.id = messages.userid
-            WHERE users.id = ?;
-          `;
-          // select all messages for user 1
-          ret = await jeepSqlite.query({database: "test-updversion-all",
-                                        statement: userMessages,
-                                        values: ["1"]});
-          if(ret.values.length !== 2 ||
-            ret.values[0].name !== "Whiteley" ||
-            ret.values[0].title !== "test message 1" ||
-            ret.values[1].name !== "Whiteley" ||
-            ret.values[1].title !== "test message 3") {
-            return Promise.reject(new Error("Query 2 Messages Version 2 failed"));
+          await jeepSqlite.run({database: "test-concurrent", statement: 'BEGIN TRANSACTION;',
+                                    transaction: false, readonly: false});
+          inTransaction = true;
+          let promises = [];
+
+          for (let i=0; i< 400; i++) {
+            promises.push(insertUser(i));
+            if (i % 100 === 0) {
+              await Promise.all(promises);
+              await totalUsers();
+              promises = [];
+            }
+            if (i === 399) {
+              await Promise.all(promises);
+              if(inTransaction) {
+                await jeepSqlite.run({database: "test-concurrent", statement: 'COMMIT TRANSACTION;',
+                                      transaction: false, readonly: false});
+                inTransaction = false;
+              }
+              await totalUsers();
+              promises = [];
+              await jeepSqlite.saveToStore({database: 'test-concurrent'});
+              return Promise.resolve();
+            }
           }
-          // select all messages for user 2
-          ret = await jeepSqlite.query({database: "test-updversion-all",
-                                        statement: userMessages,
-                                        values: ["2"]});
-          if(ret.values.length !== 1 ||
-            ret.values[0].name !== "Jones" ||
-            ret.values[0].title !== "test message 2") {
-            return Promise.reject(new Error("Query 1 Messages for Users 2 Version 2 failed"));
-          }
-          return Promise.resolve();
         } catch (err) {
-            let msg = err.message ? err.message : err;
-            console.log(`Error: ${msg}`);
-            return Promise.reject(msg);
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          if(inTransaction) {
+            await jeepSqlite.run({database: "test-concurrent", statement: 'ROLLBACK TRANSACTION;',
+                                  transaction: false, readonly: false});
+          }
+          await totalUsers();
+          return Promise.reject(msg);
         }
+
       }
       try {
-        var activeTest = 'DatabaseUpgradeVersion';
+        var activeTest = 'DatabaseConcurrent';
         // test standard SQL statements
         await startTest(activeTest);
         // initialize the database testNew and fill some data
@@ -332,47 +348,17 @@
         // create version 1
         await createVersion1();
         await showUsers('after Version 1');
-        await jeepSqlite.closeConnection({database: 'test-updversion'});
-        let msg = `> closeConnection "test-updversion" successful\n`;
-        console.log(msg);
 
         console.log(`******** version 1 successful ********\n`)
-
-        const v2 = {
-          toVersion: 2,
-          statements: [
-            `ALTER TABLE users ADD COLUMN country TEXT;`,
-            `ALTER TABLE users ADD COLUMN sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1));`,
-            `CREATE TABLE messages (
-                id INTEGER PRIMARY KEY NOT NULL,
-                userid INTEGER,
-                title TEXT NOT NULL,
-                body TEXT NOT NULL,
-                sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-                last_modified INTEGER DEFAULT (strftime('%s', 'now')),
-                FOREIGN KEY (userid) REFERENCES users(id) ON DELETE SET DEFAULT
-            );`,
-            `CREATE INDEX messages_index_title ON messages (title);`,
-            `CREATE INDEX messages_index_last_modified ON messages (last_modified);`,
-            `INSERT INTO messages (userid,title,body) VALUES (1,'test message 1','content test message 1');`,
-            `INSERT INTO messages (userid,title,body) VALUES (2,'test message 2','content test message 2');`,
-            `INSERT INTO messages (userid,title,body) VALUES (1,'test message 3','content test message 3');`,
-            `UPDATE users SET country = 'United Kingdom'  WHERE id = 1;`,
-            `UPDATE users SET country = 'Australia'  WHERE id = 2;`,
-          ]
-        }
-        versionUpgrades.push(v2);
-        // create version 2
-        await createVersion2();
-        await showMessages('final');
-        // Close Connection test-updversion
-        const isConn = await jeepSqlite.isConnection({database: 'test-updversion-all'});
-        if (isConn.result) {
-          await jeepSqlite.closeConnection({database: 'test-updversion-all'});
-          let msg = `> closeConnection "test-updversion" successful\n`;
+        await createUsers();
+        console.log(`******** after create users successful ********\n`)
+        // Close Connection ReadWrite for "test-concurrent"
+        if ((await jeepSqlite.isConnection({database: 'test-concurrent', readonly: false})).result) {
+          await jeepSqlite.closeConnection({database: 'test-concurrent', readonly: false});
+          let msg = `> closeConnection readwrite "test-concurrent" successful\n`;
           console.log(msg);
         }
-        console.log(`******** version 2 successful ********\n`)
+        console.log(`******** close connections successful ********\n`)
 
         await endTest(activeTest,'');
       } catch (err) {

@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 1.6.6 ->>
+    fix WAL mode for concurrency access to databases. WAL2 is not supported
+    
  - Release 1.6.4 ->> 
     add `jeepSqliteHTTPRequestEnded` event listener
 

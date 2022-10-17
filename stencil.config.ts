@@ -32,6 +32,7 @@ export const config: Config = {
         { src: 'index_incremental_upgrade_version.html', dest: 'index_incremental_upgrade_version.html' },
         { src: 'index_readonly.html', dest: 'index_readonly.html' },
         { src: 'index_getFromHTTP.html', dest: 'index_getFromHTTP.html' },
+        { src: 'index_concurrent.html', dest: 'index_concurrent.html' },
       ]
     },
   ],
