@@ -79,7 +79,7 @@ export class Database {
                 // restore the database from backup
                 try {
                   if(this.isBackup) {
-                    await restoreDBFromStore(this.dbName, `backup-${this.dbName}`,this.store);
+                    await restoreDBFromStore(this.dbName, 'backup',this.store);
                   }
                 } catch (err) {
                   return reject(new Error(`Open: ${err.message}`));
