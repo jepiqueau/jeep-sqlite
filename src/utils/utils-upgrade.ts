@@ -9,11 +9,9 @@ export const onUpgrade = async (
   targetVersion: number
 ): Promise<number> => {
   let changes: number = -1;
-  console.log(`vUpgDict: ${JSON.stringify(vUpgDict)}`)
   const sortedKeys: Int32Array = new Int32Array(Object.keys(vUpgDict)
   .map(item => parseInt(item)))
   .sort();
-  console.log(`sortedKeys: ${sortedKeys}`)
 
   for (const versionKey of sortedKeys) {
     if (versionKey > curVersion && versionKey <= targetVersion) {
