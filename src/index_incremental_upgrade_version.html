@@ -277,9 +277,9 @@
         try {
 
           await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
-                                                upgrade: [versionUpgrades[0]]});
-          await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
-                                                upgrade: [versionUpgrades[1]]});
+                                                upgrade: versionUpgrades});
+      //    await jeepSqlite.addUpgradeStatement({database: "test-updversion-all",
+      //                                          upgrade: [versionUpgrades[1]]});
           await openConnection('test-updversion-all', false,
                                 'no-encryption', 2, false, false);
 

@@ -553,28 +553,28 @@ export class JeepSqlite {
     }
     const dbName: string = options.database;
     const upgrades: SQLiteVersionUpgrade[] = options.upgrade;
-    const firstUpgrade = upgrades[0];
-    const versionUpgradeKeys = Object.keys(firstUpgrade);
+    for(const upgrade of upgrades) {
+      const versionUpgradeKeys = Object.keys(upgrade);
 
-    if (
-      !versionUpgradeKeys.includes('toVersion') ||
-      !versionUpgradeKeys.includes('statements')
-    ) {
-      return Promise.reject('Must provide an upgrade capSQLiteVersionUpgrade Object');
+      if (
+        !versionUpgradeKeys.includes('toVersion') ||
+        !versionUpgradeKeys.includes('statements')
+      ) {
+        return Promise.reject('Must provide an upgrade capSQLiteVersionUpgrade Object');
+      }
+
+      if (typeof upgrade.toVersion != 'number') {
+        return Promise.reject('upgrade.toVersion must be a number');
+      }
+
+      if (this._versionUpgrades[dbName]) {
+        this._versionUpgrades[dbName][upgrade.toVersion] = upgrade;
+      } else {
+        const upgVDict: Record<number, SQLiteVersionUpgrade> = {};
+        upgVDict[upgrade.toVersion] = upgrade;
+        this._versionUpgrades[dbName] = upgVDict;
+      }
     }
-
-    if (typeof firstUpgrade.toVersion != 'number') {
-      return Promise.reject('upgrade.toVersion must be a number');
-    }
-
-    if (this._versionUpgrades[dbName]) {
-      this._versionUpgrades[dbName][firstUpgrade.toVersion] = firstUpgrade;
-    } else {
-      const upgVDict: Record<number, SQLiteVersionUpgrade> = {};
-      upgVDict[firstUpgrade.toVersion] = firstUpgrade;
-      this._versionUpgrades[dbName] = upgVDict;
-    }
-
     return Promise.resolve();
   }
   @Method()
