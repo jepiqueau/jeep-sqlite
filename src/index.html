@@ -99,7 +99,7 @@
       </div>
     </div>
     <h1>Home Page</h1>
-    <jeep-sqlite autoSave="true"></jeep-sqlite>
+    <jeep-sqlite autoSave></jeep-sqlite>
 </body>
 </html>
 <script>
@@ -242,6 +242,14 @@
             if (ret.changes.changes !== 5) {
               throw new Error("ExecuteSet 5 contacts failed");
             }
+            // test issue #378
+            const upstmt = 'UPDATE contacts SET age = ? WHERE id = ?';
+            ret = await jeepSqlite.run({database: "testSet", statement: upstmt, values: [31.2,3], readonly: false});
+            console.log(`&&&& ret: ${JSON.stringify(ret)} &&&&`);
+            if (ret.changes.changes !== 1) {
+              throw new Error("Run Update issue378 failed");
+            }
+
             ret = await jeepSqlite.executeSet({database: "testSet", set: setIssue170});
             if (ret.changes.changes !== 1) {
               throw new Error("ExecuteSet 6 issue170 failed");

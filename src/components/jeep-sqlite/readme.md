@@ -663,7 +663,7 @@ Type: `Promise<void>`
 
 | Property   | Attribute  | Description | Type      | Default     |
 | ---------- | ---------- | ----------- | --------- | ----------- |
-| `autoSave` | `autosave` | AutoSave    | `boolean` | `undefined` |
+| `autoSave` | `autosave` | AutoSave    | `boolean` | `false`     |
 | `wasmPath` | `wasmpath` | WasmPath    | `string`  | `undefined` |
 
 

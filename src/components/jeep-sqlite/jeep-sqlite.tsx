@@ -30,7 +30,7 @@ export class JeepSqlite {
   @Prop({
     attribute: "autosave",
     reflect: true
-  }) autoSave: boolean;
+  }) autoSave: boolean = false;
   /**
    * WasmPath
    */
@@ -683,8 +683,8 @@ export class JeepSqlite {
 
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
-    this.parseAutoSave(this.autoSave != undefined ? this.autoSave : false);
-    this.parseWasmPath(this.wasmPath != undefined ? this.wasmPath : '/assets');
+    this.parseAutoSave(this.autoSave !== undefined ? true : false);
+    this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
   }
   componentDidLoad() {
     if(!this.isStore) {
@@ -834,9 +834,15 @@ export class JeepSqlite {
     if(readonly) {
       return Promise.reject(`Execute: not allowed in read-only mode`);
     }
+    let changes: SQLiteChanges = {} as SQLiteChanges;
+    if(this.innerAutoSave && statements[0] === "COMMIT") {
+      // fix issue for typeORM with autosave
+      changes.changes.changes = 0;
+      return Promise.resolve(changes);
+    }
     try {
       const ret: number = await mDB.executeSQL(statements, transaction);
-      const changes: SQLiteChanges = {changes: {changes: ret}};
+      changes = {changes: {changes: ret}};
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(`Execute: ${err.message}`);
@@ -881,9 +887,15 @@ export class JeepSqlite {
     if(readonly) {
       return Promise.reject(`Run: not allowed in read-only mode`);
     }
+    let changes: SQLiteChanges = {} as SQLiteChanges;
+    if(this.innerAutoSave && statement === "COMMIT") {
+      // fix issue for typeORM with autosave
+      changes.changes.changes = 0;
+      return Promise.resolve(changes);
+    }
     try {
       const ret: any = await mDB.runSQL(statement, values, transaction);
-      const changes: SQLiteChanges = {changes: {changes: ret.changes, lastId: ret.lastId}};
+      changes = {changes: {changes: ret.changes, lastId: ret.lastId}};
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(`Run: ${err.message}`);
@@ -898,6 +910,10 @@ export class JeepSqlite {
     }
     const mDB = this._dbDict[connName];
     let ret: any[] = [];
+    if(this.innerAutoSave && statement === "COMMIT") {
+      // fix issue for typeORM with autosave
+      return Promise.resolve({ values: ret });
+    }
     try {
       ret = await mDB.selectSQL(statement, values);
       return Promise.resolve({ values: ret });
