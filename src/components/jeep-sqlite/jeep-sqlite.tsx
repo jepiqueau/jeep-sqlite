@@ -835,7 +835,8 @@ export class JeepSqlite {
       return Promise.reject(`Execute: not allowed in read-only mode`);
     }
     let changes: SQLiteChanges = {} as SQLiteChanges;
-    if(this.innerAutoSave && statements[0] === "COMMIT") {
+    const command = statements[0].substring(0,6);
+    if(this.innerAutoSave && command === "COMMIT") {
       // fix issue for typeORM with autosave
       changes.changes.changes = 0;
       return Promise.resolve(changes);
@@ -888,9 +889,10 @@ export class JeepSqlite {
       return Promise.reject(`Run: not allowed in read-only mode`);
     }
     let changes: SQLiteChanges = {} as SQLiteChanges;
-    if(this.innerAutoSave && statement === "COMMIT") {
+    const command = statement.substring(0,6);
+    if(this.innerAutoSave && command === "COMMIT") {
       // fix issue for typeORM with autosave
-      changes.changes.changes = 0;
+      changes = {changes: {changes: 0}};
       return Promise.resolve(changes);
     }
     try {
@@ -910,7 +912,8 @@ export class JeepSqlite {
     }
     const mDB = this._dbDict[connName];
     let ret: any[] = [];
-    if(this.innerAutoSave && statement === "COMMIT") {
+    const command = statement.substring(0,6);
+    if(this.innerAutoSave && command === "COMMIT") {
       // fix issue for typeORM with autosave
       return Promise.resolve({ values: ret });
     }
