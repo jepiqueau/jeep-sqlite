@@ -33,6 +33,7 @@ export const config: Config = {
         { src: 'index_readonly.html', dest: 'index_readonly.html' },
         { src: 'index_getFromHTTP.html', dest: 'index_getFromHTTP.html' },
         { src: 'index_concurrent.html', dest: 'index_concurrent.html' },
+        { src: 'index_issue385.html', dest: 'index_issue385.html' },
       ]
     },
   ],

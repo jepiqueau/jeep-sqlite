@@ -90,6 +90,7 @@ export class Database {
                 await removeDBFromStore(`backup-${this.dbName}`,this.store);
               }
 
+
             } catch (err) {
               // restore the database from backup
               try {
@@ -110,6 +111,9 @@ export class Database {
               return reject(`Open: ${err}`);
             }
           }
+          // set Foreign Keys On
+          await setForeignKeyConstraintsEnabled(this.mDb, true);
+
           return resolve();
         });
       } catch (err) {
@@ -144,6 +148,9 @@ export class Database {
       try {
         // save the database to store
         await setDBToStore(this.mDb, this.dbName, this.store);
+        // set Foreign Keys On
+        await setForeignKeyConstraintsEnabled(this.mDb, true);
+
       } catch (err) {
         return Promise.reject(`in saveToStore ${err}`);
       }
@@ -212,7 +219,7 @@ export class Database {
       if( this.autoSave ) {
         try {
           await this.saveToStore();
-        } catch (err) {
+            } catch (err) {
           this._isDBOpen = false;
           return Promise.reject(`ExecuteSQL: ${err}`);
         }
@@ -295,13 +302,14 @@ export class Database {
     let initChanges = -1;
     try {
       initChanges = await dbChanges(this.mDb);
+
       if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
     } catch(err) {
       let msg = `RunSQL: ${err.message}`;
       return Promise.reject(new Error(`${msg}`));
     }
     try {
-      lastId = await run(this.mDb, statement, values, false);
+        lastId = await run(this.mDb, statement, values, false);
 
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));

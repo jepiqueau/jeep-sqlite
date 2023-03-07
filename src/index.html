@@ -95,6 +95,7 @@
           <a href="index_readonly.html">DB Readonly</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
         </div>
       </div>
     </div>
@@ -320,6 +321,9 @@
             await jeepSqlite.open({database: "db-from-json"});
             let isDBJson = await jeepSqlite.isDBOpen({database: "db-from-json"})
             if (!isDBJson.result) throw new Error("isDBOpen 'db-from-json' failed");
+            // get Table's list
+            ret = await jeepSqlite.getTableList({database: "db-from-json"});
+            console.log(`&&&& table List: ${JSON.stringify(ret)}`)
             // create synchronization table
             ret = await jeepSqlite.createSyncTable({database: "db-from-json"});
             if (result.changes.changes < 0) throw new Error("CreateSyncTable failed");

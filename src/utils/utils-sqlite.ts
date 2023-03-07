@@ -8,7 +8,7 @@ export const beginTransaction = async (db: any, isOpen: boolean): Promise<void> 
     }
     const sql = 'BEGIN TRANSACTION;';
     try {
-      await db.exec(sql);
+      db.exec(sql);
       return Promise.resolve();
     } catch (err) {
       return Promise.reject(new Error(`${msg}${err.message}`));
@@ -21,7 +21,7 @@ export const rollbackTransaction = async (db: any, isOpen: boolean): Promise<voi
     }
     const sql = 'ROLLBACK TRANSACTION;';
     try {
-      await db.exec(sql);
+      db.exec(sql);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(new Error(`${msg}${err.message}`));
@@ -34,7 +34,7 @@ export const commitTransaction = async (db: any, isOpen: boolean): Promise<void>
     }
     const sql = 'COMMIT TRANSACTION;';
     try {
-      await db.exec(sql);
+      db.exec(sql);
       return Promise.resolve();
     } catch(err) {
       return Promise.reject(new Error(`${msg}${err.message}`));
@@ -44,7 +44,7 @@ export const dbChanges = async (db: any): Promise<number> => {
     const SELECT_CHANGE = 'SELECT total_changes()';
     let changes: number = 0;
     try {
-      const res = await db.exec(SELECT_CHANGE);
+      const res = db.exec(SELECT_CHANGE);
       // process the row here
       changes = res[0].values[0][0];
       return Promise.resolve(changes);
@@ -56,7 +56,7 @@ export const getLastId = async (db: any): Promise<number> => {
     const SELECT_LAST_ID = 'SELECT last_insert_rowid()';
     let lastId: number = -1;
     try {
-      const res = await db.exec(SELECT_LAST_ID );
+      const res = db.exec(SELECT_LAST_ID );
       // process the row here
       lastId = res[0].values[0][0];
       return Promise.resolve(lastId);
@@ -66,12 +66,12 @@ export const getLastId = async (db: any): Promise<number> => {
 
 }
 export const setForeignKeyConstraintsEnabled = async (db: any, toggle: boolean): Promise<void> => {
-  let key = 'OFF';
+  let stmt = 'PRAGMA foreign_keys=OFF';
   if (toggle) {
-    key = 'ON';
+    stmt = 'PRAGMA foreign_keys=ON';
   }
   try {
-    await db.exec(`PRAGMA foreign_keys = '${key}'`);
+    db.exec(stmt);
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(new Error(`SetForeignKey: ${err.message}`));
@@ -80,7 +80,7 @@ export const setForeignKeyConstraintsEnabled = async (db: any, toggle: boolean):
 export const getVersion = async (db: any): Promise<number> => {
   let version = 0;
   try {
-    const res = await db.exec('PRAGMA user_version;');
+    const res = db.exec('PRAGMA user_version;');
     version = res[0].values[0][0];
     return Promise.resolve(version);
   } catch (err) {
@@ -89,7 +89,7 @@ export const getVersion = async (db: any): Promise<number> => {
 }
 export const setVersion = async (db: any, version: number): Promise<void> => {
   try {
-    await db.exec(`PRAGMA user_version = ${version}`);
+    db.exec(`PRAGMA user_version = ${version}`);
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(new Error(`SetVersion: ${err.message}`));
@@ -119,7 +119,7 @@ export const execute = async (db: any, sql: string, fromJson: boolean): Promise<
       }
       sqlStmt = resArr.join(';');
     }
-    await db.exec(sqlStmt);
+    db.exec(sqlStmt);
     changes = (await dbChanges(db)) - initChanges;
     return Promise.resolve(changes);
   } catch (err) {
@@ -143,12 +143,10 @@ export const executeSet = async (db: any, set: any, fromJson: boolean): Promise<
         for (const val of values) {
           const mVal: any[] = await replaceUndefinedByNull(val);
           await run(db, statement, mVal, fromJson)
-//          await db.exec(statement, mVal);
         }
       } else {
         const mVal: any[] = await replaceUndefinedByNull(values);
         await run(db, statement, mVal, fromJson)
-        //        await db.exec(statement, mVal);
       }
       lastId = await getLastId(db);
     } catch (err) {
@@ -162,9 +160,9 @@ export const queryAll = async (db: any, sql: string, values: any[]): Promise<any
   try {
     let retArr: any[] = [];
     if(values != null && values.length > 0) {
-      retArr = await db.exec(sql, values);
+      retArr = db.exec(sql, values);
     } else {
-      retArr = await db.exec(sql);
+      retArr = db.exec(sql);
     }
     if(retArr.length == 0) return Promise.resolve([]);
     for( const valRow of retArr[0].values) {
@@ -189,9 +187,9 @@ export const run = async (db: any, statement: string, values: any[], fromJson: b
     }
     if(values != null && values.length > 0) {
       const mVal: any[] = await replaceUndefinedByNull(values);
-      await db.exec(sqlStmt, mVal);
+      db.exec(sqlStmt, mVal);
     } else {
-      await db.exec(sqlStmt);
+      db.exec(sqlStmt);
     }
     lastId = await getLastId(db);
     return Promise.resolve(lastId);
@@ -217,6 +215,7 @@ export const deleteSQL= async (db: any, statement: string,
       await findReferencesAndUpdate(db, tableName, clauseStmt, values);
     }
     return Promise.resolve(sqlStmt);
+
   } catch (err) {
     return Promise.reject(new Error(`deleteSQL: ${err.message}`));
   }
@@ -269,9 +268,9 @@ export const findReferencesAndUpdate = async (db: any, tableName: string,
             }
           }
         }
-        await db.exec(stmt, selValues);
+        db.exec(stmt, selValues);
       } else {
-        await db.exec(stmt);
+        db.exec(stmt);
       }
       const lastId: number = await getLastId(db);
       if (lastId == -1) {

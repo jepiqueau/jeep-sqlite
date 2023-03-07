@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Issue#385</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly & WAL</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+        </div>
+      </div>
+    </div>
+    <h1>Issue#385 Tests Page</h1>
+   <jeep-sqlite autoSave></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
+      console.log(`Import: ${event.detail.progress}`)
+    });
+    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
+      console.log(`Export: ${event.detail.progress}`)
+    });
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+      };
+      const endTest = async(name,msg) => {
+        if(msg.length === 0) {
+          console.log(`\n* The set of tests ${name} was successful *\n`);
+        } else {
+          console.log(`${msg}`);
+          console.log(`\n* The set of tests ${name} failed *\n`);
+        }
+      }
+      const openConnection = async (dbName, encrypted, mode, version, readonly,
+                                    isDelete) => {
+        try {
+          const openMode = readonly ? "RO" : "RW";
+          const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName],openModes:[openMode]})).result;
+          const isConn = (await jeepSqlite.isConnection({database: dbName, readonly: readonly})).result;
+          if(!retCC || !isConn) {
+            console.log('*** create connection \n')
+              await jeepSqlite.createConnection({database: dbName, encrypted: encrypted, mode: mode,
+                                                 version: version, readonly: readonly});
+          }
+          if (isDelete && !readonly) {
+                await deleteDatabase(dbName);
+          }
+          await jeepSqlite.open({database: dbName, readonly: readonly});
+
+          return Promise.resolve();
+        } catch (err) {
+            return Promise.reject(err);
+        }
+      }
+      const deleteDatabase = async (dbName) => {
+        try {
+            const ret = (await jeepSqlite.isDBExists({database: dbName})).result;
+            if(ret) {
+                await jeepSqlite.deleteDatabase({database: dbName});
+                return Promise.resolve();
+            } else {
+                return Promise.resolve();
+            }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+      const showDepartments = async (message) => {
+        try {
+          let res = await jeepSqlite.query({database: 'db_issue385',statement: 'SELECT * FROM departments'});
+          console.log(`\n**** Departments ${message} ****`)
+          for( const row of res.values) {
+            console.log(`>>> department_id: ${row['department_id']} department_name: ${row['department_name']}`);
+          }
+
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+      const showStudents = async (message) => {
+        try {
+          let res = await jeepSqlite.query({database: 'db_issue385',statement: 'SELECT * FROM students'});
+          console.log(`\n**** Students ${message} ****`)
+         for( const row of res.values) {
+            console.log(`>>> student_id: ${row['student_id']} student_name: ${row['student_name']} department_id: ${row['department_id']}`);
+          }
+
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
+
+      const delay = async (delay, message) => {
+        return new Promise (resolve => {
+          setTimeout(() => {
+            const s = "*".repeat(message.length)
+            console.log(`*****************${s}`);
+            console.log(`Simulate a delay ${message}`);
+            console.log(`*****************${s}`);
+            resolve();
+          }, delay * 1000);
+        });
+      }
+
+      // ********************************
+      // *** test issue #385 ***
+      // ********************************
+
+      const dbJSON = {
+        database: "db_issue385",
+        version: 1,
+        encrypted: false,
+        mode: "full",
+        tables: [
+          {
+            name: "departments",
+            schema: [
+              {
+                column: "department_id",
+                value: "INTEGER  NOT NULL PRIMARY KEY",
+              },
+              {
+                column: "department_name",
+                value: "TEXT NOT NULL"
+              },
+            ],
+          },
+          {
+            name: "students",
+            schema: [
+              {
+                column: "student_id",
+                value: "INTEGER PRIMARY KEY NOT NULL",
+              },
+              {
+                column: "student_name",
+                value: "TEXT NULL",
+              },
+              {
+                column: "department_id",
+                value: "INTEGER NOT NULL",
+              },
+              {
+                foreignkey: "department_id",
+                value: "REFERENCES departments (department_id) ON DELETE CASCADE ON UPDATE CASCADE"
+              },
+            ],
+          },
+        ],
+      };
+
+      const initializeDatabase = async () => {
+        try {
+
+          await jeepSqlite.execute({database: 'db_issue385', statements: `
+          INSERT INTO departments VALUES (1,'IT'),(2,'Mechanical'),(3,'Arts'),(4,'Artificial Intelligence');
+          INSERT INTO students VALUES (1,'John',1),(2,'Thomas',2),(3,'Steven',1),(4,'Michael',3),(5,'Julia',4);
+          `});
+
+          return;
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+            return Promise.reject(`Error: ${msg}`);
+        };
+      };
+      const deleteStudentByName = async (name) => {
+        const stmt = `DELETE FROM students WHERE student_name = ?`;
+        const ret = await jeepSqlite.run({database: 'db_issue385', statement: stmt, values: [name]});
+      }
+      const deleteDepartmentByName = async (name) => {
+        const stmt = `DELETE FROM departments WHERE department_name = ?`;
+        const ret = await jeepSqlite.run({database: 'db_issue385', statement: stmt, values: [name]});
+      }
+      const initializeTest = async() => {
+        // Test with composite primary keys
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+
+          const databaseExists = (await jeepSqlite.isDatabase({database:'db_issue385'})).result;
+          if(!databaseExists) {
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dbJSON)});
+            if(result.changes.changes === -1 ) return Promise.reject("ImportFromJson 'full' dbJSON failed");
+            // Open connection
+            await openConnection('db_issue385', false,
+                                      'no-encryption', 1, false, false);
+
+            // create tables in db
+            const isDB = await jeepSqlite.isDBOpen({database: 'db_issue385'});
+            if(!isDB) return Promise.reject('Database "db_issue385" not opened');
+            ret = await jeepSqlite.getTableList({database: "db_issue385"});
+            if(ret.values.length !== 2) {
+              return Promise.reject('Number of tables != 2');
+            }
+
+            // fill some data
+            await initializeDatabase();
+          } else {
+            await openConnection('db_issue385', false,
+                                      'no-encryption', 1, false, false);
+
+          }
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      try {
+        var activeTest = 'Test Issue385';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database
+        await initializeTest();
+        // Show initial data
+        await showDepartments('initial data');
+        await showStudents('initial data');
+
+        // Delete an employee
+        await deleteStudentByName('Michael');
+        // Show after delete a student data
+        await showDepartments('after Michael delete');
+        await showStudents('after Michael delete');
+
+        await deleteDepartmentByName('IT');
+        // Show after delete a department data
+        await showDepartments('after IT delete');
+        await showStudents('after IT delete');
+
+        // Close Connection issue#385
+        await jeepSqlite.closeConnection({database: 'db_issue385'});
+        let msg = `> closeConnection "db_issue385" successful\n`;
+        console.log(msg);
+        await endTest(activeTest,'');
+
+      } catch (err) {
+        let msg = err.message ? err.message : err;
+        console.log(`Error: ${msg}`);
+        await endTest(activeTest,msg);
+      }
+
+    }
+  })();
+</script>
+

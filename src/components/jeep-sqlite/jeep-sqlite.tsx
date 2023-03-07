@@ -683,7 +683,7 @@ export class JeepSqlite {
 
   async componentWillLoad() {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
-    this.parseAutoSave(this.autoSave !== undefined ? true : false);
+    this.parseAutoSave(this.autoSave !== undefined ? this.autoSave : false);
     this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
   }
   componentDidLoad() {
