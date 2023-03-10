@@ -45,7 +45,6 @@ export class Database {
     return new Promise((resolve,reject) => {
       try {
         initSqlJs(config).then(async (SQL) => {
-
           // retrieve the database if stored on localforage
           const retDB: Uint8Array = await getDBFromStore(this.dbName, this.store);
           if(retDB != null) {
@@ -56,6 +55,7 @@ export class Database {
             this.mDb = new SQL.Database();
             await setInitialDBToStore( this.dbName, this.store);
           }
+
           this._isDBOpen = true;
           // get the current version
           let curVersion: number = await getVersion(this.mDb);
@@ -130,7 +130,7 @@ export class Database {
     if (this.mDb != null && this._isDBOpen) {
       try {
         // save the database to store
-        await this.saveToStore();
+        await this.saveToStore(false);
         // close the database
         this.mDb.close();
         this._isDBOpen = false;
@@ -143,14 +143,15 @@ export class Database {
     }
     return Promise.resolve();
   }
-  public async saveToStore(): Promise<void> {
+  public async saveToStore(setFK:boolean = true): Promise<void> {
     if (this.mDb != null && this._isDBOpen) {
       try {
         // save the database to store
         await setDBToStore(this.mDb, this.dbName, this.store);
-        // set Foreign Keys On
-        await setForeignKeyConstraintsEnabled(this.mDb, true);
-
+        if(setFK) {
+          // set Foreign Keys On
+          await setForeignKeyConstraintsEnabled(this.mDb, true);
+        }
       } catch (err) {
         return Promise.reject(`in saveToStore ${err}`);
       }

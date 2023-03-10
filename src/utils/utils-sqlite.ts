@@ -71,10 +71,11 @@ export const setForeignKeyConstraintsEnabled = async (db: any, toggle: boolean):
     stmt = 'PRAGMA foreign_keys=ON';
   }
   try {
-    db.exec(stmt);
+    db.run(stmt);
     return Promise.resolve();
   } catch (err) {
-    return Promise.reject(new Error(`SetForeignKey: ${err.message}`));
+    const msg = err.message ? err.message : err;
+    return Promise.reject(new Error(`SetForeignKey: ${msg}`));
   }
 }
 export const getVersion = async (db: any): Promise<number> => {

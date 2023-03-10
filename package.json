@@ -1,6 +1,6 @@
 {
   "name": "jeep-sqlite",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Browser SQLite Stencil Component",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
@@ -28,9 +28,9 @@
     "sql.js": "^1.8.0"
   },
   "devDependencies": {
-    "@types/jest": "^29.4.0",
-    "jest": "^29.4.3",
-    "jest-cli": "^29.4.3",
+    "@types/jest": "^27.0.3",
+    "jest": "^27.0.3",
+    "jest-cli": "^27.4.5",
     "puppeteer": "^19.7.2",
     "rollup-plugin-node-polyfills": "^0.2.1"
   },

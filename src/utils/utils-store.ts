@@ -23,6 +23,7 @@ export const setDBToStore = async (mDb: any, dbName: string, store: LocalForage)
     const data: Uint8Array = mDb.export();
     // store the database
     await saveDBToStore(dbName, data, store);
+
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(`SetDBToStore: ${err.message}`);
