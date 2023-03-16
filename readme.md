@@ -18,12 +18,13 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
- - Release 2.1.0 ->>
+ - Release 2.3.0 ->>
     Use of the `File System Access API` through the [Browser-FS-Access](https://www.npmjs.com/package/browser-fs-access) module.
     - add `getFromLocalDiskToStore`: read a database from your local disk and save it to the IndexedDB `jeepSqliteStore` store.
     - add `saveToLocalDisk`: save a database to your local disk will allows developers to view the database in separate DB tools like `DB Browser for Sqlite`.
     - add `jeepSqlitePickDatabaseEnded` event listener.
     - add `index_getFromLocalDiskToStore.html` to demonstrate the use of the two new methods.
+ - Release 2.1.0, 2.2.0->> DEPRECATED
 
  - Release 1.6.6 ->>
     fix WAL mode for concurrency access to databases. WAL2 is not supported
