@@ -18,7 +18,7 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
- - Release 2.1.0 ->>
+ - Release 2.2.0 ->>
     Use of the `File System Access API` through the [Browser-FS-Access](https://www.npmjs.com/package/browser-fs-access) module.
     - add `getFromLocalDiskToStore`: read a database from your local disk and save it to the IndexedDB `jeepSqliteStore` store.
     - add `saveToLocalDisk`: save a database to your local disk will allows developers to view the database in separate DB tools like `DB Browser for Sqlite`.
