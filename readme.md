@@ -148,6 +148,8 @@ in the head of your index.html
 | checkConnectionsConsistency | ✅      |
 | saveToStore                 | ✅      |
 | getFromHTTPRequest          | ✅      | New in 1.6.3
+| getFromLocalDiskToStore     | ✅      | New in 2.3.0
+| saveToLocalDisk             | ✅      | New in 2.3.0
 
 
 The database is saved when you run the methods `close`or `closeConnection`, in the Browser Storage `IndexedDB` as a `localforage` store under the `jeepSqliteStore` name and `databases`table name.
@@ -172,6 +174,7 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
 | jeepSqliteImportProgress    | ✅      |
 | jeepSqliteExportProgress    | ✅      |
 | jeepSqliteHTTPRequestEnded  | ✅      |
+| jeepSqlitePickDatabaseEnded | ✅      |
 
 
 
