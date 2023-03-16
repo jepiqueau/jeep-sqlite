@@ -96,6 +96,7 @@
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
           <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
         </div>
       </div>
     </div>
@@ -126,11 +127,30 @@
             // open db testNew
             await jeepSqlite.open({database: "testNew"});
             const isDB = await jeepSqlite.isDBOpen({database: "testNew"})
-            let sql = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY NOT NULL,email TEXT UNIQUE NOT NULL,name TEXT,company TEXT,size REAL,age INTEGER,sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),last_modified INTEGER DEFAULT (strftime('%s', 'now')));";
-            sql += "CREATE INDEX IF NOT EXISTS users_index_name ON users (name);";
-            sql += "CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);";
-            sql += "CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified BEGIN UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id; END;";
-            sql += "PRAGMA user_version = 1;";
+            let sql = `-- Redefine Table users
+              CREATE TABLE IF NOT EXISTS users (
+                /*
+                 * Author: Jeepq
+                 * Purpose: To show a comment that spans multiple lines in your SQL
+                 * statement in SQLite.
+                 */
+                id INTEGER PRIMARY KEY NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                name TEXT,company TEXT,
+                size REAL,
+                age INTEGER,
+                sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+                last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+              );
+              CREATE INDEX IF NOT EXISTS users_index_name ON users (name);
+              CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);
+              CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified AFTER UPDATE ON users
+                FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+                BEGIN UPDATE users SET last_modified = (strftime('%s', 'now')) WHERE id=OLD.id;
+                END;
+              PRAGMA user_version = 1;
+            `;
+            console.log(`sql: ${sql}`);
             let ret = await jeepSqlite.execute({database: "testNew", statements: sql});
             ret = await jeepSqlite.isTableExists({database: "testNew", table: "users"});
             ret = await jeepSqlite.isTableExists({database: "testNew", table: "contact"});
@@ -516,7 +536,7 @@
 
             // create the connection to the database
             await jeepSqlite.createConnection({database:"db-from-json", version: 1});
-            // open db testNew
+            // open db db-from-json
             await jeepSqlite.open({database: "db-from-json"});
             // Select all users
             ret = await jeepSqlite.query({database: "db-from-json",
@@ -571,7 +591,6 @@
             if (ret.result) {
               await jeepSqlite.deleteDatabase({database:"db-from-json"});
             }
-
             await jeepSqlite.closeConnection({database:"testNew"});
             await jeepSqlite.closeConnection({database:"testSet"});
             await jeepSqlite.closeConnection({database:"db-from-json"});

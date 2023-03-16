@@ -669,11 +669,12 @@ Type: `Promise<void>`
 
 ## Events
 
-| Event                        | Description | Type                                    |
-| ---------------------------- | ----------- | --------------------------------------- |
-| `jeepSqliteExportProgress`   |             | `CustomEvent<JsonProgressListener>`     |
-| `jeepSqliteHTTPRequestEnded` |             | `CustomEvent<HTTPRequestEndedListener>` |
-| `jeepSqliteImportProgress`   |             | `CustomEvent<JsonProgressListener>`     |
+| Event                         | Description | Type                                     |
+| ----------------------------- | ----------- | ---------------------------------------- |
+| `jeepSqliteExportProgress`    |             | `CustomEvent<JsonProgressListener>`      |
+| `jeepSqliteHTTPRequestEnded`  |             | `CustomEvent<HTTPRequestEndedListener>`  |
+| `jeepSqliteImportProgress`    |             | `CustomEvent<JsonProgressListener>`      |
+| `jeepSqlitePickDatabaseEnded` |             | `CustomEvent<PickDatabaseEndedListener>` |
 
 
 ## Methods
@@ -828,6 +829,16 @@ Type: `Promise<void>`
 
 
 
+### `getFromLocalDiskToStore(options: SQLiteLocalDiskOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### `getSyncDate(options: SQLiteSyncDateOptions) => Promise<SQLiteSyncDate>`
 
 
@@ -965,6 +976,16 @@ Type: `Promise<SQLiteValues>`
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
+
+
+
+### `saveToLocalDisk(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
 
 
 

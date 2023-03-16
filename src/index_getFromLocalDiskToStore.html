@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test DB Get From HTTP Request</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly & WAL</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+        </div>
+      </div>
+    </div>
+    <h1>Get From Local Disk To Store</h1>
+    <jeep-sqlite></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+    };
+    const endTest = async(name,msg) => {
+      if(msg.length === 0) {
+        console.log(`\n* The set of tests ${name} was successful *\n`);
+      } else {
+        console.log(`${msg}`);
+        console.log(`\n* The set of tests ${name} failed *\n`);
+      }
+    }
+    const openDB = async (dbName) => {
+      try {
+        // create connection to dbName
+        await jeepSqlite.createConnection({database:dbName, version: 1});
+        console.log(`after create coonnection`);
+        // open db dbName
+        await jeepSqlite.open({database: dbName});
+        // Select all tables,
+        ret = await jeepSqlite.getTableList({database: dbName});
+        console.log(`>>> openDB getTableList ret: ${JSON.stringify(ret)} `)
+
+        if(ret.values.length > 0) {
+          const tableName = ret.values[0];
+          ret = await jeepSqlite.query({database: dbName,
+                                        statement: `SELECT * FROM ${tableName};`});
+          console.log(`*** table: ${tableName} ***`);
+          console.log(`${JSON.stringify(ret.values)}`);
+
+        }
+        // Do some new stuff here
+
+        // Save the database to disk
+        await jeepSqlite.saveToLocalDisk({database:dbName});
+        // Close the connection
+        await jeepSqlite.closeConnection({database:dbName});
+        console.log(`>>> openDB successful <<<`)
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+
+    }
+
+    jeepSqlite.addEventListener('jeepSqlitePickDatabaseEnded', async (event) => {
+      console.log(`in jeepSqlitePickDatabaseEnded ${JSON.stringify(event)}`)
+      if(event.detail.db_name) {
+        await openDB(event.detail.db_name);
+        console.log(`******** readDB successful ********\n`)
+        await endTest(activeTest,'');
+      } else {
+        console.log(`${event.detail.message}`);
+      }
+    });
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const initializeTest = async() => {
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+          console.log(`******** initializeTest successful ********\n`)
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const readDB = async () => {
+        try {
+          await jeepSqlite.getFromLocalDiskToStore({overwrite: true});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+
+      // ********************************
+      // *** test with SQL statements ***
+      // ********************************
+      try {
+        var activeTest = 'DatabaseGetFromLocalDisk';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database
+        await initializeTest();
+        await readDB();
+       } catch (err) {
+        let msg = err.message ? err.message : err;
+        console.log(`Error: ${msg}`);
+        await endTest(activeTest,msg);
+      }
+
+    }
+  })();
+</script>
+

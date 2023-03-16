@@ -158,6 +158,17 @@ export class Database {
     }
     return Promise.resolve();
   }
+  public async exportDB(): Promise<Uint8Array> {
+    // export the database
+    try {
+      const data: Uint8Array = this.mDb.export();
+      return data;
+    } catch (err) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`exportDB: ${msg}`);
+    }
+
+  }
   public async getVersion(): Promise<number> {
     if (this.mDb != null && this._isDBOpen) {
       try {

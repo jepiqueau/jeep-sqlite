@@ -1,4 +1,4 @@
-import { Component, Method, Event, EventEmitter, Prop, State, Watch } from '@stencil/core';
+import { Component, Method, Event, EventEmitter, Prop, State, Watch, Element } from '@stencil/core';
 import { Database } from '../../utils/database';
 import localForage from 'localforage';
 import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQLiteQueryOptions,
@@ -7,10 +7,11 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
          SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions,
-         SQLiteHTTPOptions, HTTPRequestEndedListener } from '../../interfaces/interfaces';
+         SQLiteHTTPOptions, HTTPRequestEndedListener, PickDatabaseEndedListener, SQLiteLocalDiskOptions } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
 import * as JSZip from 'jszip';
+import { fileOpen, fileSave, supported } from 'browser-fs-access';
 
 @Component({
   tag: 'jeep-sqlite',
@@ -20,6 +21,7 @@ import * as JSZip from 'jszip';
 })
 export class JeepSqlite {
 
+ @Element()  el!: HTMLJeepSqliteElement;
   //************************
   //* Property Definitions *
   //************************
@@ -78,6 +80,11 @@ export class JeepSqlite {
       cancelable: true,
       bubbles: true,
   }) HTTPRequestEnded: EventEmitter<HTTPRequestEndedListener>;
+  @Event({eventName:'jeepSqlitePickDatabaseEnded',
+      composed: true,
+      cancelable: true,
+      bubbles: true,
+  }) PickDatabaseEnded: EventEmitter<PickDatabaseEndedListener>;
 
   //**********************
   //* Method Definitions *
@@ -646,6 +653,36 @@ export class JeepSqlite {
     }
   }
   @Method()
+  async saveToLocalDisk(options: SQLiteOptions): Promise<void> {
+    const keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    try {
+      await this._saveToLocalDisk(dbName);
+      return Promise.resolve();
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async getFromLocalDiskToStore(options: SQLiteLocalDiskOptions): Promise<void> {
+    const overwrite: boolean = options.overwrite ? options.overwrite : true;
+    if (supported) {
+      console.log('Using the File System Access API.');
+    } else {
+      console.log('Using the fallback implementation.');
+    }
+    try {
+      await this._getFromLocalDiskToStore(overwrite);
+      return Promise.resolve();
+    }
+    catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
   async getFromHTTPRequest(options: SQLiteHTTPOptions): Promise<void> {
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
@@ -675,7 +712,12 @@ export class JeepSqlite {
   private _dbDict: any = {};
   private databaseList: any = {};
   private _versionUpgrades: Record<string, Record<number, SQLiteVersionUpgrade>> = {};
-
+  private _element: any;
+  private _blob: Blob;
+  private _opts: any;
+  private _buttonSaveEl: HTMLButtonElement;
+  private _buttonPickEl: HTMLButtonElement;
+  private _overwrite: boolean = true;
 
   //*******************************
   //* Component Lifecycle Methods *
@@ -687,6 +729,7 @@ export class JeepSqlite {
     this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
   }
   componentDidLoad() {
+    this._element = this.el.shadowRoot;
     if(!this.isStore) {
       console.log('jeep-sqlite isStore = false');
     }
@@ -803,6 +846,78 @@ export class JeepSqlite {
       return Promise.resolve();
     } catch (err) {
       return Promise.reject(`SaveToStore: ${err.message}`);
+    }
+  }
+  async _saveToLocalDisk(database: string):Promise<void> {
+    try {
+
+      const keys = Object.keys(this._dbDict);
+      const connName = "RW_" + database;
+      if (!keys.includes(connName)) {
+        return Promise.reject(
+          '_saveToLocalDisk: No available connection for ' + `${database}`,
+        );
+      }
+      const mDb = this._dbDict[connName];
+      const uint: Uint8Array = await mDb.exportDB();
+      this._blob = await this.uint2blob(uint);
+      const dbName: string = `${database}SQLite.db`;
+      this._opts = {fileName: dbName, extensions:['.db']};
+      this._buttonSaveEl = document.createElement('button');
+      this._buttonSaveEl.setAttribute("id","saveButton");
+      this._buttonSaveEl.innerHTML = `Save Database ${dbName}`;
+      this._buttonSaveEl.setAttribute("style","font-size: larger;")
+      this._element.appendChild(this._buttonSaveEl);
+      this._buttonSaveEl.addEventListener("click", this.saveFile.bind(this));
+      return Promise.resolve();
+    } catch (err) {
+      return Promise.reject(`_saveToLocalDisk: ${err.message}`);
+    }
+  }
+  async _getFromLocalDiskToStore(overwrite: boolean): Promise<void> {
+
+    this._buttonPickEl = document.createElement('button');
+    this._buttonPickEl.setAttribute("id","pickButton");
+    this._buttonPickEl.innerHTML = `Pick a Database`;
+    this._buttonPickEl.setAttribute("style","font-size: larger;")
+    this._element.appendChild(this._buttonPickEl);
+    this._buttonPickEl.addEventListener("click", this.pickDatabase.bind(this));
+    this._overwrite = overwrite;
+    return Promise.resolve();
+  }
+  private async pickDatabase() {
+    try {
+      const blob = await fileOpen({extensions: ['.db']});
+      let uInt8Array: Uint8Array = await this.blob2uint(blob);
+      const databaseName = this.removePathSuffix(blob.name);
+      const dbName = this.setPathSuffix(blob.name);
+      // check if dbName exists
+      const isExist: boolean = await isDBInStore(dbName, this.store);
+      if (!isExist) {
+        await saveDBToStore(dbName, uInt8Array, this.store);
+      } else  {
+        if(this._overwrite) {
+          await removeDBFromStore(dbName, this.store);
+          await saveDBToStore(dbName, uInt8Array, this.store);
+        } else {
+          this.PickDatabaseEnded.emit({message:`Error: cannot overwrite ${dbName}`});
+        }
+      }
+      this._element.removeChild(this._buttonPickEl);
+      this.PickDatabaseEnded.emit({db_name: databaseName});
+    } catch (err) {
+      const msg = err.message ? err.message : err;
+      this.PickDatabaseEnded.emit({message:msg});
+    }
+  }
+
+  private async saveFile() {
+    try {
+      await fileSave(this._blob,[this._opts]);
+      this._element.removeChild(this._buttonSaveEl);
+    } catch (err) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`_saveFile: ${msg}`);
     }
   }
   private async _getVersion(database: string, readonly: boolean): Promise<SQLiteVersion> {
@@ -1435,6 +1550,13 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     };
     return config;
   }
+  private removePathSuffix(db:string): string {
+    return db.includes("SQLite.db") ?
+            db.split("SQLite.db")[0] :
+            db.substring(db.length -3) === ".db" ?
+            db.slice(0,db.lastIndexOf(".")) :
+            db;
+  }
   private setPathSuffix(db: string): string {
     let toDb: string = db.slice(db.lastIndexOf("/") + 1);
     const ext: string = ".db";
@@ -1445,6 +1567,18 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     }
     return toDb;
   }
+  private async blob2uint(blob: Blob): Promise<Uint8Array> {
+    return new Response(blob).arrayBuffer().then(buffer=>{
+        const uint: Uint8Array = new Uint8Array(buffer);
+        return uint;
+    });
+  }
+  private async uint2blob(uint: Uint8Array): Promise<Blob> {
+    const blob: Blob = new Blob([uint.buffer]);
+
+    return Promise.resolve(blob);
+  }
+
   render() {
     return ;
   }

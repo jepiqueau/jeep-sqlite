@@ -218,6 +218,12 @@ export interface SQLiteHTTPOptions {
    */
   overwrite?: boolean;
 }
+export interface SQLiteLocalDiskOptions {
+  /**
+   * the overwrite value true/false default true
+   */
+  overwrite?: boolean;
+}
 export interface EchoResult {
   /**
    * String returned
@@ -400,6 +406,17 @@ export interface HTTPRequestEndedListener {
    */
   message?: string;
 }
+export interface PickDatabaseEndedListener {
+  /**
+   * Pick Database's name
+   */
+  db_name?: string;
+  /**
+   * Message
+   */
+  message?: string;
+}
+
 export interface JsonView {
   /**
    * The view name
