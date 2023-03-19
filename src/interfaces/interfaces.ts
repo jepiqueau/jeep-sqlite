@@ -406,7 +406,7 @@ export interface HTTPRequestEndedListener {
    */
   message?: string;
 }
-export interface PickDatabaseEndedListener {
+export interface PickOrSaveDatabaseEndedListener {
   /**
    * Pick Database's name
    */

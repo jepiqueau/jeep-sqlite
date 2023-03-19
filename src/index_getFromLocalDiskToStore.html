@@ -124,7 +124,7 @@
       try {
         // create connection to dbName
         await jeepSqlite.createConnection({database:dbName, version: 1});
-        console.log(`after create coonnection`);
+        console.log(`after create connection`);
         // open db dbName
         await jeepSqlite.open({database: dbName});
         // Select all tables,
@@ -132,20 +132,16 @@
         console.log(`>>> openDB getTableList ret: ${JSON.stringify(ret)} `)
 
         if(ret.values.length > 0) {
-          const tableName = ret.values[0];
-          ret = await jeepSqlite.query({database: dbName,
-                                        statement: `SELECT * FROM ${tableName};`});
-          console.log(`*** table: ${tableName} ***`);
-          console.log(`${JSON.stringify(ret.values)}`);
-
+          for (const tableName of ret.values) {
+            const retQuery = await jeepSqlite.query({database: dbName, statement:`SELECT * FROM ${tableName};`});
+            console.log(`*** table: ${tableName} ***`);
+            console.log(`${JSON.stringify(retQuery.values)}`);
+          }
         }
         // Do some new stuff here
 
         // Save the database to disk
         await jeepSqlite.saveToLocalDisk({database:dbName});
-        // Close the connection
-        await jeepSqlite.closeConnection({database:dbName});
-        console.log(`>>> openDB successful <<<`)
         return Promise.resolve();
       } catch (err) {
           let msg = err.message ? err.message : err;
@@ -156,15 +152,32 @@
     }
 
     jeepSqlite.addEventListener('jeepSqlitePickDatabaseEnded', async (event) => {
-      console.log(`in jeepSqlitePickDatabaseEnded ${JSON.stringify(event)}`)
       if(event.detail.db_name) {
         await openDB(event.detail.db_name);
-        console.log(`******** readDB successful ********\n`)
-        await endTest(activeTest,'');
+        console.log(`>>> openDB successful <<<`)
       } else {
         console.log(`${event.detail.message}`);
       }
     });
+    jeepSqlite.addEventListener('jeepSqliteSaveDatabaseToDisk', async (event) => {
+      if(event.detail.db_name) {
+        const dbName = event.detail.db_name.split("SQLite.db")[0];
+        console.log(`in jeepSqliteSaveDatabaseToDisk dbName: ${dbName}`);
+        try {
+        // Close the connection
+          await jeepSqlite.closeConnection({database:dbName});
+          console.log(`******** saveDB successful ********\n`)
+          await endTest(activeTest,'');
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            await endTest(activeTest,`${event.detail.message}`);
+        }
+      } else {
+        console.log(`${event.detail.message}`);
+        await endTest(activeTest,`${event.detail.message}`);
+      }
+    });
+
     if(await jeepSqlite.isStoreOpen()) {
 
       const initializeTest = async() => {

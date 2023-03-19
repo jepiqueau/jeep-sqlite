@@ -5,4 +5,21 @@
 #fileElem {
   display: none;
 }
-
+#pickButton {
+  position: absolute;
+  top: 10%;
+  right: 1%;
+  font-size: 2em;
+  padding: 2%;
+  background-color:darkgrey;
+  color:white;
+}
+#saveButton {
+  position: absolute;
+  top: 10%;
+  right: 1%;
+  font-size: 2em;
+  padding: 2%;
+  background-color: darkgrey;
+  color:white;
+}

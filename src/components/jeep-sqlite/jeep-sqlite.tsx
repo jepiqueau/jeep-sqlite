@@ -7,7 +7,8 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteUpgradeOptions, SQLiteVersionUpgrade, AllConnectionsOptions,
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
          SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions,
-         SQLiteHTTPOptions, HTTPRequestEndedListener, PickDatabaseEndedListener, SQLiteLocalDiskOptions } from '../../interfaces/interfaces';
+         SQLiteHTTPOptions, HTTPRequestEndedListener, PickOrSaveDatabaseEndedListener,
+         SQLiteLocalDiskOptions } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
 import * as JSZip from 'jszip';
@@ -84,7 +85,12 @@ export class JeepSqlite {
       composed: true,
       cancelable: true,
       bubbles: true,
-  }) PickDatabaseEnded: EventEmitter<PickDatabaseEndedListener>;
+  }) PickDatabaseEnded: EventEmitter<PickOrSaveDatabaseEndedListener >;
+  @Event({eventName:'jeepSqliteSaveDatabaseToDisk',
+      composed: true,
+      cancelable: true,
+      bubbles: true,
+  }) SaveDatabaseEnded: EventEmitter<PickOrSaveDatabaseEndedListener >;
 
   //**********************
   //* Method Definitions *
@@ -865,8 +871,7 @@ export class JeepSqlite {
       this._opts = {fileName: dbName, extensions:['.db']};
       this._buttonSaveEl = document.createElement('button');
       this._buttonSaveEl.setAttribute("id","saveButton");
-      this._buttonSaveEl.innerHTML = `Save Database ${dbName}`;
-      this._buttonSaveEl.setAttribute("style","font-size: larger;")
+      this._buttonSaveEl.innerHTML = `Save ${dbName}`;
       this._element.appendChild(this._buttonSaveEl);
       this._buttonSaveEl.addEventListener("click", this.saveFile.bind(this));
       return Promise.resolve();
@@ -879,7 +884,6 @@ export class JeepSqlite {
     this._buttonPickEl = document.createElement('button');
     this._buttonPickEl.setAttribute("id","pickButton");
     this._buttonPickEl.innerHTML = `Pick a Database`;
-    this._buttonPickEl.setAttribute("style","font-size: larger;")
     this._element.appendChild(this._buttonPickEl);
     this._buttonPickEl.addEventListener("click", this.pickDatabase.bind(this));
     this._overwrite = overwrite;
@@ -914,10 +918,12 @@ export class JeepSqlite {
   private async saveFile() {
     try {
       await fileSave(this._blob,[this._opts]);
+      const databaseName = this._opts.fileName;
       this._element.removeChild(this._buttonSaveEl);
+      this.SaveDatabaseEnded.emit({db_name: databaseName});
     } catch (err) {
       const msg = err.message ? err.message : err;
-      return Promise.reject(`_saveFile: ${msg}`);
+      this.SaveDatabaseEnded.emit({message:msg});
     }
   }
   private async _getVersion(database: string, readonly: boolean): Promise<SQLiteVersion> {

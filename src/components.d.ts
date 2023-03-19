@@ -5,8 +5,8 @@
  * It contains typing information for all components that exist in this project.
  */
 import { HTMLStencilElement, JSXBase } from "@stencil/core/internal";
-import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, HTTPRequestEndedListener, JsonProgressListener, PickDatabaseEndedListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteHTTPOptions, SQLiteImportOptions, SQLiteJson, SQLiteLocalDiskOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
-export { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, HTTPRequestEndedListener, JsonProgressListener, PickDatabaseEndedListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteHTTPOptions, SQLiteImportOptions, SQLiteJson, SQLiteLocalDiskOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
+import { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, HTTPRequestEndedListener, JsonProgressListener, PickOrSaveDatabaseEndedListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteHTTPOptions, SQLiteImportOptions, SQLiteJson, SQLiteLocalDiskOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
+export { AllConnectionsOptions, ConnectionOptions, EchoOptions, EchoResult, HTTPRequestEndedListener, JsonProgressListener, PickOrSaveDatabaseEndedListener, SQLiteChanges, SQLiteExecuteOptions, SQLiteExportOptions, SQLiteFromAssetsOptions, SQLiteHTTPOptions, SQLiteImportOptions, SQLiteJson, SQLiteLocalDiskOptions, SQLiteOptions, SQLiteQueryOptions, SQLiteResult, SQLiteRunOptions, SQLiteSet, SQLiteSetOptions, SQLiteSyncDate, SQLiteSyncDateOptions, SQLiteTableOptions, SQLiteUpgradeOptions, SQLiteValues, SQLiteVersion, SQLiteVersionUpgrade } from "./interfaces/interfaces";
 export namespace Components {
     interface JeepSqlite {
         "addUpgradeStatement": (options: SQLiteUpgradeOptions) => Promise<void>;
@@ -76,7 +76,8 @@ declare namespace LocalJSX {
         "onJeepSqliteExportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
         "onJeepSqliteHTTPRequestEnded"?: (event: JeepSqliteCustomEvent<HTTPRequestEndedListener>) => void;
         "onJeepSqliteImportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
-        "onJeepSqlitePickDatabaseEnded"?: (event: JeepSqliteCustomEvent<PickDatabaseEndedListener>) => void;
+        "onJeepSqlitePickDatabaseEnded"?: (event: JeepSqliteCustomEvent<PickOrSaveDatabaseEndedListener>) => void;
+        "onJeepSqliteSaveDatabaseToDisk"?: (event: JeepSqliteCustomEvent<PickOrSaveDatabaseEndedListener>) => void;
         /**
           * WasmPath
          */

@@ -1,0 +1,6 @@
+{
+  "name": "jeep-sqlite/hydrate",
+  "description": "JeepSqlite component hydration app.",
+  "main": "index.js",
+  "types": "index.d.ts"
+}

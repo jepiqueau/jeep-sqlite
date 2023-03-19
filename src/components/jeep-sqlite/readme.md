@@ -15,15 +15,19 @@
 * [`createConnection(...)`](#createconnection)
 * [`createSyncTable(...)`](#createsynctable)
 * [`deleteDatabase(...)`](#deletedatabase)
+* [`deleteExportedRows(...)`](#deleteexportedrows)
 * [`echo(...)`](#echo)
 * [`execute(...)`](#execute)
 * [`executeSet(...)`](#executeset)
 * [`exportToJson(...)`](#exporttojson)
 * [`getDatabaseList()`](#getdatabaselist)
 * [`getFromHTTPRequest(...)`](#getfromhttprequest)
+* [`getFromLocalDiskToStore(...)`](#getfromlocaldisktostore)
 * [`getSyncDate(...)`](#getsyncdate)
+* [`getTableList(...)`](#gettablelist)
 * [`getVersion(...)`](#getversion)
 * [`importFromJson(...)`](#importfromjson)
+* [`isConnection(...)`](#isconnection)
 * [`isDatabase(...)`](#isdatabase)
 * [`isDBExists(...)`](#isdbexists)
 * [`isDBOpen(...)`](#isdbopen)
@@ -33,6 +37,7 @@
 * [`open(...)`](#open)
 * [`query(...)`](#query)
 * [`run(...)`](#run)
+* [`saveToLocalDisk(...)`](#savetolocaldisk)
 * [`saveToStore(...)`](#savetostore)
 * [`setSyncDate(...)`](#setsyncdate)
 
@@ -42,6 +47,7 @@
 * [`ConnectionOptions`](#connectionoptions)
 * [`EchoOptions`](#echooptions)
 * [`EchoResult`](#echoresult)
+* [`HTTPRequestEndedListener(...)`](#httprequestendedlistener)
 * [`JsonColumn`](#jsoncolumn)
 * [`JsonSQLite`](#jsonsqlite)
 * [`JsonTable`](#jsontable)
@@ -49,6 +55,7 @@
 * [`JsonIndex`](#jsonindex)
 * [`JsonProgressListener`](#jsonprogresslistener)
 * [`JsonView`](#jsonview)
+* [`PickOrSaveDatabaseEndedListener`](#pickorsavedatabaseendedlistener)
 * [`SQLiteChanges`](#sqlitechanges)
 * [`SQLiteExecuteOptions`](#sqliteexecuteoptions)
 * [`SQLiteExportOptions`](#sqliteexportoptions)
@@ -74,6 +81,8 @@
 * [`jeepSqliteExportProgress`](#jeepsqliteexportprogress)
 * [`jeepSqliteImportProgress`](#jeepsqliteimportprogress)
 * [`jeepSqliteHTTPRequestEnded`](#jeepsqlitehttprequestended)
+* [`jeepSqlitePickDatabaseEnded`](#jeepsqlitepickdatabaseended)
+* [`jeepSqliteSaveDatabaseToDisk`](#jeepsqlitesavedatabasetodisk)
 
 ## Interfaces
 
@@ -240,6 +249,12 @@
 | --------------- | -------------------- | ----------------------------------------------------- |
 | **`message`**  | <code>string</code>  | message can be either 'db' or 'zip'                    |
 
+### PickOrSaveDatabaseEndedListener {
+| Prop            | Type                 | Description                                           |
+| --------------- | -------------------- | ----------------------------------------------------- |
+| **`db_name`**   | <code>string</code>  | database file name                                    |
+| **`message`**   | <code>string</code>  | error message                                         |
+
 ### JsonProgressListener {
 | Prop            | Type                 | Description                                           |
 | --------------- | -------------------- | ----------------------------------------------------- |
@@ -319,6 +334,16 @@ The index value can have the following formats:
 | Event                        | Description | Type                                |
 | ---------------------------- | ----------- | ----------------------------------- |
 | `jeepSqliteHTTPRequestEnded` |             | `CustomEvent<HTTPRequestEndedListener>` |
+
+### jeepSqlitePickDatabaseEnded
+| Event                         | Description | Type                                            |
+| ----------------------------- | ----------- | ----------------------------------------------- |
+| `jeepSqlitePickDatabaseEnded` |             | `CustomEvent<<PickOrSaveDatabaseEndedListener>` |
+
+### jeepSqliteSaveDatabaseToDisk
+| Event                          | Description | Type                                            |
+| ------------------------------ | ----------- | ----------------------------------------------- |
+| `jeepSqliteSaveDatabaseToDisk` |             | `CustomEvent<<PickOrSaveDatabaseEndedListener>` |
 
 ## Methods
 
@@ -417,6 +442,16 @@ Type: `Promise<SQLiteChanges>`
 Type: `Promise<void>`
 
 
+### deleteExportedRows
+
+`deleteExportedRows(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
 
 ### echo
 
@@ -488,6 +523,16 @@ Type: `Promise<SQLiteValues>`
 Type: `Promise<void>`
 
 
+### getFromLocalDiskToStore
+
+`getFromLocalDiskToStore(options: SQLiteLocalDiskOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
 
 ### getSyncDate
 
@@ -498,6 +543,17 @@ Type: `Promise<void>`
 #### Returns
 
 Type: `Promise<SQLiteSyncDate>`
+
+
+### getTableList
+
+`getTableList(options: SQLiteOptions) => Promise<SQLiteValues>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteValues>`
 
 
 
@@ -546,6 +602,18 @@ Type: `Promise<SQLiteResult>`
 #### Returns
 
 Type: `Promise<SQLiteResult>`
+
+
+### isConnection
+
+`isConnection(options: SQLiteOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
 
 
 
@@ -633,6 +701,18 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+### saveToLocalDisk
+
+`saveToLocalDisk(options: SQLiteOptions) => Promise<void>`
+
+
+
+#### Returns
+
+Type: `Promise<void>`
+
+
+
 ### saveToStore
 
 `saveToStore(options: SQLiteOptions) => Promise<void>`
@@ -669,12 +749,13 @@ Type: `Promise<void>`
 
 ## Events
 
-| Event                         | Description | Type                                     |
-| ----------------------------- | ----------- | ---------------------------------------- |
-| `jeepSqliteExportProgress`    |             | `CustomEvent<JsonProgressListener>`      |
-| `jeepSqliteHTTPRequestEnded`  |             | `CustomEvent<HTTPRequestEndedListener>`  |
-| `jeepSqliteImportProgress`    |             | `CustomEvent<JsonProgressListener>`      |
-| `jeepSqlitePickDatabaseEnded` |             | `CustomEvent<PickDatabaseEndedListener>` |
+| Event                          | Description | Type                                           |
+| ------------------------------ | ----------- | ---------------------------------------------- |
+| `jeepSqliteExportProgress`     |             | `CustomEvent<JsonProgressListener>`            |
+| `jeepSqliteHTTPRequestEnded`   |             | `CustomEvent<HTTPRequestEndedListener>`        |
+| `jeepSqliteImportProgress`     |             | `CustomEvent<JsonProgressListener>`            |
+| `jeepSqlitePickDatabaseEnded`  |             | `CustomEvent<PickOrSaveDatabaseEndedListener>` |
+| `jeepSqliteSaveDatabaseToDisk` |             | `CustomEvent<PickOrSaveDatabaseEndedListener>` |
 
 
 ## Methods

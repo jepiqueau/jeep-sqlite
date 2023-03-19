@@ -122,6 +122,7 @@ in the head of your index.html
 | echo                        | ✅      |
 | createConnection            | ✅      |
 | closeConnection             | ✅      |
+| isConnection                | ✅      |
 | open (non-encrypted DB)     | ✅      |
 | close                       | ✅      |
 | execute                     | ✅      |
@@ -133,6 +134,7 @@ in the head of your index.html
 | isDBOpen                    | ✅      |
 | isStoreOpen                 | ✅      |
 | isTableExists               | ✅      |
+| getVersion                  | ✅      |
 | createSyncTable             | ✅      |
 | getSyncDate                 | ✅      |
 | setSyncDate                 | ✅      |
@@ -169,13 +171,13 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
 
 ## Supported Events
 
-| Name                        | Web     |
-| :-------------------------- | :------ |
-| jeepSqliteImportProgress    | ✅      |
-| jeepSqliteExportProgress    | ✅      |
-| jeepSqliteHTTPRequestEnded  | ✅      |
-| jeepSqlitePickDatabaseEnded | ✅      |
-
+| Name                         | Web     |
+| :--------------------------- | :------ |
+| jeepSqliteImportProgress     | ✅      |
+| jeepSqliteExportProgress     | ✅      |
+| jeepSqliteHTTPRequestEnded   | ✅      |
+| jeepSqlitePickDatabaseEnded  | ✅      |
+| jeepSqliteSaveDatabaseToDisk | ✅      |
 
 
 ## Usage
