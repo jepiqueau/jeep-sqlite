@@ -18,12 +18,22 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 2.3.2 ->>
+    - add property `pickText` to customize the pick button text.
+    - add property `saveText` to customize the save button text.
+    - add property `buttonOptions` to customise the button style.
+    - add - From Local Disk to Store - to Usage chapter.
+    
+ - Release 2.3.1 ->>
+    - add `jeepSqliteSaveDatabaseToDisk`event listener.
+
  - Release 2.3.0 ->>
     Use of the `File System Access API` through the [Browser-FS-Access](https://www.npmjs.com/package/browser-fs-access) module.
     - add `getFromLocalDiskToStore`: read a database from your local disk and save it to the IndexedDB `jeepSqliteStore` store.
     - add `saveToLocalDisk`: save a database to your local disk will allows developers to view the database in separate DB tools like `DB Browser for Sqlite`.
     - add `jeepSqlitePickDatabaseEnded` event listener.
     - add `index_getFromLocalDiskToStore.html` to demonstrate the use of the two new methods.
+
  - Release 2.1.0, 2.2.0->> DEPRECATED
 
  - Release 1.6.6 ->>
@@ -754,3 +764,13 @@ if `dbForCopy.db` and `myDBSQLite.db` are databases located in the `assets/datab
 </script>
 
 ```
+
+### - From Local Disk to Store -
+
+A database can be read from the local disk by using the `File System Access API`, save to the store, open through a standard connection.
+
+Standard CRUD operations can then being performed, the modifications are save to the store for persistent storage during the session on user's request or at the connection close.
+
+Before closing the connection, the database might also be saved back to the local disk for secure persistent storage (backup) and/or database visibility through the use of SQLite third party tools like DB Browser for SQLite.  
+
+ - [from local disk to store](https://github.com/jepiqueau/jeep-sqlite/blob/master/src/index_getFromLocalDiskToStore.html)

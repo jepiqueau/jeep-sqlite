@@ -8,7 +8,7 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          EchoResult, SQLiteChanges,SQLiteResult, SQLiteValues, SQLiteSyncDate,
          SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions,
          SQLiteHTTPOptions, HTTPRequestEndedListener, PickOrSaveDatabaseEndedListener,
-         SQLiteLocalDiskOptions } from '../../interfaces/interfaces';
+         SQLiteLocalDiskOptions, ButtonOptions } from '../../interfaces/interfaces';
 import { isJsonSQLite } from '../../utils/utils-json';
 import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
 import * as JSZip from 'jszip';
@@ -41,6 +41,27 @@ export class JeepSqlite {
     attribute: "wasmpath",
     reflect: true
   }) wasmPath: string;
+  /**
+   * Pick Button Text
+   */
+  @Prop({
+    attribute: "picktext",
+    reflect: true
+  }) pickText: string;
+  /**
+   * Save Button Text
+   */
+  @Prop({
+    attribute: "savetext",
+    reflect: true
+  }) saveText: string;
+  /**
+   * Button Options
+   */
+  @Prop({
+    attribute: "buttonoptions",
+    reflect: true
+  }) buttonOptions: string;
 
   //*********************
   //* State Definitions *
@@ -48,6 +69,9 @@ export class JeepSqlite {
 
   @State() innerAutoSave: boolean;
   @State() innerWasmPath: string;
+  @State() innerPickText: string;
+  @State() innerSaveText: string;
+  @State() innerButtonOptions: ButtonOptions
 
   //*****************************
   //* Watch on Property Changes *
@@ -60,6 +84,48 @@ export class JeepSqlite {
   @Watch('wasmPath')
   parseWasmPath(newValue: string) {
     this.innerWasmPath = newValue;
+  }
+  @Watch('pickText')
+  parsePickText(newValue: string) {
+    this.innerPickText = newValue;
+  }
+  @Watch('saveText')
+  parseSaveText(newValue: string) {
+    this.innerSaveText = newValue;
+  }
+  @Watch('buttonOptions')
+  parseButtonOptions(newValue: string) {
+    this.innerButtonOptions = JSON.parse(newValue);
+    console.log(`innerButtonOptions: ${JSON.stringify(this.innerButtonOptions)}`)
+    const keys = Object.keys(this.innerButtonOptions);
+    for (const key of keys) {
+      switch(key) {
+        case "top": {
+          this.el.style.setProperty('--jeep-sqlite-top',this.innerButtonOptions[key]);
+          break;
+        }
+        case "right": {
+          this.el.style.setProperty('--jeep-sqlite-right',this.innerButtonOptions[key]);
+          break;
+        }
+        case "fontSize": {
+          this.el.style.setProperty('--jeep-sqlite-font-size',this.innerButtonOptions[key]);
+          break;
+        }
+        case "padding": {
+          this.el.style.setProperty('--jeep-sqlite-padding',this.innerButtonOptions[key]);
+          break;
+        }
+        case "backgroundColor": {
+          this.el.style.setProperty('--jeep-sqlite-background-color',this.innerButtonOptions[key]);
+          break;
+        }
+        case "color": {
+          this.el.style.setProperty('--jeep-sqlite-color',this.innerButtonOptions[key]);
+          break;
+        }
+      }
+    }
   }
 
   //*********************
@@ -733,6 +799,11 @@ export class JeepSqlite {
     this.isStore = await this.openStore("jeepSqliteStore","databases");
     this.parseAutoSave(this.autoSave !== undefined ? this.autoSave : false);
     this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
+    this.parseSaveText(this.saveText !== undefined ? this.saveText : 'Save');
+    this.parsePickText(this.pickText !== undefined ? this.pickText : 'Pick a database');
+    if(this.buttonOptions !== undefined) {
+      this.parseButtonOptions(this.buttonOptions);
+    }
   }
   componentDidLoad() {
     this._element = this.el.shadowRoot;
@@ -871,7 +942,7 @@ export class JeepSqlite {
       this._opts = {fileName: dbName, extensions:['.db']};
       this._buttonSaveEl = document.createElement('button');
       this._buttonSaveEl.setAttribute("id","saveButton");
-      this._buttonSaveEl.innerHTML = `Save ${dbName}`;
+      this._buttonSaveEl.innerHTML = `${this.innerSaveText} ${dbName}`;
       this._element.appendChild(this._buttonSaveEl);
       this._buttonSaveEl.addEventListener("click", this.saveFile.bind(this));
       return Promise.resolve();
@@ -883,7 +954,7 @@ export class JeepSqlite {
 
     this._buttonPickEl = document.createElement('button');
     this._buttonPickEl.setAttribute("id","pickButton");
-    this._buttonPickEl.innerHTML = `Pick a Database`;
+    this._buttonPickEl.innerHTML = `${this.innerPickText}`;
     this._element.appendChild(this._buttonPickEl);
     this._buttonPickEl.addEventListener("click", this.pickDatabase.bind(this));
     this._overwrite = overwrite;

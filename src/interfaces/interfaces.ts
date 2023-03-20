@@ -416,6 +416,14 @@ export interface PickOrSaveDatabaseEndedListener {
    */
   message?: string;
 }
+export interface ButtonOptions {
+  top?: string;
+  right?: string;
+  color?: string;
+  backgroundColor?: string;
+  fontSize?: string;
+  padding?: string;
+}
 
 export interface JsonView {
   /**

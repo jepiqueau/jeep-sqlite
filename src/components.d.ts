@@ -14,6 +14,10 @@ export namespace Components {
           * AutoSave
          */
         "autoSave": boolean;
+        /**
+          * Button Options
+         */
+        "buttonOptions": string;
         "checkConnectionsConsistency": (options: AllConnectionsOptions) => Promise<SQLiteResult>;
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
@@ -41,8 +45,16 @@ export namespace Components {
         "isStoreOpen": () => Promise<boolean>;
         "isTableExists": (options: SQLiteTableOptions) => Promise<SQLiteResult>;
         "open": (options: SQLiteOptions) => Promise<void>;
+        /**
+          * Pick Button Text
+         */
+        "pickText": string;
         "query": (options: SQLiteQueryOptions) => Promise<SQLiteValues>;
         "run": (options: SQLiteRunOptions) => Promise<SQLiteChanges>;
+        /**
+          * Save Button Text
+         */
+        "saveText": string;
         "saveToLocalDisk": (options: SQLiteOptions) => Promise<void>;
         "saveToStore": (options: SQLiteOptions) => Promise<void>;
         "setSyncDate": (options: SQLiteSyncDateOptions) => Promise<void>;
@@ -73,11 +85,23 @@ declare namespace LocalJSX {
           * AutoSave
          */
         "autoSave"?: boolean;
+        /**
+          * Button Options
+         */
+        "buttonOptions"?: string;
         "onJeepSqliteExportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
         "onJeepSqliteHTTPRequestEnded"?: (event: JeepSqliteCustomEvent<HTTPRequestEndedListener>) => void;
         "onJeepSqliteImportProgress"?: (event: JeepSqliteCustomEvent<JsonProgressListener>) => void;
         "onJeepSqlitePickDatabaseEnded"?: (event: JeepSqliteCustomEvent<PickOrSaveDatabaseEndedListener>) => void;
         "onJeepSqliteSaveDatabaseToDisk"?: (event: JeepSqliteCustomEvent<PickOrSaveDatabaseEndedListener>) => void;
+        /**
+          * Pick Button Text
+         */
+        "pickText"?: string;
+        /**
+          * Save Button Text
+         */
+        "saveText"?: string;
         /**
           * WasmPath
          */

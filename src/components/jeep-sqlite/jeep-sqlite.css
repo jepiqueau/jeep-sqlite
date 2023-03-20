@@ -1,5 +1,11 @@
 :host {
   display: block;
+  --jeep-sqlite-top: 10%;
+  --jeep-sqlite-right: 1%;
+  --jeep-sqlite-font-size: 2em;
+  --jeep-sqlite-padding: 2%;
+  --jeep-sqlite-background-color: #a9a9a9;
+  --jeep-sqlite-color: #ffffff;
 }
 
 #fileElem {
@@ -7,19 +13,19 @@
 }
 #pickButton {
   position: absolute;
-  top: 10%;
-  right: 1%;
-  font-size: 2em;
-  padding: 2%;
-  background-color:darkgrey;
-  color:white;
+  top: var(--jeep-sqlite-top);
+  right: var(--jeep-sqlite-right);
+  font-size: var(--jeep-sqlite-font-size);
+  padding: var(--jeep-sqlite-padding);
+  background-color: var(--jeep-sqlite-background-color);
+  color: var(--jeep-sqlite-color);
 }
 #saveButton {
   position: absolute;
-  top: 10%;
-  right: 1%;
-  font-size: 2em;
-  padding: 2%;
-  background-color: darkgrey;
-  color:white;
+  top: var(--jeep-sqlite-top);
+  right: var(--jeep-sqlite-right);
+  font-size: var(--jeep-sqlite-font-size);
+  padding: var(--jeep-sqlite-padding);
+  background-color: var(--jeep-sqlite-background-color);
+  color: var(--jeep-sqlite-color);
 }

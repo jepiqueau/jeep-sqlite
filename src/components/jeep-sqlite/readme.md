@@ -741,10 +741,13 @@ Type: `Promise<void>`
 
 ## Properties
 
-| Property   | Attribute  | Description | Type      | Default     |
-| ---------- | ---------- | ----------- | --------- | ----------- |
-| `autoSave` | `autosave` | AutoSave    | `boolean` | `false`     |
-| `wasmPath` | `wasmpath` | WasmPath    | `string`  | `undefined` |
+| Property        | Attribute       | Description      | Type      | Default     |
+| --------------- | --------------- | ---------------- | --------- | ----------- |
+| `autoSave`      | `autosave`      | AutoSave         | `boolean` | `false`     |
+| `buttonOptions` | `buttonoptions` | Button Options   | `string`  | `undefined` |
+| `pickText`      | `picktext`      | Pick Button Text | `string`  | `undefined` |
+| `saveText`      | `savetext`      | Save Button Text | `string`  | `undefined` |
+| `wasmPath`      | `wasmpath`      | WasmPath         | `string`  | `undefined` |
 
 
 ## Events

@@ -107,6 +107,13 @@
   (async () => {
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
+
+    // Test button's text
+    jeepSqlite.pickText = "Select a Database";
+
+    // Test button's style
+    jeepSqlite.buttonOptions = '{"backgroundColor":"#000000", "top":"20%","fontSize":"1.5em"}';
+
     const startTest = async (name)  => {
         console.log(`************************************`);
         console.log(`* Starting ${name} *`);
