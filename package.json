@@ -1,6 +1,6 @@
 {
   "name": "jeep-sqlite",
-  "version": "2.3.4-test.1",
+  "version": "2.3.4-test.2",
   "description": "Browser SQLite Stencil Component",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
