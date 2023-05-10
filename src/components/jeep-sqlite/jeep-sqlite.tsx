@@ -795,8 +795,7 @@ export class JeepSqlite {
   //* Component Lifecycle Methods *
   //*******************************
 
-  async componentWillLoad() {
-    this.isStore = await this.openStore("jeepSqliteStore","databases");
+  componentWillLoad() {
     this.parseAutoSave(this.autoSave !== undefined ? this.autoSave : false);
     this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
     this.parseSaveText(this.saveText !== undefined ? this.saveText : 'Save');
@@ -805,8 +804,10 @@ export class JeepSqlite {
       this.parseButtonOptions(this.buttonOptions);
     }
   }
-  componentDidLoad() {
+  async componentDidLoad() {
     this._element = this.el.shadowRoot;
+    this.isStore = await this.openStore("jeepSqliteStore","databases");
+
     if(!this.isStore) {
       console.log('jeep-sqlite isStore = false');
     }
