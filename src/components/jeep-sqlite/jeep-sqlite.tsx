@@ -1611,10 +1611,13 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     let ret = false;
     const config: any = this.setConfig(dbName, tableName);
     this.store = localForage.createInstance(config);
+    console.log(`config: ${JSON.stringify(config)}`);
+    console.log(`this.store: ${JSON.stringify(this.store)}`);
     if (this.store != null) {
       this.storeName = dbName;
       ret = true;
     }
+    console.log(`this.storeName: ${this.storeName}`);
     return ret;
   }
 
