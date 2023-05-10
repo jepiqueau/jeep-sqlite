@@ -796,12 +796,7 @@ export class JeepSqlite {
   //*******************************
   //* Component Lifecycle Methods *
   //*******************************
-  connectedCallback() {
-    console.log(`in connectedCallbackd`)
-    this.openStore("jeepSqliteStore","databases").then((mStore) => {
-      this.isStore = mStore;
-    });
-  }
+
   componentWillLoad() {
     console.log(`in componentWillLoad`)
     this.parseAutoSave(this.autoSave !== undefined ? this.autoSave : false);
@@ -815,6 +810,7 @@ export class JeepSqlite {
   async componentDidLoad() {
     console.log(`in componentDidLoad`)
     this._element = this.el.shadowRoot;
+    this.isStore = await this.openStore("jeepSqliteStore","databases");
 
     if(!this.isStore) {
       console.log('jeep-sqlite isStore = false');
