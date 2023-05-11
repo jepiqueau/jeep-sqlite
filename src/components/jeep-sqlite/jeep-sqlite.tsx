@@ -96,7 +96,6 @@ export class JeepSqlite {
   @Watch('buttonOptions')
   parseButtonOptions(newValue: string) {
     this.innerButtonOptions = JSON.parse(newValue);
-    console.log(`innerButtonOptions: ${JSON.stringify(this.innerButtonOptions)}`)
     const keys = Object.keys(this.innerButtonOptions);
     for (const key of keys) {
       switch(key) {
@@ -687,8 +686,6 @@ export class JeepSqlite {
   }
   @Method()
   async checkConnectionsConsistency(options: AllConnectionsOptions): Promise<SQLiteResult> {
-    console.log(`in checkConnectionConsistency this.isStore: ${this.isStore}`);
-    console.log(`in checkConnectionConsistency this.storeName: ${this.storeName}`);
     if(!this.isStore) {
       return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
     }
@@ -797,7 +794,6 @@ export class JeepSqlite {
   //* Component Lifecycle Methods *
   //*******************************
   connectedCallback() {
-    console.log(`in connectedCallbackd`)
     this.parseAutoSave(this.autoSave !== undefined ? this.autoSave : false);
     this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
     this.parseSaveText(this.saveText !== undefined ? this.saveText : 'Save');
@@ -811,10 +807,8 @@ export class JeepSqlite {
     });
   }
   componentWillLoad() {
-    console.log(`in componentWillLoad`)
   }
   async componentDidLoad() {
-    console.log(`in componentDidLoad`)
     this._element = this.el.shadowRoot;
 
     if(!this.isStore) {
@@ -1621,13 +1615,10 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     let ret = false;
     const config: any = this.setConfig(dbName, tableName);
     this.store = localForage.createInstance(config);
-    console.log(`config: ${JSON.stringify(config)}`);
-    console.log(`this.store: ${JSON.stringify(this.store)}`);
     if (this.store != null) {
       this.storeName = dbName;
       ret = true;
     }
-    console.log(`this.storeName: ${this.storeName}`);
     return ret;
   }
 

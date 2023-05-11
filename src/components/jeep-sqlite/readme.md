@@ -6,7 +6,7 @@
 * [`Methods Index`](#methods-index)
 
 
-## Methods Index
+### Methods Index
 * [`addUpgradeStatement(...)`](#addupgradestatement)
 * [`checkConnectionsConsistency(...)`](#checkconnectionsconsistency)
 * [`close(...)`](#close)
@@ -41,7 +41,7 @@
 * [`saveToStore(...)`](#savetostore)
 * [`setSyncDate(...)`](#setsyncdate)
 
-## Interfaces Index
+### Interfaces Index
 * [`AllConnectionsOptions`](#allconnectionsoptions)
 * [`Changes`](#changes)
 * [`ConnectionOptions`](#connectionoptions)
