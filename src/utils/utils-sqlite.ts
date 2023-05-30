@@ -21,6 +21,7 @@ export const rollbackTransaction = async (db: any, isOpen: boolean): Promise<voi
     }
     const sql = 'ROLLBACK TRANSACTION;';
     try {
+
       db.exec(sql);
       return Promise.resolve();
     } catch(err) {

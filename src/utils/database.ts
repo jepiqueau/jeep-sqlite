@@ -23,6 +23,7 @@ export class Database {
   private autoSave: boolean = false;
   private wasmPath: string = '/assets';
   private isBackup: boolean = false;
+  private isTransactionActive: boolean = false;
 
 
   constructor(databaseName: string, version: number,
@@ -217,7 +218,10 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
+      if(transaction && !this.isTransactionActive) {
+        await beginTransaction(this.mDb, this._isDBOpen);
+        this.isTransactionActive = true;
+      }
     } catch(err) {
       let msg = `executeSQL: ${err.message}`;
       return Promise.reject(new Error(`${msg}`));
@@ -227,24 +231,26 @@ export class Database {
       if (changes < 0) {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
       }
-      if(transaction) await commitTransaction(this.mDb, this._isDBOpen);
-      if( this.autoSave ) {
-        try {
-          await this.saveToStore();
-            } catch (err) {
-          this._isDBOpen = false;
-          return Promise.reject(`ExecuteSQL: ${err}`);
-        }
-      }
+      if(transaction && this.isTransactionActive) await commitTransaction(this.mDb, this._isDBOpen);
       return Promise.resolve(changes);
     } catch (err) {
       let msg = `ExecuteSQL: ${err.message}`;
       try {
-        if(transaction) await rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await rollbackTransaction(this.mDb, this._isDBOpen);
       } catch (err) {
         msg += ` : ${err.message}`;
       }
       return Promise.reject(new Error(`ExecuteSQL: ${msg}`));
+    } finally {
+      this.isTransactionActive = false;
+      if( this.autoSave ) {
+        try {
+          await this.saveToStore();
+        } catch (err) {
+          this._isDBOpen = false;
+          return Promise.reject(`ExecuteSQL: ${err}`);
+        }
+      }
     }
   }
   public async execSet(set: SQLiteSet[], transaction: boolean = true): Promise<any> {
@@ -257,7 +263,10 @@ export class Database {
     let initChanges = -1;
     try {
       initChanges = await dbChanges(this.mDb);
-      if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
+      if(transaction && !this.isTransactionActive) {
+        await beginTransaction(this.mDb, this._isDBOpen);
+        this.isTransactionActive = true;
+      }
     } catch(err) {
       let msg = `ExecSet: ${err.message}`;
       return Promise.reject(new Error(`${msg}`));
@@ -267,11 +276,22 @@ export class Database {
       if (lastId < 0) {
         return Promise.reject(new Error('ExecSet: changes < 0'));
       }
-      if(transaction) await commitTransaction(this.mDb, this._isDBOpen);
+      if(transaction && this.isTransactionActive) await commitTransaction(this.mDb, this._isDBOpen);
       const changes = (await dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
+      return Promise.resolve(retRes);
+    } catch (err) {
+      let msg = `ExecSet: ${err.message}`;
+      try {
+        if(transaction && this.isTransactionActive) await rollbackTransaction(this.mDb, this._isDBOpen);
+      } catch (err) {
+        msg += ` : ${err.message}`;
+      }
+      return Promise.reject(new Error(`ExecSet: ${msg}`));
+    } finally {
       if( this.autoSave ) {
+        this.isTransactionActive = false;
         try {
           await this.saveToStore();
         } catch (err) {
@@ -279,15 +299,6 @@ export class Database {
           return Promise.reject(`ExecSet: ${err}`);
         }
       }
-      return Promise.resolve(retRes);
-    } catch (err) {
-      let msg = `ExecSet: ${err.message}`;
-      try {
-        if(transaction) await rollbackTransaction(this.mDb, this._isDBOpen);
-      } catch (err) {
-        msg += ` : ${err.message}`;
-      }
-      return Promise.reject(new Error(`ExecSet: ${msg}`));
     }
   }
   public async selectSQL(sql: string, values: string[]): Promise<any[]> {
@@ -315,8 +326,11 @@ export class Database {
     try {
       initChanges = await dbChanges(this.mDb);
 
-      if(transaction) await beginTransaction(this.mDb, this._isDBOpen);
-    } catch(err) {
+      if(transaction && !this.isTransactionActive) {
+        await beginTransaction(this.mDb, this._isDBOpen);
+        this.isTransactionActive = true;
+      }
+     } catch(err) {
       let msg = `RunSQL: ${err.message}`;
       return Promise.reject(new Error(`${msg}`));
     }
@@ -326,27 +340,29 @@ export class Database {
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
-      if(transaction) await commitTransaction(this.mDb, this._isDBOpen);
+      if(transaction && this.isTransactionActive) await commitTransaction(this.mDb, this._isDBOpen);
       const changes = (await dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
-      if( this.autoSave ) {
-        try {
-          await this.saveToStore();
-        } catch (err) {
-          this._isDBOpen = false;
-          return Promise.reject(`RunSQL: ${err}`);
-        }
-      }
       return Promise.resolve(retRes);
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;
       try {
-        if(transaction) await rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await rollbackTransaction(this.mDb, this._isDBOpen);
       } catch (err) {
         msg += ` : ${err.message}`;
       }
       return Promise.reject(new Error(`${msg}`));
+    } finally {
+      if( this.autoSave ) {
+        this.isTransactionActive = false;
+        try {
+          await this.saveToStore();
+        } catch (err) {
+          this._isDBOpen = false;
+          return Promise.reject(`ExecSet: ${err}`);
+        }
+      }
     }
   }
   async getTableNames(): Promise<any[]> {
