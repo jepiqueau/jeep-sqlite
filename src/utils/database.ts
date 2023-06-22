@@ -290,8 +290,8 @@ export class Database {
       }
       return Promise.reject(new Error(`ExecSet: ${msg}`));
     } finally {
+      this.isTransactionActive = false;
       if( this.autoSave ) {
-        this.isTransactionActive = false;
         try {
           await this.saveToStore();
         } catch (err) {
@@ -354,8 +354,8 @@ export class Database {
       }
       return Promise.reject(new Error(`${msg}`));
     } finally {
+      this.isTransactionActive = false;
       if( this.autoSave ) {
-        this.isTransactionActive = false;
         try {
           await this.saveToStore();
         } catch (err) {
