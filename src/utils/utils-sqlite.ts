@@ -128,8 +128,10 @@ export const execute = async (db: any, sql: string, fromJson: boolean): Promise<
     return Promise.reject(new Error(`Execute: ${err.message}`));
   }
 }
-export const executeSet = async (db: any, set: any, fromJson: boolean): Promise<number> =>  {
-  let lastId = -1;
+export const executeSet = async (db: any, set: any, fromJson: boolean, returnMode: string): Promise<any> =>  {
+  const retValues = [];
+  let lastId: number = -1;
+  let retObj: any = {};
   for (let i = 0; i < set.length; i++) {
     const statement = 'statement' in set[i] ? set[i].statement : null;
     const values =
@@ -144,18 +146,28 @@ export const executeSet = async (db: any, set: any, fromJson: boolean): Promise<
       if (Array.isArray(values[0])) {
         for (const val of values) {
           const mVal: any[] = await replaceUndefinedByNull(val);
-          await run(db, statement, mVal, fromJson)
+          retObj = await run(db, statement, mVal, fromJson, returnMode)
+          lastId = retObj["lastId"];
+          if(Object.keys(retObj).includes("values") && retObj["values"].length > 0) {
+            retValues.push(retObj["values"]);
+          }
         }
       } else {
         const mVal: any[] = await replaceUndefinedByNull(values);
-        await run(db, statement, mVal, fromJson)
+        retObj = await run(db, statement, mVal, fromJson, returnMode)
+        lastId = retObj["lastId"];
+        if(Object.keys(retObj).includes("values") && retObj["values"].length > 0) {
+          retValues.push(retObj["values"]);
+        }
       }
-      lastId = await getLastId(db);
     } catch (err) {
       return Promise.reject(new Error(`ExecuteSet: ${err.message}`));
     }
   }
-  return Promise.resolve(lastId);
+  retObj["lastId"] = lastId;
+  retObj["values"] = returnMode === 'all' ? retValues :
+                     returnMode === 'one' ? retValues[0] : [];
+  return Promise.resolve(retObj);
 }
 export const queryAll = async (db: any, sql: string, values: any[]): Promise<any[]> => {
   const result: any[] = [];
@@ -179,26 +191,47 @@ export const queryAll = async (db: any, sql: string, values: any[]): Promise<any
     return Promise.reject(new Error(`queryAll: ${err.message}`));
   }
 }
-export const run = async (db: any, statement: string, values: any[], fromJson: boolean): Promise<number> => {
+export const run = async (db: any, statement: string, values: any[], fromJson: boolean,
+                          returnMode: string): Promise<any> => {
   let stmtType: string = statement.replace(/\n/g,"").trim().substring(0,6).toUpperCase();
-  let lastId: number = -1;
   let sqlStmt: string = statement
+  let retValues : any[] = [];
+  let retObj: any = {};
   try {
     if (!fromJson && stmtType === "DELETE") {
       sqlStmt = await deleteSQL(db, statement, values);
     }
     if(values != null && values.length > 0) {
       const mVal: any[] = await replaceUndefinedByNull(values);
-      db.exec(sqlStmt, mVal);
+      const res = db.exec(sqlStmt, mVal);
+      if(returnMode === "all" || returnMode === "one") {
+        retValues = getReturnedValues(res[0], returnMode);
+      }
     } else {
-      db.exec(sqlStmt);
+      const res = db.exec(sqlStmt);
+      if(returnMode === "all" || returnMode === "one") {
+        retValues = getReturnedValues(res[0], returnMode);
+      }
     }
-    lastId = await getLastId(db);
-    return Promise.resolve(lastId);
+    retObj["lastId"] = await getLastId(db);
+    if(retValues.length > 0) retObj["values"] = retValues;
+    return Promise.resolve(retObj);
 
   } catch (err) {
     return Promise.reject(new Error(`run: ${err.message}`));
   }
+}
+const getReturnedValues = (result : any, returnMode: string) : any[] => {
+  const retValues: any[] = [];
+  for ( let i: number =0; i < result.values.length; i++) {
+    let row: any = {}
+    for( let j: number = 0; j < result.columns.length; j++) {
+      row[result.columns[j]] = result.values[i][j];
+    }
+    retValues.push(row);
+    if(returnMode === 'one') break;
+  }
+  return retValues
 }
 export const deleteSQL= async (db: any, statement: string,
                                values: any[]): Promise<string> => {
@@ -496,11 +529,11 @@ export const backupTable = async (db: any, table: string): Promise<string[]> => 
     const tmpTable = `_temp_${table}`;
     // Drop the tmpTable if exists
     const delStmt = `DROP TABLE IF EXISTS ${tmpTable};`;
-    await run(db, delStmt, [], false);
+    await run(db, delStmt, [], false, 'no');
   // prefix the table with _temp_
     let stmt = `ALTER TABLE ${table} RENAME `;
     stmt += `TO ${tmpTable};`;
-    const lastId: number = await run(db, stmt, [], false);
+    const lastId: number = await run(db, stmt, [], false, 'no');
     if (lastId < 0) {
       let msg = 'BackupTable: lastId < 0';
       try {

@@ -258,7 +258,7 @@ export const createTableData = async (db: any, table: any, mode: string): Promis
         if(stmt.substring(0,6).toUpperCase() === "DELETE") {
           row = [];
         }
-        lastId = await run(db, stmt, row, true);
+        lastId = await run(db, stmt, row, true, 'no');
         if (lastId < 0) {
           return Promise.reject(new Error('CreateTableData: lastId < 0'));
         }

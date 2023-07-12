@@ -253,7 +253,7 @@ export class Database {
       }
     }
   }
-  public async execSet(set: SQLiteSet[], transaction: boolean = true): Promise<any> {
+  public async execSet(set: SQLiteSet[], transaction: boolean = true, returnMode ='no'): Promise<any> {
     if (!this._isDBOpen) {
       let msg = `ExecSet: Database ${this.dbName} `;
       msg += `not opened`;
@@ -272,7 +272,8 @@ export class Database {
       return Promise.reject(new Error(`${msg}`));
     }
     try {
-      const lastId = await executeSet(this.mDb, set, false);
+      const retObj: any = await executeSet(this.mDb, set, false, returnMode);
+      let lastId: number = retObj["lastId"];
       if (lastId < 0) {
         return Promise.reject(new Error('ExecSet: changes < 0'));
       }
@@ -280,6 +281,7 @@ export class Database {
       const changes = (await dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
+      retRes.values = retObj["values"] ? retObj["values"] : []
       return Promise.resolve(retRes);
     } catch (err) {
       let msg = `ExecSet: ${err.message}`;
@@ -314,7 +316,8 @@ export class Database {
       return Promise.reject(new Error(`SelectSQL: ${err.message}`));
     }
   }
-  public async runSQL(statement: string, values: any[], transaction: boolean = true): Promise<any> {
+  public async runSQL(statement: string, values: any[], transaction: boolean = true,
+                      returnMode: string): Promise<any> {
     let lastId = -1;
     if (!this._isDBOpen) {
       let msg = `RunSQL: Database ${this.dbName} `;
@@ -335,8 +338,8 @@ export class Database {
       return Promise.reject(new Error(`${msg}`));
     }
     try {
-        lastId = await run(this.mDb, statement, values, false);
-
+      const retObj = await run(this.mDb, statement, values, false, returnMode);
+      lastId = retObj["lastId"];
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
@@ -344,6 +347,7 @@ export class Database {
       const changes = (await dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
+      retRes.values = retObj["values"] ? retObj["values"] : []
       return Promise.resolve(retRes);
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;

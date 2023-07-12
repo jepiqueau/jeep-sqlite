@@ -69,7 +69,7 @@ export const dropElements = async (db: any, type: string): Promise<void> => {
         statements.push(stmt);
       }
       for (const stmt of statements) {
-        const lastId: number = await run(db, stmt, [], false);
+        const lastId: number = await run(db, stmt, [], false, 'no');
         if (lastId < 0) {
           return Promise.reject(new Error(`DropElements: ${msg}: lastId < 0`));
         }
@@ -91,7 +91,7 @@ export const dropAll = async (db: any): Promise<void> => {
     // drop views
     await dropElements(db, 'view');
     // vacuum the database
-    await run(db, 'VACUUM;', [], false);
+    await run(db, 'VACUUM;', [], false, 'no');
     return Promise.resolve();
   } catch (err) {
     return Promise.reject(new Error(`DropAll: ${err.message}`));

@@ -591,7 +591,7 @@ export const delExportedRows = async (db:any): Promise<void> => {
       // define the delete statement
       const delStmt = `DELETE FROM ${table}
             WHERE sql_deleted = 1 AND last_modified < ${lastExportDate};`
-      lastId = await run(db, delStmt, [], true);
+      lastId = await run(db, delStmt, [], true, 'no');
       if (lastId < 0) {
         return Promise.reject(new Error('DelExportedRows: lastId < 0'));
       }

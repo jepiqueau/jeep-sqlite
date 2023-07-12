@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 2.3.8 ->>
+    - add support for RETURNING in sqlite statement
+
  - Release 2.3.2 ->>
     - add property `pickText` to customize the pick button text.
     - add property `saveText` to customize the save button text.

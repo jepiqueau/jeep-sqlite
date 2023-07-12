@@ -312,8 +312,9 @@ export class JeepSqlite {
     let transaction: boolean= true;
     if (keys.includes('transaction')) transaction = options.transaction;
     const readonly: boolean = options.readonly ? options.readonly : false;
+    const returnMode: string = options.returnMode? options.returnMode : 'no';
     try {
-      const changes: SQLiteChanges = await this._executeSet(dbName, setOfStatements, transaction, readonly);
+      const changes: SQLiteChanges = await this._executeSet(dbName, setOfStatements, transaction, readonly, returnMode);
       return Promise.resolve(changes);
     } catch(err) {
       return Promise.reject(err);
@@ -340,8 +341,10 @@ export class JeepSqlite {
     let transaction: boolean= true;
     if (keys.includes('transaction')) transaction = options.transaction;
     const readonly: boolean = options.readonly ? options.readonly : false;
+    const returnMode: string = options.returnMode? options.returnMode : 'no';
     try {
-      const retChanges:  SQLiteChanges = await this._run(dbName, statement, values, transaction, readonly);
+      const retChanges:  SQLiteChanges = await this._run(dbName, statement, values, transaction,
+        readonly, returnMode);
       return Promise.resolve(retChanges);
     } catch(err) {
       return Promise.reject(err);
@@ -1046,7 +1049,7 @@ export class JeepSqlite {
     }
   }
   private async _executeSet(database:string, setOfStatements: SQLiteSet[], transaction: boolean,
-                            readonly: boolean): Promise<SQLiteChanges> {
+                            readonly: boolean, returnMode: string): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
     const connName = "RW_" + database;
     if (!keys.includes(connName)) {
@@ -1065,15 +1068,16 @@ export class JeepSqlite {
       }
     }
     try {
-      const ret: any = await mDB.execSet(setOfStatements, transaction);
-      const changes: SQLiteChanges = {changes: {changes: ret.changes, lastId: ret.lastId}};
+      const ret: any = await mDB.execSet(setOfStatements, transaction, returnMode);
+      const changes: SQLiteChanges = {changes: {changes: ret.changes, lastId: ret.lastId,
+                                      values: ret.values}};
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(`ExecuteSet: ${err.message}`);
     }
   }
   private async _run(database: string, statement: string, values: any[], transaction: boolean,
-                    readonly: boolean): Promise<SQLiteChanges> {
+                    readonly: boolean, returnMode: string): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
     const connName = "RW_" + database;
     if (!keys.includes(connName)) {
@@ -1092,8 +1096,8 @@ export class JeepSqlite {
       return Promise.resolve(changes);
     }
     try {
-      const ret: any = await mDB.runSQL(statement, values, transaction);
-      changes = {changes: {changes: ret.changes, lastId: ret.lastId}};
+      const ret: any = await mDB.runSQL(statement, values, transaction, returnMode);
+      changes = {changes: {changes: ret.changes, lastId: ret.lastId, values: ret.values}};
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(`Run: ${err.message}`);

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
-    <title>Stencil Component Test Concurrent</title>
+    <title>Stencil Component Test RETURNING</title>
 
     <script type="module" src="/build/jeep-sqlite.esm.js"></script>
     <script nomodule src="/build/jeep-sqlite.js"></script>
@@ -95,11 +95,11 @@
           <a href="index_readonly.html">DB Readonly & WAL</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
-          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
         </div>
       </div>
     </div>
-    <h1>DB Concurrent Test</h1>
+    <h1>TEST RETURNING</h1>
     <jeep-sqlite></jeep-sqlite>
   </body>
 </html>
@@ -107,12 +107,6 @@
   (async () => {
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
-    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
-      console.log(`Import: ${event.detail.progress}`)
-    });
-    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
-      console.log(`Export: ${event.detail.progress}`)
-    });
     if(await jeepSqlite.isStoreOpen()) {
 
       const startTest = async (name)  => {
@@ -169,13 +163,9 @@
               return Promise.reject(msg);
           }
           console.log("> Echo successful\n");
-          await openConnection('test-concurrent', false,
-                                'no-encryption', 1, false, true);
-
-          console.log("> Open connection 'test-concurrent' successful\n");
-          // Close Connection test-concurrent
-          await jeepSqlite.closeConnection({database: 'test-concurrent', readonly: false});
-          let msg = `> closeConnection "test-concurrent" successful\n`;
+          // create version 1
+          await createVersion1();
+          let msg = `> createVersion1 "test-returning" successful\n`;
           console.log(msg);
           return Promise.resolve();
         } catch (err) {
@@ -187,8 +177,7 @@
 
       const showUsers = async (message) => {
         try {
-          let res = await jeepSqlite.query({database: 'test-concurrent',statement: 'SELECT * FROM users',
-                                            readonly: false});
+          let res = await jeepSqlite.query({database: 'test-returning',statement: 'SELECT * FROM users'});
           console.log(`**** Show Users ${message} ****`)
           for( const user of res.values) {
             console.log(`>>> id: ${user.id} name: ${user.name} age: ${user.age}`);
@@ -199,8 +188,8 @@
       }
       const totalUsers = async (message)  => {
         try {
-          const res = await jeepSqlite.query({database: 'test-concurrent',statement: 'SELECT * FROM users',
-                                              readonly: false});
+          const res = await jeepSqlite.query({database: 'test-returning',statement: 'SELECT * FROM users',
+                                        readonly: true});
           console.log(`>>> total Users: ${res.values.length}`);
 
         } catch(err) {
@@ -220,19 +209,8 @@
                 id INTEGER PRIMARY KEY NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 name TEXT,
-                company TEXT,
-                size REAL,
-                age INTEGER,
-                last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+                age INTEGER
             );`,
-            `CREATE INDEX IF NOT EXISTS users_index_name ON users (name);`,
-            `CREATE INDEX IF NOT EXISTS users_index_last_modified ON users (last_modified);`,
-            `CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
-             AFTER UPDATE ON users
-             FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-             BEGIN
-                UPDATE users SET last_modified= (strftime('%s', 'now')) WHERE id=OLD.id;
-             END;`,
             `INSERT INTO users (name,email,age) VALUES ('Whiteley', 'whiteley@local.host', 30);`,
             `INSERT INTO users (name,email,age) VALUES ('Jones', 'jones@local.host', 44);`,
           ]
@@ -241,39 +219,23 @@
       const createVersion1 = async() => {
         try {
 
-          await jeepSqlite.addUpgradeStatement({database: "test-concurrent",
+          await jeepSqlite.addUpgradeStatement({database: "test-returning",
                                                 upgrade: [versionUpgrades[0]]});
-          // open readwrite connection on "test-concurrent"
-          await openConnection('test-concurrent', false,
-                                'no-encryption', 1, false, false);
-
-          const walStmt = 'PRAGMA journal_mode=WAL;';
-          let ret = await jeepSqlite.execute({database: "test-concurrent", statements: walStmt,
-                                              transaction: false, readonly: false});
-          const syncStmt = 'PRAGMA synchronous=1;';
-          ret = await jeepSqlite.execute({database: "test-concurrent", statements: syncStmt,
-                                              transaction: false, readonly: false});
-
-          ret = await jeepSqlite.query({database: "test-concurrent",
-                                        statement: "PRAGMA journal_mode;",
-                                        readonly: false});
-          console.log(`&&& PRAGMA journal_mode: ${ret.values[0].journal_mode}`);
-
-          ret = await jeepSqlite.query({database: "test-concurrent",
-                                        statement: "PRAGMA synchronous;",
-                                        readonly: false});
-          console.log(`&&& PRAGMA synchronous: ${ret.values[0].synchronous}`);
+          // open readwrite connection on "test-returning"
+          await openConnection('test-returning', false,
+                                'no-encryption', 1, false, true);
+          ret = await jeepSqlite.isTableExists({database: "test-returning", table: "users"});
+          console.log(`Is table users exists: ${JSON.stringify(ret)}`);
           // Select all users
-          ret = await jeepSqlite.query({database: "test-concurrent",
+          ret = await jeepSqlite.query({database: "test-returning",
                                         statement: "SELECT * FROM users;",
                                         readonly: false});
-          console.log(`&&& ret Users: ${ret.values.length}`);
           if(ret.values.length !== 2 ||
                 ret.values[0].name !== "Whiteley" ||
                 ret.values[1].name !== "Jones") {
             return Promise.reject("Query 2 Users failed");
           }
-          await jeepSqlite.saveToStore({database: 'test-concurrent'});
+          await jeepSqlite.saveToStore({database: 'test-returning'});
           return Promise.resolve();
         } catch (err) {
             let msg = err.message ? err.message : err;
@@ -282,81 +244,125 @@
         }
       }
       const insertUser = async(idx) => {
-        const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)});`;
+        const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)}) RETURNING *;`;
             try {
-              await jeepSqlite.run({database: 'test-concurrent', statement: stmt,
+              await jeepSqlite.run({database: 'test-returning', statement: stmt,
                               transaction: false, readonly: false});
             } catch(err) {
               const msg = err.message ? err.message : err;
               return Promise.reject(msg);
             }
       }
-      const createUsers = async() => {
-        let inTransaction = false;
-        try {
-          // Select all users
-          const ret = await jeepSqlite.query({database: "test-concurrent",
-                                        statement: "SELECT * FROM users;",
-                                        readonly: false});
-          if(ret.values.length !== 2 ||
-                ret.values[0].name !== "Whiteley" ||
-                ret.values[1].name !== "Jones") {
-            return Promise.reject("Query 2 Users failed from concurrent");
-          }
-          await jeepSqlite.run({database: "test-concurrent", statement: 'BEGIN TRANSACTION;',
-                                    transaction: false, readonly: false});
-          inTransaction = true;
-          let promises = [];
-
-          for (let i=0; i< 400; i++) {
-            promises.push(insertUser(i));
-            if (i % 100 === 0) {
-              await Promise.all(promises);
-              await totalUsers();
-              promises = [];
-            }
-            if (i === 399) {
-              await Promise.all(promises);
-              if(inTransaction) {
-                await jeepSqlite.run({database: "test-concurrent", statement: 'COMMIT TRANSACTION;',
-                                      transaction: false, readonly: false});
-                inTransaction = false;
+      const createUsers = async(returnColumns, returnMode) => {
+        const idx = Math.floor(Math.random() * 1000);
+        const idx1 = Math.floor(Math.random() * 1000);
+        const stmt = `INSERT INTO users (name,email,age) VALUES
+        ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)}),
+        ("testname${idx1}","testemail${idx1}",${Math.floor(Math.random() * 105 +18)})
+         ${returnColumns};`;
+        let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt,
+                              transaction: false, readonly: false, returnMode: returnMode});
+        console.log(`user: ${JSON.stringify(ret)}`);
+      }
+      const createUsersFromArray = async(returnColumns, returnMode = 'no') => {
+        const idx = Math.floor(Math.random() * 1000);
+        const stmt = `INSERT INTO users (name,email,age) VALUES (?, ?, ?) ${returnColumns};`;
+        const values = [`testname${idx}`,`testemail${idx}`, Math.floor(Math.random() * 105 +18)];
+        console.log("stmt", stmt)
+        console.log("values", values)
+        let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt, values: values,
+                              transaction: false, readonly: false, returnMode: returnMode});
+        console.log(`user: ${JSON.stringify(ret)}`);
+        const idx1 = Math.floor(Math.random() * 1000);
+        const idx2 = Math.floor(Math.random() * 1000);
+        const stmt1 = `INSERT INTO users (name,email,age) VALUES (?, ?, ?), (?, ?, ?) ${returnColumns};`;
+        const values1 = [`testname${idx1}`,`testemail${idx1}`, Math.floor(Math.random() * 105 +18),
+        `testname${idx2}`,`testemail${idx2}`, Math.floor(Math.random() * 105 +18)];
+        ret = await jeepSqlite.run({database: 'test-returning', statement: stmt1, values: values1,
+                              transaction: false, readonly: false, returnMode: returnMode});
+        console.log(`users: ${JSON.stringify(ret)}`);
+      }
+      const createUsersFromSet = async(returnMode = 'no') => {
+        const setUsers = [
+              { statement:"INSERT INTO users (name,email,age) VALUES ('Simpson','simpson@example.com',69), ('Brown', 'brown@example.com', 25) RETURNING *;",
+                values:[
+                ]
+              },
+              { statement:"INSERT INTO users (name,email,age) VALUES (?,?,?) RETURNING *;",
+                values:[
+                  ['Watson','watson@example.com',46],
+                  ['Johnson','johnson@example.com',35]
+                ]
+              },
+              { statement:"UPDATE users SET age = 48 WHERE name = 'Watson' RETURNING *;",
+                values:[
+                ]
+              },
+              { statement:"DELETE FROM users WHERE id IN (4,6,8) RETURNING *;",
+                values:[
+                ]
               }
-              await totalUsers();
-              promises = [];
-              await jeepSqlite.saveToStore({database: 'test-concurrent'});
-              return Promise.resolve();
-            }
-          }
-        } catch (err) {
-          let msg = err.message ? err.message : err;
-          console.log(`Error: ${msg}`);
-          if(inTransaction) {
-            await jeepSqlite.run({database: "test-concurrent", statement: 'ROLLBACK TRANSACTION;',
-                                  transaction: false, readonly: false});
-          }
-          await totalUsers();
-          return Promise.reject(msg);
-        }
+            ];
+        let ret = await jeepSqlite.executeSet({database: 'test-returning', set: setUsers, transaction: false,
+                                               readonly: false, returnMode: returnMode});
+        console.log(`set user: ${JSON.stringify(ret)}`);
+
+      }
+      const createUsersFromSet1 = async(returnMode = 'no') => {
+        const setUsers = [
+              { statement:"INSERT INTO users (name,email,age) VALUES ('Dupond','dupond@example.com',39), ('Durand', 'Durand@example.com', 26) RETURNING name,age;",
+                values:[
+                ]
+              }
+        ];
+        let ret = await jeepSqlite.executeSet({database: 'test-returning', set: setUsers, transaction: false,
+                                               readonly: false, returnMode: returnMode});
+        console.log(`set user: ${JSON.stringify(ret)}`);
+
+      }
+      const createUsersFromSet2 = async(returnMode = 'no') => {
+        const setUsers = [
+              { statement:"INSERT INTO users (name,email,age) VALUES ('Ackerman','ackerman@example.com',28), ('Summerfield', 'summerfield@example.com', 32) RETURNING *;",
+                values:[
+                ]
+              }
+        ];
+        let ret = await jeepSqlite.executeSet({database: 'test-returning', set: setUsers, transaction: false,
+                                               readonly: false, returnMode: returnMode});
+        console.log(`set user: ${JSON.stringify(ret)}`);
 
       }
       try {
-        var activeTest = 'DatabaseConcurrent';
+        var activeTest = 'DatabaseReturning';
         // test standard SQL statements
         await startTest(activeTest);
         // initialize the database testNew and fill some data
         await initializeTest();
-        // create version 1
-        await createVersion1();
         await showUsers('after Version 1');
 
         console.log(`******** version 1 successful ********\n`)
-        await createUsers();
-        console.log(`******** after create users successful ********\n`)
-        // Close Connection ReadWrite for "test-concurrent"
-        if ((await jeepSqlite.isConnection({database: 'test-concurrent', readonly: false})).result) {
-          await jeepSqlite.closeConnection({database: 'test-concurrent', readonly: false});
-          let msg = `> closeConnection readwrite "test-concurrent" successful\n`;
+        await createUsers('RETURNING *', 'all');
+        await createUsers('RETURNING name,age', 'one');
+        await createUsers('', 'no');
+        await createUsersFromArray('RETURNING *', 'all');
+        // Update  test
+        let stmt = "UPDATE users SET email='testupdate.@company.com' WHERE id='3' RETURNING id,email;"
+        let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt, values: [],
+                              transaction: false, readonly: false, returnMode: 'one'});
+        console.log(`update user: ${JSON.stringify(ret)}`);
+
+        await createUsersFromSet('all');
+        await createUsersFromSet1('one');
+        await createUsersFromSet2('no');
+        await showUsers('after createUsers');
+
+//        await showUsers('after createUsers ');
+
+        console.log(`******** create users successful ********\n`)
+        // Close Connection ReadWrite for "test-returning"
+        if ((await jeepSqlite.isConnection({database: 'test-returning', readonly: false})).result) {
+          await jeepSqlite.closeConnection({database: 'test-returning', readonly: false});
+          let msg = `> closeConnection readwrite "test-returning" successful\n`;
           console.log(msg);
         }
         console.log(`******** close connections successful ********\n`)

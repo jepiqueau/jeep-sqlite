@@ -87,6 +87,15 @@ export interface SQLiteSetOptions {
    * Set to true (database in read-only mode) / false
    */
   readonly?: boolean;
+  /**
+   * return mode
+   * default 'no'
+   * value 'all'
+   * value 'one' for Electron platform
+   * @since 5.0.5-3
+   */
+  returnMode?: string;
+
 }
 export interface SQLiteRunOptions {
   /**
@@ -110,6 +119,15 @@ export interface SQLiteRunOptions {
    * Set to true (database in read-only mode) / false
    */
   readonly?: boolean;
+  /**
+   * return mode
+   * default 'no'
+   * value 'all'
+   * value 'one' for Electron platform
+   * @since 5.0.5-3
+   */
+  returnMode?: string;
+
 }
 export interface SQLiteQueryOptions {
   /**
@@ -258,6 +276,11 @@ export interface Changes {
    * the lastId created from a run command
    */
   lastId?: number;
+  /**
+   * values when RETURNING
+   */
+  values?: any[];
+
 }
 export interface SQLiteValues {
   /**
