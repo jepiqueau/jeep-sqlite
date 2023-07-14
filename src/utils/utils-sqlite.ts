@@ -201,20 +201,30 @@ export const run = async (db: any, statement: string, values: any[], fromJson: b
     if (!fromJson && stmtType === "DELETE") {
       sqlStmt = await deleteSQL(db, statement, values);
     }
-    if(values != null && values.length > 0) {
-      const mVal: any[] = await replaceUndefinedByNull(values);
+    const mValues = values ? values : [];
+    if(mValues.length > 0) {
+      const mVal: any[] = await replaceUndefinedByNull(mValues);
       const res = db.exec(sqlStmt, mVal);
       if(returnMode === "all" || returnMode === "one") {
-        retValues = getReturnedValues(res[0], returnMode);
+        if(res && res.length > 0) {
+          retValues = getReturnedValues(res[0], returnMode);
+        } else {
+          return Promise.reject(new Error(`run: ${sqlStmt} does not returned any change`));
+        }
       }
     } else {
       const res = db.exec(sqlStmt);
       if(returnMode === "all" || returnMode === "one") {
-        retValues = getReturnedValues(res[0], returnMode);
+        if(res && res.length > 0) {
+          retValues = getReturnedValues(res[0], returnMode);
+        } else {
+          return Promise.reject(new Error(`run: ${sqlStmt} does not returned any change`));
+        }
       }
     }
-    retObj["lastId"] = await getLastId(db);
-    if(retValues.length > 0) retObj["values"] = retValues;
+    const lastId = await getLastId(db);
+    retObj["lastId"] = lastId;
+    if(retValues != null && retValues.length > 0) retObj["values"] = retValues;
     return Promise.resolve(retObj);
 
   } catch (err) {

@@ -282,6 +282,13 @@
                               transaction: false, readonly: false, returnMode: returnMode});
         console.log(`users: ${JSON.stringify(ret)}`);
       }
+      const deleteUsers = async(returnColumns, returnMode = 'no') => {
+        const stmt = `DELETE FROM users WHERE id IN (2,3,5) ${returnColumns};`;
+        const ret = await jeepSqlite.run({database: 'test-returning', statement: stmt,
+                              transaction: false, readonly: false, returnMode: returnMode});
+        console.log(`delete users: ${JSON.stringify(ret)}`);
+
+      }
       const createUsersFromSet = async(returnMode = 'no') => {
         const setUsers = [
               { statement:"INSERT INTO users (name,email,age) VALUES ('Simpson','simpson@example.com',69), ('Brown', 'brown@example.com', 25) RETURNING *;",
@@ -341,20 +348,40 @@
         await showUsers('after Version 1');
 
         console.log(`******** version 1 successful ********\n`)
+        console.log(`***** createUsers('RETURNING *', 'all') ***** `)
         await createUsers('RETURNING *', 'all');
+        console.log(`********************************************* `)
+        console.log(`***** createUsers('RETURNING name,age', 'one') ***** `)
         await createUsers('RETURNING name,age', 'one');
+        console.log(`**************************************************** `)
+        console.log(`***** createUsers('', 'no') ***** `)
         await createUsers('', 'no');
+        console.log(`********************************* `)
+        console.log(`***** deleteUsers('RETURNING id,name', 'all') ***** `)
+        await deleteUsers('RETURNING id,name', 'all');
+        console.log(`*************************************************** `)
+        console.log(`***** createUsersFromArray('RETURNING *', 'all') ***** `)
         await createUsersFromArray('RETURNING *', 'all');
+        console.log(`****************************************************** `)
         // Update  test
-        let stmt = "UPDATE users SET email='testupdate.@company.com' WHERE id='3' RETURNING id,email;"
+        console.log(`***** UPDATE ('RETURNING id,email', 'one') ***** `)
+        let stmt = "UPDATE users SET email='testupdate.@company.com' WHERE id=4 RETURNING id,email;"
         let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt, values: [],
                               transaction: false, readonly: false, returnMode: 'one'});
         console.log(`update user: ${JSON.stringify(ret)}`);
-
-        await createUsersFromSet('all');
-        await createUsersFromSet1('one');
-        await createUsersFromSet2('no');
+        console.log(`************************************************* `)
         await showUsers('after createUsers');
+
+        console.log(`***** createUsersFromSet('all') ***** `)
+        await createUsersFromSet('all');
+        console.log(`************************************* `)
+        console.log(`***** createUsersFromSet('one') ***** `)
+        await createUsersFromSet1('one');
+        console.log(`************************************* `)
+        console.log(`***** createUsersFromSet('no') ***** `)
+        await createUsersFromSet2('no');
+        console.log(`************************************* `)
+        await showUsers('after createUsersFromSet');
 
 //        await showUsers('after createUsers ');
 
