@@ -1,52 +1,53 @@
 import { SQLiteVersionUpgrade } from '../interfaces/interfaces';
-import { setForeignKeyConstraintsEnabled, dbChanges, execute, beginTransaction,
-         commitTransaction, rollbackTransaction, setVersion } from '../utils/utils-sqlite';
+import { UtilsSQLite } from '../utils/utils-sqlite';
 
-export const onUpgrade = async (
-  mDb: any,
-  vUpgDict: Record<number, SQLiteVersionUpgrade>,
-  curVersion: number,
-  targetVersion: number
-): Promise<number> => {
-  let changes: number = -1;
-  const sortedKeys: Int32Array = new Int32Array(Object.keys(vUpgDict)
-  .map(item => parseInt(item)))
-  .sort();
+export class UtilsUpgrade {
+  static async onUpgrade(
+                          mDb: any,
+                          vUpgDict: Record<number, SQLiteVersionUpgrade>,
+                          curVersion: number,
+                          targetVersion: number
+                        ): Promise<number> {
+    let changes: number = -1;
+    const sortedKeys: Int32Array = new Int32Array(Object.keys(vUpgDict)
+    .map(item => parseInt(item)))
+    .sort();
 
-  for (const versionKey of sortedKeys) {
-    if (versionKey > curVersion && versionKey <= targetVersion) {
-      const statements = vUpgDict[versionKey].statements;
-      if (statements.length === 0) {
-        return Promise.reject('onUpgrade: statements not given');
-      }
-      try {
-        // set Foreign Keys Off
-        await setForeignKeyConstraintsEnabled(mDb, false);
-        const initChanges = await dbChanges(mDb);
-        await executeStatementsProcess(mDb, statements);
-        await setVersion(mDb, versionKey);
-        // set Foreign Keys On
-        await setForeignKeyConstraintsEnabled(mDb, true);
-        changes = (await dbChanges(mDb)) - initChanges;
-      } catch (err) {
-        return Promise.reject(new Error(`onUpgrade: ${err.message}`));
+    for (const versionKey of sortedKeys) {
+      if (versionKey > curVersion && versionKey <= targetVersion) {
+        const statements = vUpgDict[versionKey].statements;
+        if (statements.length === 0) {
+          return Promise.reject('onUpgrade: statements not given');
+        }
+        try {
+          // set Foreign Keys Off
+          await UtilsSQLite.setForeignKeyConstraintsEnabled(mDb, false);
+          const initChanges = await UtilsSQLite.dbChanges(mDb);
+          await UtilsUpgrade.executeStatementsProcess(mDb, statements);
+          await UtilsSQLite.setVersion(mDb, versionKey);
+          // set Foreign Keys On
+          await UtilsSQLite.setForeignKeyConstraintsEnabled(mDb, true);
+          changes = (await UtilsSQLite.dbChanges(mDb)) - initChanges;
+        } catch (err) {
+          return Promise.reject(new Error(`onUpgrade: ${err.message}`));
+        }
       }
     }
-  }
 
-  return Promise.resolve(changes);
-};
+    return Promise.resolve(changes);
+  };
 
-export const executeStatementsProcess = async (mDb: any, statements: string[]): Promise<void> => {
-  try {
-    await beginTransaction(mDb, true);
-    for (const statement of statements) {
-      await execute(mDb, statement, false);
+  static async executeStatementsProcess(mDb: any, statements: string[]): Promise<void> {
+    try {
+      await UtilsSQLite.beginTransaction(mDb, true);
+      for (const statement of statements) {
+        await UtilsSQLite.execute(mDb, statement, false);
+      }
+      await UtilsSQLite.commitTransaction(mDb, true);
+      return Promise.resolve();
+    } catch (err) {
+      await UtilsSQLite.rollbackTransaction(mDb, true);
+      return Promise.reject(`ExecuteStatementProcess: ${err}`);
     }
-    await commitTransaction(mDb, true);
-    return Promise.resolve();
-  } catch (err) {
-    await rollbackTransaction(mDb, true);
-    return Promise.reject(`ExecuteStatementProcess: ${err}`);
   }
 }

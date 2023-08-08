@@ -3,15 +3,12 @@ import { EventEmitter } from '@stencil/core';
 
 import { SQLiteSet, JsonSQLite, SQLiteVersionUpgrade, JsonProgressListener} from '../interfaces/interfaces';
 
-import { getDBFromStore, setInitialDBToStore, setDBToStore, copyDBToStore,
-         removeDBFromStore, isDBInStore, restoreDBFromStore } from './utils-store';
-import { dbChanges, beginTransaction, rollbackTransaction, commitTransaction,
-         execute, executeSet, run, queryAll, isTableExists, getVersion, isSqlDeleted,
-         isLastModified, getTableList, setForeignKeyConstraintsEnabled } from './utils-sqlite';
-import { createDatabaseSchema, createTablesData, createViews} from './utils-importJson';
-import { isJsonSQLite } from './utils-json';
-import { createExportObject, getSynchroDate, setLastExportDate, delExportedRows } from './utils-exportJson';
-import { onUpgrade }  from './utils-upgrade';
+import { UtilsStore } from './utils-store';
+import { UtilsImportJSON } from './utils-importJson';
+import { UtilsJSON } from './utils-json';
+import { UtilsExportJSON } from './utils-exportJson';
+import { UtilsUpgrade }  from './utils-upgrade';
+import { UtilsSQLite } from './utils-sqlite'
 
 export class Database {
   private _isDBOpen: boolean;
@@ -47,30 +44,30 @@ export class Database {
       try {
         initSqlJs(config).then(async (SQL) => {
           // retrieve the database if stored on localforage
-          const retDB: Uint8Array = await getDBFromStore(this.dbName, this.store);
+          const retDB: Uint8Array = await UtilsStore.getDBFromStore(this.dbName, this.store);
           if(retDB != null) {
             // Open existing database
             this.mDb = new SQL.Database(retDB);
           } else {
             // Create a new database
             this.mDb = new SQL.Database();
-            await setInitialDBToStore( this.dbName, this.store);
+            await UtilsStore.setInitialDBToStore( this.dbName, this.store);
           }
 
           this._isDBOpen = true;
           // get the current version
-          let curVersion: number = await getVersion(this.mDb);
+          let curVersion: number = await UtilsSQLite.getVersion(this.mDb);
           if (this.version > curVersion && (Object.keys(this.vUpgDict)).length > 0) {
             try {
               // copy the db
-              const isDB: boolean = await isDBInStore(this.dbName, this.store);
+              const isDB: boolean = await UtilsStore.isDBInStore(this.dbName, this.store);
               if (isDB) {
-                await copyDBToStore(this.dbName, `backup-${this.dbName}`, this.store);
+                await UtilsStore.copyDBToStore(this.dbName, `backup-${this.dbName}`, this.store);
                 this.isBackup = true;
               }
 
               // execute the upgrade flow process
-              const changes: number = await onUpgrade(
+              const changes: number = await UtilsUpgrade.onUpgrade(
                                       this.mDb,
                                       this.vUpgDict,
                                       curVersion,
@@ -80,7 +77,7 @@ export class Database {
                 // restore the database from backup
                 try {
                   if(this.isBackup) {
-                    await restoreDBFromStore(this.dbName, 'backup',this.store);
+                    await UtilsStore.restoreDBFromStore(this.dbName, 'backup',this.store);
                   }
                 } catch (err) {
                   return reject(new Error(`Open: ${err.message}`));
@@ -88,7 +85,7 @@ export class Database {
               }
               // delete the backup database
               if(this.isBackup) {
-                await removeDBFromStore(`backup-${this.dbName}`,this.store);
+                await UtilsStore.removeDBFromStore(`backup-${this.dbName}`,this.store);
               }
 
 
@@ -96,7 +93,7 @@ export class Database {
               // restore the database from backup
               try {
                 if(this.isBackup) {
-                  await restoreDBFromStore(this.dbName, 'backup',this.store);
+                  await UtilsStore.restoreDBFromStore(this.dbName, 'backup',this.store);
                 }
               } catch (err) {
                 return reject(new Error(`Open: ${err.message}`));
@@ -113,7 +110,7 @@ export class Database {
             }
           }
           // set Foreign Keys On
-          await setForeignKeyConstraintsEnabled(this.mDb, true);
+          await UtilsSQLite.setForeignKeyConstraintsEnabled(this.mDb, true);
 
           return resolve();
         });
@@ -148,10 +145,10 @@ export class Database {
     if (this.mDb != null && this._isDBOpen) {
       try {
         // save the database to store
-        await setDBToStore(this.mDb, this.dbName, this.store);
+        await UtilsStore.setDBToStore(this.mDb, this.dbName, this.store);
         if(setFK) {
           // set Foreign Keys On
-          await setForeignKeyConstraintsEnabled(this.mDb, true);
+          await UtilsSQLite.setForeignKeyConstraintsEnabled(this.mDb, true);
         }
       } catch (err) {
         return Promise.reject(`in saveToStore ${err}`);
@@ -174,7 +171,7 @@ export class Database {
     if (this.mDb != null && this._isDBOpen) {
       try {
         // save the database to store
-        const curVersion: number = await getVersion(this.mDb)
+        const curVersion: number = await UtilsSQLite.getVersion(this.mDb)
         return Promise.resolve(curVersion);
       } catch (err) {
         this._isDBOpen = false;
@@ -185,7 +182,7 @@ export class Database {
 
   public async isDBExists(database: string): Promise<boolean> {
     try {
-      const isExists: boolean = await isDBInStore(database, this.store);
+      const isExists: boolean = await UtilsStore.isDBInStore(database, this.store);
       return Promise.resolve(isExists);
     } catch (err) {
       return Promise.reject(`in isDBExists ${err}`);
@@ -203,7 +200,7 @@ export class Database {
       await this.close();
       // delete the database
       if (isExists) {
-        await removeDBFromStore(database, this.store);
+        await UtilsStore.removeDBFromStore(database, this.store);
       }
       return Promise.resolve();
     } catch (err) {
@@ -217,9 +214,11 @@ export class Database {
       msg += `not opened`;
       return Promise.reject(new Error(msg));
     }
+    let initChanges = -1;
     try {
+      initChanges = await UtilsSQLite.dbChanges(this.mDb);
       if(transaction && !this.isTransactionActive) {
-        await beginTransaction(this.mDb, this._isDBOpen);
+        await UtilsSQLite.beginTransaction(this.mDb, this._isDBOpen);
         this.isTransactionActive = true;
       }
     } catch(err) {
@@ -227,16 +226,17 @@ export class Database {
       return Promise.reject(new Error(`${msg}`));
     }
     try {
-      const changes = await execute(this.mDb, sql, false);
-      if (changes < 0) {
+      const mChanges = await UtilsSQLite.execute(this.mDb, sql, false);
+      if (mChanges < 0) {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
       }
-      if(transaction && this.isTransactionActive) await commitTransaction(this.mDb, this._isDBOpen);
+      if(transaction && this.isTransactionActive) await UtilsSQLite.commitTransaction(this.mDb, this._isDBOpen);
+      const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       return Promise.resolve(changes);
     } catch (err) {
       let msg = `ExecuteSQL: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await UtilsSQLite.rollbackTransaction(this.mDb, this._isDBOpen);
       } catch (err) {
         msg += ` : ${err.message}`;
       }
@@ -262,9 +262,9 @@ export class Database {
     const retRes: any = { changes: -1, lastId: -1 };
     let initChanges = -1;
     try {
-      initChanges = await dbChanges(this.mDb);
+      initChanges = await UtilsSQLite.dbChanges(this.mDb);
       if(transaction && !this.isTransactionActive) {
-        await beginTransaction(this.mDb, this._isDBOpen);
+        await UtilsSQLite.beginTransaction(this.mDb, this._isDBOpen);
         this.isTransactionActive = true;
       }
     } catch(err) {
@@ -272,13 +272,13 @@ export class Database {
       return Promise.reject(new Error(`${msg}`));
     }
     try {
-      const retObj: any = await executeSet(this.mDb, set, false, returnMode);
+      const retObj: any = await UtilsSQLite.executeSet(this.mDb, set, false, returnMode);
       let lastId: number = retObj["lastId"];
       if (lastId < 0) {
         return Promise.reject(new Error('ExecSet: changes < 0'));
       }
-      if(transaction && this.isTransactionActive) await commitTransaction(this.mDb, this._isDBOpen);
-      const changes = (await dbChanges(this.mDb)) - initChanges;
+      if(transaction && this.isTransactionActive) await UtilsSQLite.commitTransaction(this.mDb, this._isDBOpen);
+      const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
       retRes.values = retObj["values"] ? retObj["values"] : []
@@ -286,7 +286,7 @@ export class Database {
     } catch (err) {
       let msg = `ExecSet: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await UtilsSQLite.rollbackTransaction(this.mDb, this._isDBOpen);
       } catch (err) {
         msg += ` : ${err.message}`;
       }
@@ -310,7 +310,7 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      let retArr: any[] = await queryAll(this.mDb, sql, values);
+      let retArr: any[] = await UtilsSQLite.queryAll(this.mDb, sql, values);
       return Promise.resolve(retArr);
     } catch (err) {
       return Promise.reject(new Error(`SelectSQL: ${err.message}`));
@@ -327,10 +327,10 @@ export class Database {
     const retRes: any = { changes: -1, lastId: -1 };
     let initChanges = -1;
     try {
-      initChanges = await dbChanges(this.mDb);
+      initChanges = await UtilsSQLite.dbChanges(this.mDb);
 
       if(transaction && !this.isTransactionActive) {
-        await beginTransaction(this.mDb, this._isDBOpen);
+        await UtilsSQLite.beginTransaction(this.mDb, this._isDBOpen);
         this.isTransactionActive = true;
       }
      } catch(err) {
@@ -338,13 +338,13 @@ export class Database {
       return Promise.reject(new Error(`${msg}`));
     }
     try {
-      const retObj = await run(this.mDb, statement, values, false, returnMode);
+      const retObj = await UtilsSQLite.run(this.mDb, statement, values, false, returnMode);
       lastId = retObj["lastId"];
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
-      if(transaction && this.isTransactionActive) await commitTransaction(this.mDb, this._isDBOpen);
-      const changes = (await dbChanges(this.mDb)) - initChanges;
+      if(transaction && this.isTransactionActive) await UtilsSQLite.commitTransaction(this.mDb, this._isDBOpen);
+      const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
       retRes.values = retObj["values"] ? retObj["values"] : []
@@ -352,7 +352,7 @@ export class Database {
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await UtilsSQLite.rollbackTransaction(this.mDb, this._isDBOpen);
       } catch (err) {
         msg += ` : ${err.message}`;
       }
@@ -376,7 +376,7 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      let retArr: any[] = await getTableList(this.mDb);
+      let retArr: any[] = await UtilsSQLite.getTableList(this.mDb);
       return Promise.resolve(retArr);
     } catch (err) {
       return Promise.reject(new Error(`GetTableNames: ${err.message}`));
@@ -390,7 +390,7 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      const retB = await isTableExists(this.mDb, tableName);
+      const retB = await UtilsSQLite.isTableExists(this.mDb, tableName);
       return Promise.resolve(retB);
     } catch (err) {
       const msg = `IsTable: ${err.message}`;
@@ -405,10 +405,10 @@ export class Database {
     }
     let changes = -1;
     try {
-      const retB = await isTableExists(this.mDb, 'sync_table');
+      const retB = await UtilsSQLite.isTableExists(this.mDb, 'sync_table');
       if(!retB) {
-        const isLastMod = await isLastModified(this.mDb, this._isDBOpen);
-        const isDel = await isSqlDeleted(this.mDb, this._isDBOpen);
+        const isLastMod = await UtilsSQLite.isLastModified(this.mDb, this._isDBOpen);
+        const isDel = await UtilsSQLite.isSqlDeleted(this.mDb, this._isDBOpen);
         if(isLastMod && isDel) {
           const date: number = Math.round(new Date().getTime() / 1000);
           let stmts = `
@@ -418,7 +418,7 @@ export class Database {
                               );`;
           stmts += `INSERT INTO sync_table (sync_date) VALUES (
                               "${date}");`;
-          changes = await execute(this.mDb, stmts, false);
+          changes = await UtilsSQLite.execute(this.mDb, stmts, false);
           return Promise.resolve(changes);
         } else {
           return Promise.reject(new Error('No last_modified/sql_deleted columns in tables'));
@@ -438,11 +438,11 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      const isTable = await isTableExists(this.mDb, 'sync_table');
+      const isTable = await UtilsSQLite.isTableExists(this.mDb, 'sync_table');
       if(!isTable) {
         return Promise.reject(new Error('No sync_table available'));
       }
-      const res = await getSynchroDate(this.mDb);
+      const res = await UtilsExportJSON.getSynchroDate(this.mDb);
       return Promise.resolve(res);
     } catch (err) {
       const msg = `getSyncDate: ${err.message}`;
@@ -456,14 +456,14 @@ export class Database {
       return { result: false, message: msg };
     }
     try {
-      const isTable = await isTableExists(this.mDb, 'sync_table');
+      const isTable = await UtilsSQLite.isTableExists(this.mDb, 'sync_table');
       if(!isTable) {
         return Promise.reject(new Error('No sync_table available'));
       }
       const sDate: number = Math.round(new Date(syncDate).getTime() / 1000);
       let stmt = `UPDATE sync_table SET sync_date = `;
       stmt += `${sDate} WHERE id = 1;`;
-      const changes: number = await execute(this.mDb, stmt, false);
+      const changes: number = await UtilsSQLite.execute(this.mDb, stmt, false);
       if (changes < 0) {
         return { result: false, message: 'setSyncDate failed' };
       } else {
@@ -478,28 +478,28 @@ export class Database {
     if (this._isDBOpen) {
       try {
         // set Foreign Keys Off
-        await setForeignKeyConstraintsEnabled(this.mDb, false);
+        await UtilsSQLite.setForeignKeyConstraintsEnabled(this.mDb, false);
 
         if (jsonData.tables && jsonData.tables.length > 0) {
 
           // create the database schema
-          changes = await createDatabaseSchema(this.mDb, jsonData);
+          changes = await UtilsImportJSON.createDatabaseSchema(this.mDb, jsonData);
           let msg = `Schema creation completed changes: ${changes}`;
           importProgress.emit({progress:msg});
 
           if (changes != -1) {
             // create the tables data
-            changes += await createTablesData(this.mDb, jsonData, importProgress);
+            changes += await UtilsImportJSON.createTablesData(this.mDb, jsonData, importProgress);
             let msg = `Tables data creation completed changes: ${changes}`;
             importProgress.emit({progress:msg});
           }
         }
         if (jsonData.views && jsonData.views.length > 0) {
           // create the views
-          changes += await createViews(this.mDb, jsonData);
+          changes += await UtilsImportJSON.createViews(this.mDb, jsonData);
         }
         // set Foreign Keys On
-        await setForeignKeyConstraintsEnabled(this.mDb, true);
+        await UtilsSQLite.setForeignKeyConstraintsEnabled(this.mDb, true);
 
         await this.saveToStore();
 
@@ -519,18 +519,20 @@ export class Database {
     inJson.mode = mode;
     if (this._isDBOpen) {
       try {
-        const isTable = await isTableExists(this.mDb, 'sync_table');
+        const isTable = await UtilsSQLite.isTableExists(this.mDb, 'sync_table');
         if(isTable) {
-          await setLastExportDate(this.mDb, (new Date()).toISOString());
+          await UtilsExportJSON
+                  .setLastExportDate(this.mDb, (new Date()).toISOString());
         }
-        const retJson: JsonSQLite = await createExportObject(this.mDb, inJson, exportProgress);
+        const retJson: JsonSQLite = await UtilsExportJSON
+                      .createExportObject(this.mDb, inJson, exportProgress);
         const keys = Object.keys(retJson);
         if(keys.length === 0) {
           const msg = `ExportJson: return Object is empty `+
                       `No data to synchronize`;
           return Promise.reject(new Error(msg));
         }
-        const isValid = isJsonSQLite(retJson);
+        const isValid = UtilsJSON.isJsonSQLite(retJson);
         if (isValid) {
           return Promise.resolve(retJson);
         } else {
@@ -546,7 +548,7 @@ export class Database {
   async deleteExportedRows() : Promise<void> {
     if (this._isDBOpen) {
       try {
-        await delExportedRows(this.mDb);
+        await UtilsExportJSON.delExportedRows(this.mDb);
         return Promise.resolve();
       } catch (err) {
         return Promise.reject(new Error(`deleteExportedRows: ${err.message}`));

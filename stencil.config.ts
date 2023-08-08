@@ -36,6 +36,7 @@ export const config: Config = {
         { src: 'index_issue385.html', dest: 'index_issue385.html' },
         { src: 'index_getFromLocalDiskToStore.html', dest: 'index_getFromLocalDiskToStore.html' },
         { src: 'index_returning.html', dest: 'index_returning.html' },
+        { src: 'index_issue445.html', dest: 'index_issue445.html' },
       ]
     },
   ],

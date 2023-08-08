@@ -78,6 +78,9 @@
     .dropdown:hover .dropdown-content {
       display: block;
     }
+    .container {
+      margin-left: 25px;
+    }
   </style>
   <body>
     <div class="navbar">
@@ -92,20 +95,26 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
-          <a href="index_readonly.html">DB Readonly & WAL</a>
+          <a href="index_readonly.html">DB Readonly</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
           <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
           <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
         </div>
       </div>
     </div>
     <h1>Issue11 Page 2</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
     <jeep-sqlite autoSave="true"></jeep-sqlite>
 </body>
 </html>
 <script>
   (async () => {
+    const messageEl = document.querySelector('.message');
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
     let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
@@ -187,11 +196,14 @@
           await jeepSqlite.closeConnection({database:"testIssue11"});
         }
         console.log(`Test issue11 Page 2 successful`)
+        messageEl.innerHTML = `Test issue11 Page 2 successful`;
       } catch (err) {
         console.log(`Error ${err}`);
+        messageEl.innerHTML = `Error: ${err}`;
       }
     } else {
       console.log("store creation failed")
+      messageEl.innerHTML = `Error: Store creation failed`;
     }
   })();
 </script>

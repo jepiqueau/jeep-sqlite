@@ -78,6 +78,9 @@
     .dropdown:hover .dropdown-content {
       display: block;
     }
+    .container {
+      margin-left: 25px;
+    }
   </style>
   <body>
     <div class="navbar">
@@ -92,22 +95,34 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
-          <a href="index_readonly.html">DB Readonly & WAL</a>
+          <a href="index_readonly.html">DB Readonly</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
           <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
           <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
         </div>
       </div>
     </div>
     <h1>Delete Tests Page</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
     <jeep-sqlite autoSave="true"></jeep-sqlite>
   </body>
 </html>
 <script>
   (async () => {
+    const messageEl = document.querySelector('.message');
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
+    // Test button's text
+    jeepSqlite.pickText = "Select a Database";
+
+    // Test button's style
+    jeepSqlite.buttonOptions = '{"backgroundColor":"#000000", "top":"70%","fontSize":"1.5em"}';
+
     jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
       console.log(`Import: ${event.detail.progress}`)
     });
@@ -123,12 +138,16 @@
       };
       const endTest = async(name,msg) => {
         if(msg.length === 0) {
-          console.log(`\n* The set of tests ${name} was successful *\n`);
+          const message = `* The set of tests ${name} was successful *`
+          console.log(`\n${message}\n`);
+          messageEl.innerHTML = message;
         } else {
-          console.log(`${msg}`);
-          console.log(`\n* The set of tests ${name} failed *\n`);
+          const message = `${msg}\n* The set of tests ${name} failed *\n`
+          console.log(`${message}`);
+          messageEl.innerHTML = message;
         }
       }
+
       const openConnection = async (dbName, encrypted, mode, version, readonly,
                                     isDelete) => {
         try {
@@ -738,6 +757,7 @@ PRAGMA user_version = 1;
             const msg = `executeSet delete "db-from-json-del" changes != 11`;
             return Promise.reject(`Error: ${msg}`);
           }
+
           const delExecute = `
           DELETE FROM users WHERE id = 2;
           `
@@ -816,6 +836,7 @@ PRAGMA user_version = 1;
         await localSynchronization('db-from-json-del');
         // test importing partial with delete
         await importPartial(partialImport1, "partialImport1");
+
         // delay before doing some stuff to get something for the partial export
         await delay(2, 'before capturing new data');
         // do some stuff
@@ -828,6 +849,9 @@ PRAGMA user_version = 1;
         await importPartial(partialImport2, "partialImport2");
         // Show the final users/messages
         await showUsersMessages();
+        // Save the database to disk
+        await jeepSqlite.saveToLocalDisk({database:'db-from-json-del'});
+
         // Close Connection db-from-json-del
         await jeepSqlite.closeConnection({database: 'db-from-json-del'});
         msg = `> closeConnection "db-from-json-del" successful\n`;

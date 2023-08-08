@@ -78,6 +78,9 @@
     .dropdown:hover .dropdown-content {
       display: block;
     }
+    .container {
+      margin-left: 25px;
+    }
   </style>
   <body>
     <div class="navbar">
@@ -92,19 +95,26 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
-          <a href="index_readonly.html">DB Readonly & WAL</a>
+          <a href="index_readonly.html">DB Readonly</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
           <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
         </div>
       </div>
     </div>
     <h1>TEST RETURNING</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
     <jeep-sqlite></jeep-sqlite>
   </body>
 </html>
 <script>
   (async () => {
+    const messageEl = document.querySelector('.message');
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
     if(await jeepSqlite.isStoreOpen()) {
@@ -116,10 +126,13 @@
       };
       const endTest = async(name,msg) => {
         if(msg.length === 0) {
-          console.log(`\n* The set of tests ${name} was successful *\n`);
+          const message = `* The set of tests ${name} was successful *`
+          console.log(`\n${message}\n`);
+          messageEl.innerHTML = message;
         } else {
-          console.log(`${msg}`);
-          console.log(`\n* The set of tests ${name} failed *\n`);
+          const message = `${msg}\n* The set of tests ${name} failed *\n`
+          console.log(`${message}`);
+          messageEl.innerHTML = message;
         }
       }
       const openConnection = async (dbName, encrypted, mode, version, readonly,

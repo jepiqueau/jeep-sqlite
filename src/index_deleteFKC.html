@@ -78,6 +78,9 @@
     .dropdown:hover .dropdown-content {
       display: block;
     }
+    .container {
+      margin-left: 25px;
+    }
   </style>
   <body>
     <div class="navbar">
@@ -92,22 +95,34 @@
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
-          <a href="index_readonly.html">DB Readonly & WAL</a>
+          <a href="index_readonly.html">DB Readonly</a>
           <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
           <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
           <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
           <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
         </div>
       </div>
     </div>
     <h1>DeleteFKC Tests Page</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
    <jeep-sqlite autoSave="true"></jeep-sqlite>
   </body>
 </html>
 <script>
   (async () => {
+    const messageEl = document.querySelector('.message');
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
+    // Test button's text
+    jeepSqlite.pickText = "Select a Database";
+
+    // Test button's style
+    jeepSqlite.buttonOptions = '{"backgroundColor":"#000000", "top":"70%","fontSize":"1.5em"}';
+
     jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
       console.log(`Import: ${event.detail.progress}`)
     });
@@ -123,10 +138,13 @@
       };
       const endTest = async(name,msg) => {
         if(msg.length === 0) {
-          console.log(`\n* The set of tests ${name} was successful *\n`);
+          const message = `* The set of tests ${name} was successful *`
+          console.log(`\n${message}\n`);
+          messageEl.innerHTML = message;
         } else {
-          console.log(`${msg}`);
-          console.log(`\n* The set of tests ${name} failed *\n`);
+          const message = `${msg}\n* The set of tests ${name} failed *\n`
+          console.log(`${message}`);
+          messageEl.innerHTML = message;
         }
       }
       const openConnection = async (dbName, encrypted, mode, version, readonly,
@@ -284,93 +302,109 @@
       // ********************************
 
       const createSchema = `
-CREATE TABLE IF NOT EXISTS sample_table (
-    col1 INTEGER NOT NULL,
-    col2 TEXT NOT NULL,
-    col3 INTEGER NOT NULL,
-    col4 TEXT,
-    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-    last_modified INTEGER DEFAULT (strftime('%s', 'now')),
-    PRIMARY KEY (col1,col2)
-);
+        CREATE TABLE IF NOT EXISTS sample_table (
+            col1 INTEGER NOT NULL,
+            col2 TEXT NOT NULL,
+            col3 INTEGER NOT NULL,
+            col4 TEXT,
+            sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+            last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+            PRIMARY KEY (col1,col2)
+        );
 
-CREATE INDEX IF NOT EXISTS sample_table_index_last_modified ON sample_table (last_modified);
-CREATE TRIGGER IF NOT EXISTS sample_table_trigger_last_modified
-AFTER UPDATE ON sample_table
-FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-BEGIN
-    UPDATE sample_table SET last_modified = (strftime('%s', 'now')) WHERE col1=OLD.col1 AND col2=OLD.col2;
-END;
-PRAGMA user_version = 1;
-`;
+        CREATE INDEX IF NOT EXISTS sample_table_index_last_modified ON sample_table (last_modified);
+        CREATE TRIGGER IF NOT EXISTS sample_table_trigger_last_modified
+        AFTER UPDATE ON sample_table
+        FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+        BEGIN
+            UPDATE sample_table SET last_modified = ((strftime('%s', 'now')) + 1) WHERE col1=NEW.col1 AND col2=NEW.col2;
+        END;
+        PRAGMA user_version = 1;
+      `;
 
       const someData = `
-      INSERT INTO sample_table (col1,col2,col3,col4) VALUES (1,'asd',1,'test1');
-      INSERT INTO sample_table (col1,col2,col3,col4) VALUES (2,'asd',2,'test2');
-      INSERT INTO sample_table (col1,col2,col3,col4) VALUES (2,'asd1',2,'test3');
-      INSERT INTO sample_table (col1,col2,col3,col4) VALUES (1,'asd1',3,'test4');
+        INSERT INTO sample_table (col1,col2,col3,col4) VALUES (1,'asd',1,'test1');
+        INSERT INTO sample_table (col1,col2,col3,col4) VALUES (2,'asd',2,'test2');
+        INSERT INTO sample_table (col1,col2,col3,col4) VALUES (2,'asd1',2,'test3');
+        INSERT INTO sample_table (col1,col2,col3,col4) VALUES (1,'asd1',3,'test4');
       `;
 
       const createSchema1 = `
-CREATE TABLE IF NOT EXISTS table1 (
-    col1 INTEGER NOT NULL,
-    col2 TEXT NOT NULL,
-    col3 INTEGER NOT NULL,
-    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-    last_modified INTEGER DEFAULT (strftime('%s', 'now')),
-    FOREIGN KEY (col1) REFERENCES table2(id) ON DELETE CASCADE,
-    FOREIGN KEY (col2) REFERENCES table3(id) ON DELETE CASCADE,
-    PRIMARY KEY (col1,col2)
-);
+        CREATE TABLE IF NOT EXISTS table1 (
+            col1 INTEGER NOT NULL,
+            col2 TEXT NOT NULL,
+            col3 INTEGER NOT NULL,
+            sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+            last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+            FOREIGN KEY (col1) REFERENCES table2(id) ON DELETE CASCADE,
+            FOREIGN KEY (col2) REFERENCES table3(id) ON DELETE CASCADE,
+            PRIMARY KEY (col1,col2)
+        );
 
-CREATE INDEX IF NOT EXISTS table1_index_last_modified ON table1 (last_modified);
-CREATE TRIGGER IF NOT EXISTS table1_trigger_last_modified
-AFTER UPDATE ON table1
-FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-BEGIN
-    UPDATE table1 SET last_modified = (strftime('%s', 'now')) WHERE col1=OLD.col1 AND col2=OLD.col2;
-END;
-CREATE TABLE IF NOT EXISTS table2 (
-    id INTEGER PRIMARY KEY NOT NULL,
-    name TEXT NOT NULL,
-    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-    last_modified INTEGER DEFAULT (strftime('%s', 'now'))
-);
-CREATE INDEX IF NOT EXISTS table2_index_last_modified ON table2 (last_modified);
-CREATE TRIGGER IF NOT EXISTS table2_trigger_last_modified
-AFTER UPDATE ON table2
-FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-BEGIN
-    UPDATE table2 SET last_modified = (strftime('%s', 'now')) WHERE id=OLD.id;
-END;
-CREATE TABLE IF NOT EXISTS table3 (
-    id TEXT PRIMARY KEY NOT NULL,
-    name TEXT NOT NULL,
-    sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-    last_modified INTEGER DEFAULT (strftime('%s', 'now'))
-);
-CREATE INDEX IF NOT EXISTS table3_index_last_modified ON table3 (last_modified);
-CREATE TRIGGER IF NOT EXISTS table3_trigger_last_modified
-AFTER UPDATE ON table3
-FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
-BEGIN
-    UPDATE table3 SET last_modified = (strftime('%s', 'now')) WHERE id=OLD.id;
-END;
+        CREATE INDEX IF NOT EXISTS table1_index_last_modified ON table1 (last_modified);
+        CREATE TRIGGER IF NOT EXISTS table1_trigger_last_modified
+        AFTER UPDATE ON table1
+        FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+        BEGIN
+            UPDATE table1 SET last_modified = ((strftime('%s', 'now')) + 1) WHERE col1=NEW.col1 AND col2=NEW.col2;
+        END;
+        CREATE TABLE IF NOT EXISTS table2 (
+            id INTEGER PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+            last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS table2_index_last_modified ON table2 (last_modified);
+        CREATE TRIGGER IF NOT EXISTS table2_trigger_last_modified
+        AFTER UPDATE ON table2
+        FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+        BEGIN
+            UPDATE table2 SET last_modified = ((strftime('%s', 'now')) + 1) WHERE id=NEW.id;
+        END;
+        CREATE TABLE IF NOT EXISTS table3 (
+            id TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+            last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+        );
+        CREATE INDEX IF NOT EXISTS table3_index_last_modified ON table3 (last_modified);
+        CREATE TRIGGER IF NOT EXISTS table3_trigger_last_modified
+        AFTER UPDATE ON table3
+        FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+        BEGIN
+            UPDATE table3 SET last_modified = ((strftime('%s', 'now')) + 1) WHERE id=NEW.id;
+        END;
 
-PRAGMA user_version = 1;
-`;
+        PRAGMA user_version = 1;
+      `;
 
-const someData1 = `
-      INSERT INTO table2 (id,name) VALUES (1,'asdasd1');
-      INSERT INTO table2 (id,name) VALUES (2,'asdasd2');
-      INSERT INTO table2 (id,name) VALUES (3,'asdasd3');
-      INSERT INTO table3 (id,name) VALUES ('ef5c57d5-b885-49a9-9c4d-8b340e4abdbc','bsdbsd1');
-      INSERT INTO table3 (id,name) VALUES ('bced3262-5d42-470a-9585-d3fd12c45452','bsdbsd2');
-      INSERT INTO table3 (id,name) VALUES ('cbed3263-5d43-480b-9585-k3fd12c53491','bsdbsd3');
-      INSERT INTO table1 (col1,col2,col3) VALUES (1,'ef5c57d5-b885-49a9-9c4d-8b340e4abdbc',1);
-      INSERT INTO table1 (col1,col2,col3) VALUES (2,'ef5c57d5-b885-49a9-9c4d-8b340e4abdbc',2);
-      INSERT INTO table1 (col1,col2,col3) VALUES (2,'bced3262-5d42-470a-9585-d3fd12c45452',2);
-      INSERT INTO table1 (col1,col2,col3) VALUES (1,'bced3262-5d42-470a-9585-d3fd12c45452',3);
+      const someData1 = `
+        INSERT INTO table2 (id,name) VALUES (1,'asdasd1');
+        INSERT INTO table2 (id,name) VALUES (2,'asdasd2');
+        INSERT INTO table2 (id,name) VALUES (3,'asdasd3');
+        INSERT INTO table2 (id,name) VALUES (4,'asdasd4');
+        INSERT INTO table2 (id,name) VALUES (5,'asdasd5');
+        INSERT INTO table2 (id,name) VALUES (6,'asdasd6');
+        INSERT INTO table2 (id,name) VALUES (7,'asdasd7');
+        INSERT INTO table3 (id,name) VALUES ('ef5c57d5-b885-49a9-9c4d-8b340e4abdbc','bsdbsd1');
+        INSERT INTO table3 (id,name) VALUES ('bced3262-5d42-470a-9585-d3fd12c45452','bsdbsd2');
+        INSERT INTO table3 (id,name) VALUES ('cbed3263-5d43-480b-9585-k3fd12c53491','bsdbsd3');
+        INSERT INTO table3 (id,name) VALUES ('600ead3b-e7df-4e63-9f8d-7c82b5cfac42','bsdbsd4');
+        INSERT INTO table3 (id,name) VALUES ('7e2e6a24-51bc-4422-b428-4def4fbfc436','bsdbsd5');
+        INSERT INTO table3 (id,name) VALUES ('cf77056c-a7fe-4e2d-924d-f2d8a5b21148','bsdbsd6');
+        INSERT INTO table3 (id,name) VALUES ('d9fda8de-65f8-4a72-a6c1-05e8f5490e6a','bsdbsd7');
+        INSERT INTO table3 (id,name) VALUES ('2210add3-15c1-42a7-b027-6e12d960fb9b','bsdbsd8');
+        INSERT INTO table1 (col1,col2,col3) VALUES (1,'ef5c57d5-b885-49a9-9c4d-8b340e4abdbc',1);
+        INSERT INTO table1 (col1,col2,col3) VALUES (2,'ef5c57d5-b885-49a9-9c4d-8b340e4abdbc',2);
+        INSERT INTO table1 (col1,col2,col3) VALUES (2,'bced3262-5d42-470a-9585-d3fd12c45452',2);
+        INSERT INTO table1 (col1,col2,col3) VALUES (1,'bced3262-5d42-470a-9585-d3fd12c45452',3);
+        INSERT INTO table1 (col1,col2,col3) VALUES (3,'cf77056c-a7fe-4e2d-924d-f2d8a5b21148',3);
+        INSERT INTO table1 (col1,col2,col3) VALUES (4,'600ead3b-e7df-4e63-9f8d-7c82b5cfac42',5);
+        INSERT INTO table1 (col1,col2,col3) VALUES (5,'7e2e6a24-51bc-4422-b428-4def4fbfc436',4);
+        INSERT INTO table1 (col1,col2,col3) VALUES (6,'d9fda8de-65f8-4a72-a6c1-05e8f5490e6a',6);
+        INSERT INTO table1 (col1,col2,col3) VALUES (6,'7e2e6a24-51bc-4422-b428-4def4fbfc436',6);
+        INSERT INTO table1 (col1,col2,col3) VALUES (7,'2210add3-15c1-42a7-b027-6e12d960fb9b',7);
+        INSERT INTO table1 (col1,col2,col3) VALUES (7,'7e2e6a24-51bc-4422-b428-4def4fbfc436',4);
       `;
 
       const createSchema2 = `
@@ -386,25 +420,25 @@ const someData1 = `
       CREATE INDEX IF NOT EXISTS album_index_last_modified ON album (last_modified);
       CREATE TRIGGER IF NOT EXISTS album_trigger_last_modified
       AFTER UPDATE ON album
-      FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+      FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
       BEGIN
-          UPDATE album SET last_modified = (strftime('%s', 'now')) WHERE album_artist=OLD.album_artist AND album_name=OLD.album_name;
+          UPDATE album SET last_modified = ((strftime('%s', 'now')) + 1) WHERE album_artist=NEW.album_artist AND album_name=NEW.album_name;
       END;
       CREATE TABLE IF NOT EXISTS song (
         song_id INTEGER PRIMARY KEY NOT NULL,
-          song_artist TEXT NOT NULL,
-          song_album TEXT NOT NULL,
-          song_name TEXT NOT NULL,
-          sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
-          last_modified INTEGER DEFAULT (strftime('%s', 'now')),
-          FOREIGN KEY (song_artist, song_album) REFERENCES album(album_artist,album_name) ON DELETE CASCADE
+        song_artist TEXT NOT NULL,
+        song_album TEXT NOT NULL,
+        song_name TEXT NOT NULL,
+        sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+        last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+        FOREIGN KEY (song_artist, song_album) REFERENCES album(album_artist,album_name) ON DELETE CASCADE
       );
       CREATE INDEX IF NOT EXISTS song_index_last_modified ON song (last_modified);
       CREATE TRIGGER IF NOT EXISTS song_trigger_last_modified
       AFTER UPDATE ON song
-      FOR EACH ROW WHEN NEW.last_modified < OLD.last_modified
+      FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
       BEGIN
-          UPDATE song SET last_modified = (strftime('%s', 'now')) WHERE song_id=OLD.song_id;
+          UPDATE song SET last_modified = ((strftime('%s', 'now')) + 1) WHERE song_id=NEW.song_id;
       END;
 
       PRAGMA user_version = 1;
@@ -498,8 +532,8 @@ const someData1 = `
             `;
             var res = await jeepSqlite.execute({database: 'test285',statements: stmt});
             console.log(`>>> delete execute res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 1) {
-                const msg = `execute delete "test285" changes !=1 `;
+            if(res.changes.changes != 1*2) {
+                const msg = `execute delete "test285" changes != 2 `;
                 return Promise.reject(`Error: ${msg}`);
             }
             console.log("> delete with execute successful\n");
@@ -507,8 +541,9 @@ const someData1 = `
             // Delete in a run statement
             stmt = "DELETE FROM sample_table WHERE col1 = ? AND col2 = ?;";
             res = await jeepSqlite.run({database: "test285",statement: stmt,values: [2,'asd1']});
-            if(res.changes.changes != 1) {
-                const msg = `run delete "test285" changes != 1 `;
+            console.log(`res.changes.changes: ${res.changes.changes}`)
+            if(res.changes.changes != 1*2) {
+                const msg = `run delete "test285" changes != 2 `;
                 return Promise.reject(`Error: ${msg}`);
             }
 
@@ -525,8 +560,8 @@ const someData1 = `
                 }
             ];
             res = await jeepSqlite.executeSet({database: "test285", set: deleteSet});
-            if(res.changes.changes != 2) {
-                const msg = `executeSet delete "test285" changes != 2 `;
+            if(res.changes.changes != 2*2) {
+                const msg = `executeSet delete "test285" changes != 4 `;
                 return Promise.reject(`Error: ${msg}`);
             }
 
@@ -565,8 +600,8 @@ const someData1 = `
           console.log(`>>> execute DELETE FROM table3 res: ${JSON.stringify(res)}`);
           // Insert some data
           res = await jeepSqlite.execute({database: 'test285',statements: someData1});
-          if (res.changes.changes !== 10) {
-              const msg = `Execute insert someData changes != 10`;
+          if (res.changes.changes !== 26) {
+              const msg = `Execute insert someData changes != 26`;
               return Promise.reject(msg);
           }
           console.log("> Execute insert someData1 successful\n");
@@ -575,20 +610,20 @@ const someData1 = `
           await jeepSqlite.saveToStore({database: 'test285'});
           // Query the table1
           res = await jeepSqlite.query({database: 'test285',statement: "SELECT * FROM table1"});
-          if(res.values.length !== 4 ) {
-              const msg = `Query not returning 4 data`;
+          if(res.values.length !== 11 ) {
+              const msg = `Query not returning 11 data`;
               return Promise.reject(msg);
           }
           // Query the table2
           res = await jeepSqlite.query({database: 'test285',statement: "SELECT * FROM table2"});
-          if(res.values.length !== 3 ) {
-              const msg = `Query not returning 3 data from table2`;
+          if(res.values.length !== 7 ) {
+              const msg = `Query not returning 7 data from table2`;
               return Promise.reject(msg);
           }
           // Query the table3
           res = await jeepSqlite.query({database: 'test285',statement: "SELECT * FROM table3"});
-          if(res.values.length !== 3 ) {
-              const msg = `Query not returning 3 data from table3`;
+          if(res.values.length !== 8 ) {
+              const msg = `Query not returning 8 data from table3`;
               return Promise.reject(msg);
           }
           console.log("> Select someData successful\n");
@@ -602,15 +637,18 @@ const someData1 = `
       }
       const deleteTestFK = async() => {
         try {
+            // ******************
+            // DELETE from table1
+            // ******************
             let stmt = "";
             // Delete in an execute statement
             stmt = `
             DELETE FROM table1 WHERE col1 = 1 AND col2 = 'ef5c57d5-b885-49a9-9c4d-8b340e4abdbc';
             `;
             var res = await jeepSqlite.execute({database: 'test285',statements: stmt});
-            console.log(`>>> delete execute res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 3) {
-                const msg = `execute delete "test285" changes != 3 `;
+            console.log(`>>> delete1 execute res: ${JSON.stringify(res)}`)
+            if(res.changes.changes != 1*2) {
+                const msg = `execute delete "test285" changes != 2 `;
                 return Promise.reject(`Error: ${msg}`);
             }
             console.log("> delete with execute successful\n");
@@ -618,9 +656,9 @@ const someData1 = `
             // Delete in a run statement
             stmt = "DELETE FROM table1 WHERE col1 = ? AND col2 = ?;";
             res = await jeepSqlite.run({database: "test285",statement: stmt,values: [2,'bced3262-5d42-470a-9585-d3fd12c45452']});
-            console.log(`>>> delete run res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 3) {
-                const msg = `run delete "test285" changes != 3 `;
+            console.log(`>>> delete2 run res: ${JSON.stringify(res)}`)
+            if(res.changes.changes != 1*2) {
+                const msg = `run delete "test285" changes != 2 `;
                 return Promise.reject(`Error: ${msg}`);
             }
 
@@ -638,10 +676,36 @@ const someData1 = `
             ];
             res = await jeepSqlite.executeSet({database: "test285", set: deleteSet});
             console.log(`>>> delete executeSet res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 6) {
-                const msg = `executeSet delete "test285" changes != 6 `;
+            if(res.changes.changes != 2*2) {
+                const msg = `executeSet delete3 "test285" changes != 4 `;
                 return Promise.reject(`Error: ${msg}`);
             }
+
+            // ******************
+            // DELETE from table2
+            // ******************
+            stmt = `
+            DELETE FROM table2 WHERE id = 6;
+            `;
+            res = await jeepSqlite.execute({database: 'test285',statements: stmt});
+            console.log(`>>> delete1 table2 execute res: ${JSON.stringify(res)}`)
+            if(res.changes.changes != 3*2) {
+                const msg = `run delete "test285" changes != 6 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+            // ******************
+            // DELETE from table3
+            // ******************
+            stmt = `
+            DELETE FROM table3 WHERE id = '7e2e6a24-51bc-4422-b428-4def4fbfc436';
+            `;
+            var res = await jeepSqlite.execute({database: 'test285',statements: stmt});
+            console.log(`>>> delete1 table3 execute res: ${JSON.stringify(res)}`)
+            if(res.changes.changes != 3*2) {
+                const msg = `run delete "test285" changes != 6 `;
+                return Promise.reject(`Error: ${msg}`);
+            }
+
 
             console.log("> delete with executeSet successful\n");
 
@@ -757,8 +821,8 @@ const someData1 = `
             `;
             var res = await jeepSqlite.execute({database: 'test285',statements: stmt});
             console.log(`>>> delete execute res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 4) {
-                const msg = `execute delete "test285" changes != 4 `;
+            if(res.changes.changes != 4*2) {
+                const msg = `execute delete "test285" changes != 8 `;
                 return Promise.reject(`Error: ${msg}`);
             }
             console.log("> delete with execute successful\n");
@@ -767,8 +831,8 @@ const someData1 = `
             stmt = "DELETE FROM album WHERE album_artist = ? AND album_name = ?;";
             res = await jeepSqlite.run({database: "test285",statement: stmt,values: ['The Beatles','Help!']});
             console.log(`>>> delete run res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 4) {
-                const msg = `run delete "test285" changes != 4 `;
+            if(res.changes.changes != 4*2) {
+                const msg = `run delete "test285" changes != 8 `;
                 return Promise.reject(`Error: ${msg}`);
             }
 
@@ -786,8 +850,8 @@ const someData1 = `
             ];
             res = await jeepSqlite.executeSet({database: "test285", set: deleteSet});
             console.log(`>>> delete executeSet res: ${JSON.stringify(res)}`)
-            if(res.changes.changes != 12) {
-                const msg = `executeSet delete "test285" changes != 12 `;
+            if(res.changes.changes != 12*2) {
+                const msg = `executeSet delete "test285" changes != 24 `;
                 return Promise.reject(`Error: ${msg}`);
             }
 
@@ -823,6 +887,7 @@ const someData1 = `
         await showTable2('initial data');
         // Show the initial table3
         await showTable3('initial data');
+        // Delete From Table_1
         await deleteTestFK();
         // Show the after delete table1
         await showTable1('after delete');
@@ -852,6 +917,9 @@ const someData1 = `
         // Show the final users
         await showUsers('final');
 */
+        // Save the database to disk
+        await jeepSqlite.saveToLocalDisk({database:'test285'});
+
         // Close Connection test285
         await jeepSqlite.closeConnection({database: 'test285'});
         let msg = `> closeConnection "test285" successful\n`;

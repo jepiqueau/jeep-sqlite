@@ -78,6 +78,9 @@
     .dropdown:hover .dropdown-content {
       display: block;
     }
+    .container {
+      margin-left: 25px;
+    }
   </style>
   <body>
     <div class="navbar">
@@ -98,15 +101,20 @@
           <a href="index_issue385.html">Issue#385 Test</a>
           <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
           <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
         </div>
       </div>
     </div>
     <h1>Home Page</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
     <jeep-sqlite autoSave></jeep-sqlite>
 </body>
 </html>
 <script>
   (async () => {
+    const messageEl = document.querySelector('.message');
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
     jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
@@ -1115,12 +1123,15 @@
             }
             await jeepSqlite.closeConnection({database:"db-from-json71"});
 
-            console.log("db success");
+            console.log("db tests were successful");
+            messageEl.innerHTML = 'db tests were successful';
         } catch (err) {
-          console.log(`Error ${err}`);
+          console.log(`Error: ${err}`);
+          messageEl.innerHTML = `Error: ${err}`;
         }
     } else {
-      console.log("store creation failed")
+      console.log("Error: Store creation failed")
+      messageEl.innerHTML = "Error: Store creation failed";
     }
   })();
 </script>

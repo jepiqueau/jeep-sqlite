@@ -9,8 +9,8 @@ import { EchoOptions, ConnectionOptions, SQLiteOptions, SQLiteExecuteOptions, SQ
          SQLiteJson, JsonProgressListener, SQLiteVersion,  SQLiteFromAssetsOptions,
          SQLiteHTTPOptions, HTTPRequestEndedListener, PickOrSaveDatabaseEndedListener,
          SQLiteLocalDiskOptions, ButtonOptions } from '../../interfaces/interfaces';
-import { isJsonSQLite } from '../../utils/utils-json';
-import { saveDBToStore, isDBInStore, getDBListFromStore, removeDBFromStore } from '../../utils/utils-store';
+import { UtilsJSON } from '../../utils/utils-json';
+import { UtilsStore } from '../../utils/utils-store';
 import * as JSZip from 'jszip';
 import { fileOpen, fileSave, supported } from 'browser-fs-access';
 
@@ -974,13 +974,13 @@ export class JeepSqlite {
       const databaseName = this.removePathSuffix(blob.name);
       const dbName = this.setPathSuffix(blob.name);
       // check if dbName exists
-      const isExist: boolean = await isDBInStore(dbName, this.store);
+      const isExist: boolean = await UtilsStore.isDBInStore(dbName, this.store);
       if (!isExist) {
-        await saveDBToStore(dbName, uInt8Array, this.store);
+        await UtilsStore.saveDBToStore(dbName, uInt8Array, this.store);
       } else  {
         if(this._overwrite) {
-          await removeDBFromStore(dbName, this.store);
-          await saveDBToStore(dbName, uInt8Array, this.store);
+          await UtilsStore.removeDBFromStore(dbName, this.store);
+          await UtilsStore.saveDBToStore(dbName, uInt8Array, this.store);
         } else {
           this.PickDatabaseEnded.emit({message:`Error: cannot overwrite ${dbName}`});
         }
@@ -1274,7 +1274,7 @@ export class JeepSqlite {
   }
   async _isJsonValid(jsonStrObj: string): Promise<SQLiteResult> {
     const jsonObj = JSON.parse(jsonStrObj);
-    const isValid = await isJsonSQLite(jsonObj);
+    const isValid = await UtilsJSON.isJsonSQLite(jsonObj);
     if (!isValid) {
       return Promise.reject('IsJsonValid: Stringify Json Object not Valid');
     } else {
@@ -1283,7 +1283,7 @@ export class JeepSqlite {
   }
   async _importFromJson(jsonStrObj: string): Promise<SQLiteChanges> {
     const jsonObj = JSON.parse(jsonStrObj);
-    const isValid = await isJsonSQLite(jsonObj);
+    const isValid = await UtilsJSON.isJsonSQLite(jsonObj);
     if (!isValid) {
       return Promise.reject('ImportFromJson: Stringify Json Object not Valid');
     }
@@ -1297,9 +1297,9 @@ export class JeepSqlite {
                                        this.innerAutoSave, this.innerWasmPath);
     try {
       if(overwrite && mode === 'full') {
-        const isExists = isDBInStore(dbName,this.store);
+        const isExists = UtilsStore.isDBInStore(dbName,this.store);
         if(isExists) {
-          await removeDBFromStore(dbName,this.store);
+          await UtilsStore.removeDBFromStore(dbName,this.store);
         }
       }
       // Open the database
@@ -1412,7 +1412,8 @@ export class JeepSqlite {
   }
   async _isDatabase(database:string): Promise<SQLiteResult> {
     try {
-      const ret: boolean = await isDBInStore(database + 'SQLite.db', this.store);
+      const ret: boolean = await UtilsStore.isDBInStore(database + 'SQLite.db',
+                                                        this.store);
       const result: SQLiteResult = {result: ret};
       return Promise.resolve(result);
     } catch (err) {
@@ -1422,7 +1423,7 @@ export class JeepSqlite {
   }
   async _getDatabaseList(): Promise<SQLiteValues> {
     try {
-      const ret: string[] = await getDBListFromStore(this.store);
+      const ret: string[] = await UtilsStore.getDBListFromStore(this.store);
       const result: SQLiteValues = {values: ret};
       return Promise.resolve(result);
     } catch (err) {
@@ -1547,13 +1548,13 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
           const uInt8Array = new Uint8Array(fileData);
           const dbName = this.setPathSuffix(fileName);
           // check if dbName exists
-          const isExist: boolean = await isDBInStore(dbName, this.store);
+          const isExist: boolean = await UtilsStore.isDBInStore(dbName, this.store);
           if (!isExist) {
-            await saveDBToStore(dbName, uInt8Array, this.store);
+            await UtilsStore.saveDBToStore(dbName, uInt8Array, this.store);
           } else  {
             if(overwrite) {
-              await removeDBFromStore(dbName, this.store);
-              await saveDBToStore(dbName, uInt8Array, this.store);
+              await UtilsStore.removeDBFromStore(dbName, this.store);
+              await UtilsStore.saveDBToStore(dbName, uInt8Array, this.store);
               } else {
               reject(new Error(`retrieveDBFromZip: cannot overwrite ${dbName}`));
             }
@@ -1580,13 +1581,13 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
       xhr.onloadend= async () => {
         const dbName = this.setPathSuffix(dbInName);
         // check if dbName exists
-        const isExist: boolean = await isDBInStore(dbName, this.store);
+        const isExist: boolean = await UtilsStore.isDBInStore(dbName, this.store);
         if (!isExist) {
-          await saveDBToStore(dbName, uInt8Array, this.store);
+          await UtilsStore.saveDBToStore(dbName, uInt8Array, this.store);
         } else  {
           if(overwrite) {
-            await removeDBFromStore(dbName, this.store);
-            await saveDBToStore(dbName, uInt8Array, this.store);
+            await UtilsStore.removeDBFromStore(dbName, this.store);
+            await UtilsStore.saveDBToStore(dbName, uInt8Array, this.store);
           } else {
             reject(new Error(`CopyDatabase Error: cannot overwrite ${dbName}`));
           }

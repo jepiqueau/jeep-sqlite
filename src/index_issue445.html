@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Issue#445</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+        </div>
+      </div>
+    </div>
+    <h1>Test Issue#445</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
+    <jeep-sqlite></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    const messageEl = document.querySelector('.message');
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+
+    // Test button's text
+    jeepSqlite.pickText = "Select a Database";
+
+    // Test button's style
+    jeepSqlite.buttonOptions = '{"backgroundColor":"#000000", "top":"70%","fontSize":"1.5em"}';
+
+    const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+    };
+    const endTest = async(name,msg) => {
+      if(msg.length === 0) {
+        const message = `* The set of tests ${name} was successful *`
+        console.log(`\n${message}\n`);
+        messageEl.innerHTML = message;
+      } else {
+        const message = `${msg}\n* The set of tests ${name} failed *\n`
+        console.log(`${message}`);
+        messageEl.innerHTML = message;
+      }
+    }
+    const delay = async (delay, message) => {
+      return new Promise (resolve => {
+        setTimeout(() => {
+          const s = "*".repeat(message.length)
+          console.log(`*****************${s}`);
+          console.log(`Simulate a delay ${message}`);
+          console.log(`*****************${s}`);
+          resolve();
+        }, delay * 1000);
+      });
+    }
+
+    const openDB = async (dbName) => {
+      try {
+        // create connection to dbName
+        await jeepSqlite.createConnection({database:dbName, version: 1});
+        console.log(`after create connection`);
+        // open db dbName
+        await jeepSqlite.open({database: dbName});
+        // Select all tables,
+        ret = await jeepSqlite.getTableList({database: dbName});
+        console.log(`>>> openDB getTableList ret: ${JSON.stringify(ret)} `)
+
+        if(ret.values.length > 0) {
+          for (const tableName of ret.values) {
+            const retQuery = await jeepSqlite.query({database: dbName, statement:`SELECT * FROM ${tableName};`});
+            console.log(`*** table: ${tableName} ***`);
+            console.log(`${JSON.stringify(retQuery.values)}`);
+          }
+        }
+        // Do some new stuff here
+        ret = await jeepSqlite.isTableExists({database: dbName, table: "Table_1"})
+        if (!ret.result) {
+          return Promise.reject("table 'Table_1' does not exist");
+        }
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+
+    }
+
+/*    jeepSqlite.addEventListener('jeepSqlitePickDatabaseEnded', async (event) => {
+      if(event.detail.db_name) {
+        await openDB(event.detail.db_name);
+        console.log(`>>> openDB successful <<<`)
+      } else {
+        console.log(`${event.detail.message}`);
+      }
+    });
+*/
+
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const initializeTest = async() => {
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+          console.log(`******** initializeTest successful ********\n`)
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const readDB = async () => {
+        try {
+          await jeepSqlite.getFromLocalDiskToStore({overwrite: true});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const tablesCount = async (dbName) => {
+        let retCounts = {};
+        let ret = await jeepSqlite.getTableList({database: dbName});
+        for (const tableName of ret.values) {
+          const retQuery = await jeepSqlite.query({database: dbName, statement:`SELECT count(*) as count FROM ${tableName} WHERE sql_deleted = 0;`});
+          retCounts[`${tableName}`] = retQuery.values[0]["count"];
+        }
+        return retCounts;
+      }
+      const tableNullCount = async (dbName, tableName, colNames) => {
+        let retCounts = {};
+        let sql = `SELECT count(*) as count FROM ${tableName} WHERE `;
+        for (name of colNames) {
+          sql += `${name} IS NULL AND `
+        }
+        sql += `sql_deleted = 0;`
+        console.log("sql: ", sql)
+        const retQuery = await jeepSqlite.query({database: dbName, statement: sql});
+        retCounts[`${tableName}`] = retQuery.values[0]["count"];
+        console.log("retCounts: ", retCounts)
+        return retCounts;
+      }
+      const deleteCasTests = async (dbName) => {
+        /****************************
+         * Test DELETE from Table_1 *
+         ****************************/
+         await delay(2,'before deleteTest Table_1')
+
+        let initCounts = await tablesCount(dbName);
+        let sqlDel1 = "DELETE FROM Table_1 WHERE product_id = ? AND product_type = ?;";
+        let valDel1 = ['MyProduct3', 'object'];
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1, values: valDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (1*2)) {
+          return Promise.reject("Table_1 Delete1 does not return 2");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE product_type = 'book';";
+        ret = await jeepSqlite.execute({database: dbName, statements: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (4*2)) {
+          return Promise.reject("Table_1 Delete2 does not return 8");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE product_type = 'object' AND result_slug = 'slug_1';";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2)) {
+          return Promise.reject("Table_1 Delete3 does not return 4");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE (result_id,result_slug) IN (VALUES ('511fea83-9f5f-4606-85ec-3d769da4bf63','slug_3'),('2a38839e-3b0d-47f0-9e60-d6b19c0978ad', 'slug_5'));";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 4");
+        }
+        let finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== initCounts["Table_3"] ||
+           finalCounts["Table_2"] !== initCounts["Table_2"] ||
+           finalCounts["Table_1"] !== 1) {
+            const msg = `\n *******************************************` +
+                        `\n * Test DELETE CASCADE from Table_1 failed *` +
+                        `\n ******************************************* \n`;
+            return Promise.reject(`${msg}`);
+        }
+        // reset Table_1 to sql_deleted = 0
+        sqlDel1 = "UPDATE Table_1 SET sql_deleted = 0 WHERE sql_deleted = 1;";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        if (ret.changes.changes != (9*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 18");
+        }
+        console.log(`\n`);
+        console.log('**********************************************');
+        console.log('* Test DELETE CASCADE from Table_1 succesful *');
+        console.log('**********************************************');
+        /****************************
+         * Test DELETE from Table_2 *
+         ****************************/
+        await delay(2,'before deleteTest Table_2')
+        // get tables count
+        initCounts = await tablesCount(dbName);
+        let sqlDel2 = "DELETE FROM Table_2 WHERE description = 'my_slug_1';";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2 + 2*2)) {
+          return Promise.reject("Table_2 Delete1 does not return 8");
+        }
+        sqlDel2 = "DELETE FROM Table_2 WHERE id = 'e8fa8d54-641a-4d7b-9422-91474d713c62' AND slug = 'slug_2';"
+        ret = await jeepSqlite.execute({database: dbName, statements: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (1*2 + 1*2)) {
+          return Promise.reject("Table_2 Delete2 does not return 4");
+        }
+
+        sqlDel2 = "DELETE FROM Table_2 WHERE slug IN ('slug_3','slug_4');";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (5*2 + 3*2)) {
+          return Promise.reject("Table_2 Delete3 does not return 16");
+        }
+        sqlDel2 = "DELETE  FROM Table_2 WHERE slug BETWEEN 'slug_1' AND 'slug_5' AND sql_deleted=0;";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2 + 2*2)) {
+          return Promise.reject("Table_2 Delete3 does not return 8");
+        }
+
+
+        finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== initCounts["Table_3"] ||
+           finalCounts["Table_2"] !== 0 ||
+           finalCounts["Table_1"] !== 2) {
+          const msg = `\n *******************************************` +
+                      `\n * Test DELETE CASCADE from Table_2 failed *` +
+                      `\n ******************************************* \n`;
+          return Promise.reject(`${msg}`);
+        }
+
+        console.log(`\n`);
+        console.log('**********************************************');
+        console.log('* Test DELETE CASCADE from Table_2 succesful *');
+        console.log('**********************************************');
+        /****************************
+         * Test DELETE from Table_3 *
+         ****************************/
+         await delay(2,'before deleteTest Table_3')
+        // reset Table_1 to sql_deleted = 0
+        sqlDel1 = "UPDATE Table_1 SET sql_deleted = 0 WHERE sql_deleted = 1;";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        if (ret.changes.changes != (8*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 16");
+        }
+
+         // get tables count
+        initCounts = await tablesCount(dbName);
+
+        let sqlDel3 = "DELETE FROM Table_3 WHERE id IN (2,3);";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel3});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2 + 4*2)) {
+          return Promise.reject("Table_3 Delete1 does not return 12");
+        }
+        const deleteSet = [
+          {
+              statement: "DELETE FROM Table_3 WHERE id = ?;",
+              values: [
+                  [1],
+                  [4]
+              ]
+          }
+        ];
+        res = await jeepSqlite.executeSet({database: dbName, set: deleteSet});
+        console.log(`>>> delete executeSet res: ${JSON.stringify(res)}`)
+        if(res.changes.changes != (2*2 + 4*2)) {
+            const msg = `Table_3 executeSet delete "test285" changes != 12 `;
+            return Promise.reject(`Error: ${msg}`);
+        }
+        finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== 1 ||
+           finalCounts["Table_2"] !== 0 ||
+           finalCounts["Table_1"] !== 2 ) {
+            const msg = `\n *******************************************` +
+                        `\n * Test DELETE CASCADE from Table_3 failed *` +
+                        `\n ******************************************* \n`;
+            return Promise.reject(`${msg}`);
+        }
+
+        console.log(`\n`);
+        console.log('**********************************************');
+        console.log('* Test DELETE CASCADE from Table_3 succesful *');
+        console.log('**********************************************');
+
+      }
+
+      const deleteResTests = async (dbName) => {
+        /****************************
+         * Test DELETE from Table_1 *
+         ****************************/
+         await delay(2,'before deleteTest Table_1')
+
+        let initCounts = await tablesCount(dbName);
+        let sqlDel1 = "DELETE FROM Table_1 WHERE product_id = ? AND product_type = ?;";
+        let valDel1 = ['MyProduct3', 'object'];
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1, values: valDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (1*2)) {
+          return Promise.reject("Table_1 Delete1 does not return 2");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE product_type = 'book';";
+        ret = await jeepSqlite.execute({database: dbName, statements: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (4*2)) {
+          return Promise.reject("Table_1 Delete2 does not return 8");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE product_type = 'object' AND result_slug = 'slug_1';";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2)) {
+          return Promise.reject("Table_1 Delete3 does not return 4");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE (result_id,result_slug) IN (VALUES ('511fea83-9f5f-4606-85ec-3d769da4bf63','slug_3'),('2a38839e-3b0d-47f0-9e60-d6b19c0978ad', 'slug_5'));";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 4");
+        }
+        let finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== initCounts["Table_3"] ||
+           finalCounts["Table_2"] !== initCounts["Table_2"] ||
+           finalCounts["Table_1"] !== 1) {
+            const msg = `\n ********************************************` +
+                        `\n * Test DELETE RESTRICT from Table_1 failed *` +
+                        `\n ******************************************** \n`;
+            return Promise.reject(`${msg}`);
+        }
+        // reset Table_1 to sql_deleted = 0
+        sqlDel1 = "UPDATE Table_1 SET sql_deleted = 0 WHERE sql_deleted = 1;";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        if (ret.changes.changes != (9*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 18");
+        }
+        console.log(`\n`);
+        console.log('***********************************************');
+        console.log('* Test DELETE RESTRICT from Table_1 succesful *');
+        console.log('***********************************************');
+
+        /****************************
+         * Test DELETE from Table_2 *
+         ****************************/
+        await delay(2,'before deleteTest Table_2')
+        // get tables count
+        initCounts = await tablesCount(dbName);
+        try {
+          let sqlDel2 = "DELETE FROM Table_2 WHERE description = 'my_slug_1';";
+          ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        } catch(error) {
+          let msg = error.message ? error.message : error;
+          console.log(`>>> message: ${msg}`);
+          console.log('>>> cannot delete description = "my_slug_1" in RESTRICT mode');
+          // Delete first related elements in Table_1
+          console.log('Delete first related elements in Table_1')
+          sqlDel2 = "DELETE FROM Table_1 WHERE (result_id,result_slug) IN " +
+              "( VALUES ('834efdb6-6044-4b44-8fcb-560710936f37', 'slug_1')," +
+              "('74dca5e8-c702-4e70-ad16-0a16a64d55fa', 'slug_1'));"
+          ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+          console.log(`>>>> Delete ret.changes.changes table_1: `, ret.changes.changes);
+          if(ret.changes.changes != (2*2)) {
+            return Promise.reject("Delete related elements Table_1 not return 4");
+          }
+          console.log('Delete elements from Table_2')
+          sqlDel2 = "DELETE FROM Table_2 WHERE description = 'my_slug_1';";
+          ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+          console.log(`>>>> Delete ret.changes.changes table_2: `, ret.changes.changes);
+          if(ret.changes.changes != (2*2)) {
+            return Promise.reject("Delete Table_2 not returned 4");
+          }
+
+        }
+        finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== initCounts["Table_3"] ||
+          finalCounts["Table_2"] !== 8 ||
+          finalCounts["Table_1"] !== 8) {
+            const msg = `\n ********************************************` +
+                        `\n * Test DELETE RESTRICT from Table_2 failed *` +
+                        `\n ******************************************** \n`;
+            return Promise.reject(`${msg}`);
+        }
+
+        console.log(`\n`);
+        console.log('***********************************************');
+        console.log('* Test DELETE RESTRICT from Table_2 succesful *');
+        console.log('***********************************************');
+
+        /****************************
+         * Test DELETE from Table_3 *
+         ****************************/
+        await delay(2,'before deleteTest Table_3')
+        // get tables count
+        initCounts = await tablesCount(dbName);
+        try {
+          let sqlDel3 = "DELETE FROM Table_3 WHERE id IN (2,3);";
+          ret = await jeepSqlite.run({database: dbName, statement: sqlDel3});
+        } catch(error) {
+          let msg = error.message ? error.message : error;
+          console.log(`>>> message: ${msg}`);
+          console.log('>>> cannot delete id IN (2,3) in RESTRICT mode');
+          // Delete first related elements in Table_1
+          let sqlDel3 = "DELETE FROM Table_1 WHERE person_id BETWEEN 2 AND 3;";
+          ret = await jeepSqlite.run({database: dbName, statement: sqlDel3});
+          console.log(`>>>> Delete ret.changes.changes table_1: `, ret.changes.changes);
+          if(ret.changes.changes != (2*4)) {
+            return Promise.reject("Delete related elements Table_1 not return 8");
+          }
+          // Delete element from Table_3
+          sqlDel3 = "DELETE FROM Table_3 WHERE id IN (2,3);";
+          ret = await jeepSqlite.run({database: dbName, statement: sqlDel3});
+          if(ret.changes.changes != (2*2)) {
+            return Promise.reject("Delete related elements Table_1 not return 4");
+          }
+          finalCounts = await tablesCount(dbName);
+          console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+          console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+          if(finalCounts["Table_3"] !== 3 ||
+            finalCounts["Table_2"] !== initCounts["Table_2"] ||
+            finalCounts["Table_1"] !== 4) {
+              const msg = `\n ********************************************` +
+                          `\n * Test DELETE RESTRICT from Table_3 failed *` +
+                          `\n ******************************************** \n`;
+              return Promise.reject(`${msg}`);
+          }
+
+          console.log(`\n`);
+          console.log('***********************************************');
+          console.log('* Test DELETE RESTRICT from Table_3 succesful *');
+          console.log('***********************************************');
+
+        }
+      }
+      const deleteDefTests = async (dbName) => {
+        /****************************
+         * Test DELETE from Table_1 *
+         ****************************/
+         await delay(2,'before deleteTest Table_1')
+
+        let initCounts = await tablesCount(dbName);
+        let sqlDel1 = "DELETE FROM Table_1 WHERE product_id = ? AND product_type = ?;";
+        let valDel1 = ['MyProduct3', 'object'];
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1, values: valDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (1*2)) {
+          return Promise.reject("Table_1 Delete1 does not return 2");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE product_type = 'book';";
+        ret = await jeepSqlite.execute({database: dbName, statements: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (4*2)) {
+          return Promise.reject("Table_1 Delete2 does not return 8");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE product_type = 'object' AND result_slug = 'slug_1';";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2)) {
+          return Promise.reject("Table_1 Delete3 does not return 4");
+        }
+        sqlDel1 = "DELETE FROM Table_1 WHERE (result_id,result_slug) IN (VALUES ('511fea83-9f5f-4606-85ec-3d769da4bf63','slug_3'),('2a38839e-3b0d-47f0-9e60-d6b19c0978ad', 'slug_5'));";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 4");
+        }
+        let finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== initCounts["Table_3"] ||
+           finalCounts["Table_2"] !== initCounts["Table_2"] ||
+           finalCounts["Table_1"] !== 1) {
+            const msg = `\n *******************************************` +
+                        `\n * Test DELETE DEFAULT from Table_1 failed *` +
+                        `\n ******************************************* \n`;
+            return Promise.reject(`${msg}`);
+        }
+        // reset Table_1 to sql_deleted = 0
+        sqlDel1 = "UPDATE Table_1 SET sql_deleted = 0 WHERE sql_deleted = 1;";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
+        if (ret.changes.changes != (9*2)) {
+          return Promise.reject("Table_1 Delete4 does not return 18");
+        }
+        console.log(`\n`);
+        console.log('**********************************************');
+        console.log('* Test DELETE DEFAULT from Table_1 succesful *');
+        console.log('**********************************************');
+        /****************************
+         * Test DELETE from Table_2 *
+         ****************************/
+         await delay(2,'before deleteTest Table_2')
+        // get tables count
+        initCounts = await tablesCount(dbName);
+
+        let sqlDel2 = "DELETE FROM Table_2 WHERE description = 'my_slug_1';";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2 + 2)) {
+          return Promise.reject("Table_2 Delete1 does not return 6");
+        }
+        sqlDel2 = "DELETE FROM Table_2 WHERE id = 'e8fa8d54-641a-4d7b-9422-91474d713c62' AND slug = 'slug_2';"
+        ret = await jeepSqlite.execute({database: dbName, statements: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (1*2 + 1)) {
+          return Promise.reject("Table_2 Delete2 does not return 3");
+        }
+
+        sqlDel2 = "DELETE FROM Table_2 WHERE slug IN ('slug_3','slug_4');";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (5*2 + 3)) {
+          return Promise.reject("Table_2 Delete3 does not return 13");
+        }
+        sqlDel2 = "DELETE  FROM Table_2 WHERE slug BETWEEN 'slug_1' AND 'slug_5' AND sql_deleted=0;";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2 + 2)) {
+          return Promise.reject("Table_2 Delete3 does not return 6");
+        }
+
+
+        finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        if(finalCounts["Table_3"] !== initCounts["Table_3"] ||
+           finalCounts["Table_2"] !== 0 ||
+           finalCounts["Table_1"] !== initCounts["Table_1"]) {
+            const msg = `\n *******************************************` +
+                        `\n * Test DELETE DEFAULT from Table_2 failed *` +
+                        `\n ******************************************* \n`;
+            return Promise.reject(`${msg}`);
+        }
+
+        console.log(`\n`);
+        console.log('**********************************************');
+        console.log('* Test DELETE DEFAULT from Table_2 succesful *');
+        console.log('**********************************************');
+
+        /****************************
+         * Test DELETE from Table_3 *
+         ****************************/
+         await delay(2,'before deleteTest Table_3')
+        // get tables count
+        initCounts = await tablesCount(dbName);
+
+        let sqlDel3 = "DELETE FROM Table_3 WHERE id IN (2,3);";
+        ret = await jeepSqlite.run({database: dbName, statement: sqlDel3});
+        console.log(`ret.changes.changes: ${ret.changes.changes}`)
+        if (ret.changes.changes != (2*2 + 4)) {
+          return Promise.reject("Table_3 Delete1 does not return 8");
+        }
+        const deleteSet = [
+          {
+              statement: "DELETE FROM Table_3 WHERE id = ?;",
+              values: [
+                  [1],
+                  [4]
+              ]
+          }
+        ];
+        res = await jeepSqlite.executeSet({database: dbName, set: deleteSet});
+        console.log(`>>> delete executeSet res: ${JSON.stringify(res)}`)
+        if(res.changes.changes != (2*2 + 4)) {
+            const msg = `Table_3 executeSet delete "test285" changes != 8 `;
+            return Promise.reject(`Error: ${msg}`);
+        }
+        finalCounts = await tablesCount(dbName);
+        console.log(`Counts init: ${JSON.stringify(initCounts)}`);
+        console.log(`Counts final: ${JSON.stringify(finalCounts)}`);
+        table1NullCounts = await tableNullCount(dbName,'Table_1',['result_id','result_slug','person_id']);
+        if(finalCounts["Table_3"] !== 1 ||
+           finalCounts["Table_2"] !== 0 ||
+           finalCounts["Table_1"] !== initCounts["Table_1"] ||
+           table1NullCounts["Table_1"] !== initCounts["Table_1"]) {
+            const msg = `\n *******************************************` +
+                        `\n * Test DELETE DEFAULT from Table_3 failed *` +
+                        `\n ******************************************* \n`;
+            return Promise.reject(`${msg}`);
+        }
+
+        console.log(`\n`);
+        console.log('**********************************************');
+        console.log('* Test DELETE DEFAULT from Table_3 succesful *');
+        console.log('**********************************************');
+
+
+      }
+      const createDB = async (dbName,action) => {
+        console.log(`in createDB: ${dbName} , ${action}`)
+        let schemaTable1 = `
+          DROP TABLE IF EXISTS Table_1;
+          DROP TABLE IF EXISTS Table_3;
+          DROP TABLE IF EXISTS Table_2;
+          CREATE TABLE IF NOT EXISTS Table_1 (
+            id INTEGER PRIMARY KEY NOT NULL,
+            product_id TEXT NOT NULL,
+            product_type TEXT DEFAULT 'object' CHECK (product_type IN ('object', 'book')),
+            result_id TEXT,
+            result_slug TEXT,
+            person_id INTEGER,
+            sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+            last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+        `
+        switch (action) {
+              case 'RESTRICT':
+                schemaTable1 += `FOREIGN KEY (result_id, result_slug) REFERENCES Table_2(id, slug) ON DELETE RESTRICT,
+                  FOREIGN KEY (person_id) REFERENCES Table_3(id) ON DELETE RESTRICT`;
+                break;
+              case 'CASCADE':
+                schemaTable1 += `FOREIGN KEY (result_id, result_slug) REFERENCES Table_2(id, slug) ON DELETE CASCADE,
+                  FOREIGN KEY (person_id) REFERENCES Table_3(id) ON DELETE CASCADE`;
+                break;
+              default:
+               schemaTable1 += `FOREIGN KEY (result_id, result_slug) REFERENCES Table_2(id, slug) ON DELETE SET DEFAULT,
+                  FOREIGN KEY (person_id) REFERENCES Table_3(id) ON DELETE SET DEFAULT`;
+                break;
+            }
+          schemaTable1 += ` );`;
+          schemaTable1 += `
+          CREATE INDEX IF NOT EXISTS table_1_index_id ON Table_1 (id);
+          CREATE INDEX IF NOT EXISTS table_1_index_last_modified ON Table_1 (last_modified);
+          CREATE TRIGGER IF NOT EXISTS table_1_trigger_last_modified
+            AFTER UPDATE ON Table_1
+            FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+              BEGIN
+                UPDATE Table_1 SET last_modified = (strftime('%s', 'now'))
+                WHERE id = NEW.id;
+              END;
+          `;
+          console.log(`${schemaTable1}`)
+        const schemaTable2_3Issue445 = `
+          CREATE TABLE IF NOT EXISTS Table_2 (
+              id TEXT NOT NULL,
+              slug TEXT NOT NULL,
+              description TEXT,
+              sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+              created_at INTEGER DEFAULT (strftime('%s', 'now')),
+              last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+              PRIMARY KEY (id, slug)
+          );
+          CREATE TABLE IF NOT EXISTS Table_3 (
+            id INTEGER PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            email TEXT,
+            sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+            created_at INTEGER DEFAULT (strftime('%s', 'now')),
+            last_modified INTEGER DEFAULT (strftime('%s', 'now'))
+          );
+          CREATE INDEX IF NOT EXISTS table_2_index_primarykey ON Table_2 (id,slug);
+          CREATE INDEX IF NOT EXISTS table_2_index_last_modified ON Table_2 (last_modified);
+          CREATE INDEX IF NOT EXISTS table_3_index_id ON Table_3 (id);
+          CREATE INDEX IF NOT EXISTS table_3_index_last_modified ON Table_3 (last_modified);
+          CREATE TRIGGER IF NOT EXISTS table_2_trigger_last_modified
+            AFTER UPDATE ON Table_2
+            FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+            BEGIN
+              UPDATE Table_2 SET last_modified = (strftime('%s', 'now'))
+                WHERE id=NEW.id AND slug=NEW.slug;
+            END;
+
+          CREATE TRIGGER IF NOT EXISTS Table_3_trigger_last_modified
+            AFTER UPDATE ON Table_3
+            FOR EACH ROW WHEN NEW.last_modified <= OLD.last_modified
+            BEGIN
+              UPDATE Table_3 SET last_modified = (strftime('%s', 'now')) WHERE id=NEW.id;
+            END;
+        `;
+        const dataTables = `
+          INSERT INTO Table_3 (name,email) VALUES
+            ('Jones', 'jones@example.com'),
+            ('Adams', 'adams@example.com'),
+            ('Brown', 'brown@example.com'),
+            ('Watson', 'watson@example.com'),
+            ('Linester', 'linester@example.com');
+          INSERT INTO Table_2 (id,slug,description) VALUES
+            ('834efdb6-6044-4b44-8fcb-560710936f37', 'slug_1', 'my_slug_1'),
+            ('e8fa8d54-641a-4d7b-9422-91474d713c62', 'slug_2', 'my_slug_2'),
+            ('dff59ac0-4d80-4b96-85c4-14f3a118e7fe', 'slug_1', 'my_slug_3'),
+            ('511fea83-9f5f-4606-85ec-3d769da4bf63', 'slug_3', 'my_slug_4'),
+            ('3bc82ef7-1138-4f97-945a-08626a42a648', 'slug_3', 'my_slug_5'),
+            ('a33abc11-264e-4bbb-82e8-b87226bb4383', 'slug_4', 'my_slug_6'),
+            ('2a38839e-3b0d-47f0-9e60-d6b19c0978ad', 'slug_5', 'my_slug_7'),
+            ('74dca5e8-c702-4e70-ad16-0a16a64d55fa', 'slug_1', 'my_slug_1'),
+            ('cd13d088-21cf-4286-ae61-0643d321dd9e', 'slug_4', 'my_slug_9'),
+            ('9aec3d5a-a339-4f24-b5a3-8419ac8542f2', 'slug_3', 'my_slug_10');
+          INSERT INTO Table_1 (product_id, product_type) VALUES ('MyProduct1', 'object');
+          INSERT INTO Table_1 (product_id, product_type) VALUES ('MyProduct2', 'book');
+          INSERT INTO Table_1 (product_id,product_type,result_id,result_slug,person_id) VALUES
+            ('MyProduct3', 'object', '834efdb6-6044-4b44-8fcb-560710936f37', 'slug_1',1),
+            ('MyProduct4', 'book', 'e8fa8d54-641a-4d7b-9422-91474d713c62', 'slug_2',2),
+            ('MyProduct5', 'object', 'dff59ac0-4d80-4b96-85c4-14f3a118e7fe', 'slug_1',1),
+            ('MyProduct6', 'object', '511fea83-9f5f-4606-85ec-3d769da4bf63', 'slug_3',3),
+            ('MyProduct7', 'book', '3bc82ef7-1138-4f97-945a-08626a42a648', 'slug_3',2),
+            ('MyProduct8', 'book', '9aec3d5a-a339-4f24-b5a3-8419ac8542f2', 'slug_3',1),
+            ('MyProduct9', 'object', '2a38839e-3b0d-47f0-9e60-d6b19c0978ad', 'slug_5',2),
+            ('MyProduct10', 'object', '74dca5e8-c702-4e70-ad16-0a16a64d55fa', 'slug_1',1)
+          ;
+        `;
+        try {
+          await jeepSqlite.createConnection({database: dbName, version: 1});
+          console.log(`after create connection`);
+          // open db 'testIssu#445'
+          await jeepSqlite.open({database:  dbName});
+          const isDB = await jeepSqlite.isDBOpen({database:  dbName});
+          if (!isDB) {
+            return Promise.reject(`database ${dbName} not opened`);
+          }
+          let ret = await jeepSqlite.execute({database: dbName, statements: schemaTable1 });
+          ret = await jeepSqlite.execute({database: dbName, statements: schemaTable2_3Issue445 });
+          ret = await jeepSqlite.execute({database: dbName, statements: dataTables });
+          ret = await jeepSqlite.isTableExists({database: dbName, table: "Table_1"})
+          if (!ret.result) {
+            return Promise.reject("table 'Table_1' does not exist");
+          }
+          ret = await jeepSqlite.isTableExists({database: dbName, table: "Table_2"})
+          if (!ret.result) {
+            return Promise.reject("table 'Table_2' does not exist");
+          }
+          ret = await jeepSqlite.isTableExists({database: dbName, table: "Table_3"})
+          if (!ret.result) {
+            return Promise.reject("table 'Table_3' does not exist");
+          }
+          // create synchronization table
+          ret = await jeepSqlite.createSyncTable({database: dbName});
+          // set the synchronization date
+          let syncDate = "2023-08-03T08:42:25.000Z";
+          await jeepSqlite.setSyncDate({database: dbName, syncdate: syncDate});
+          // get the synchronization date
+          ret = await jeepSqlite.getSyncDate({database: dbName});
+          console.log(`ret.syncDate: ${ret.syncDate}`);
+          // close connection
+          await jeepSqlite.closeConnection({database: dbName});
+
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const handleSaveDatabaseToDisk = async (event) => {
+        if(event.detail.db_name) {
+          const dbName = event.detail.db_name.split("SQLite.db")[0];
+          console.log(`in jeepSqliteSaveDatabaseToDisk dbName: ${dbName}`);
+          try {
+          // Close the connection
+            await jeepSqlite.closeConnection({database:dbName});
+            if(dbName === 'testDefIssue#445') {
+              console.log(`******** saveDB ${dbName} successful ********\n`)
+                await delay(1,'after saveToLocalDisk')
+
+                // *******************
+                // Action: RESTRICT
+                // *******************
+                // create the Database in the Store
+                await createDB('testResIssue#445','RESTRICT');
+                // openDB
+                await openDB('testResIssue#445');
+                // delete tests
+                await deleteResTests('testResIssue#445');
+
+                // Save the database to disk
+                await jeepSqlite.saveToLocalDisk({database:'testResIssue#445'});
+
+            } else if (dbName === 'testResIssue#445') {
+              console.log(`******** saveDB ${dbName} successful ********\n`)
+              await delay(1,'after saveToLocalDisk')
+
+              // *******************
+              // Action: CASCADE
+              // *******************
+              // create the Database in the Store
+              await createDB('testCasIssue#445','CASCADE');
+              // openDB
+              await openDB('testCasIssue#445');
+              // delete tests
+              await deleteCasTests('testCasIssue#445');
+
+              // Save the database to disk
+              await jeepSqlite.saveToLocalDisk({database:'testCasIssue#445'});
+
+            } else {
+              console.log(`******** saveDB ${dbName} successful ********\n`)
+              await endTest(activeTest,'');
+            }
+          } catch (err) {
+              let msg = err.message ? err.message : err;
+              await endTest(activeTest,`${msg}`);
+          }
+        } else {
+          console.log(`${event.detail.message}`);
+          await endTest(activeTest,`${event.detail.message}`);
+        }
+      };
+      jeepSqlite.addEventListener('jeepSqliteSaveDatabaseToDisk', handleSaveDatabaseToDisk);
+
+      // ********************************
+      // *** test with SQL statements ***
+      // ********************************
+      try {
+        var activeTest = 'DatabaseTestIssue#445';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database
+        await initializeTest();
+
+        // *******************
+        // Action: SET DEFAULT
+        // *******************
+        // create the Database in the Store
+        await createDB('testDefIssue#445','SET DEFAULT');
+        // open database and do new stuff
+        await openDB('testDefIssue#445');
+        // delete tests
+        await deleteDefTests('testDefIssue#445');
+        // Save the database to disk
+        await jeepSqlite.saveToLocalDisk({database:'testDefIssue#445'});
+      } catch (err) {
+        let msg = err.message ? err.message : err;
+        await endTest(activeTest,msg);
+      }
+    }
+  })();
+</script>
+
+
