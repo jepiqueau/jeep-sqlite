@@ -213,6 +213,9 @@ export class UtilsDelete {
     let key = "";
     const t1Names = withRefsNames.map((name) => `t1.${name}`);
     const t2Names = colNames.map((name) => `t2.${name}`);
+    console.log(" whStmt ", whStmt)
+    console.log(" t1Names ", t1Names)
+    console.log(" t2Names ", t2Names)
     try {
       // addPrefix to the whereClause and swap colNames with  withRefsNames
       let whereClause = UtilsSQLStatement
@@ -222,6 +225,7 @@ export class UtilsDelete {
       if (whereClause.endsWith(";")) {
         whereClause = whereClause.slice(0, -1);
       }
+      console.log(" whereClause ", whereClause)
       const resultString = t1Names
         .map((t1, index) => `${t1} = ${t2Names[index]}`)
         .join(" AND ");
@@ -230,6 +234,7 @@ export class UtilsDelete {
         `SELECT t1.rowid FROM ${updTableName} t1 ` +
         `JOIN ${tableName} t2 ON ${resultString} ` +
         `WHERE ${whereClause} AND t1.sql_deleted = 0;`;
+      console.log(" sql ",sql)
       const vals: any[] = await UtilsSQLite.queryAll(mDB, sql, values);
       if (vals.length > 0) {
         key = (Object.keys(vals[0]))[0]
@@ -263,9 +268,9 @@ export class UtilsDelete {
       for (const name of withRefsNames) {
         setStmt += `${name} = NULL, `;
       }
-      setStmt += 'sql_deleted = 0,';
-      const curTime = UtilsDelete.getCurrentTimeAsInteger() + 5;
-      setStmt += `last_modified = ${curTime}`;
+      setStmt += 'sql_deleted = 0';
+//      const curTime = UtilsDelete.getCurrentTimeAsInteger() + 5;
+//      setStmt += `last_modified = ${curTime}`;
 
       // Create the where statement
       uWhereStmt = `WHERE ${key} IN (`;

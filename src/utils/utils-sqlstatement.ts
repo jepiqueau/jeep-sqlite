@@ -25,9 +25,17 @@ export class UtilsSQLStatement {
                                 refNames: string[],
                                 prefix: string): string {
     let columnValuePairs: string[];
-    // Split the WHERE clause based on the "AND" keyword
-    const subSequenceArray = whereClause.split("AND");
-    columnValuePairs = subSequenceArray.map((pair) => pair.trim());
+    if (whereClause.includes("AND")) {
+      // Split the WHERE clause based on the "AND" keyword
+      const subSequenceArray = whereClause.split("AND");
+      console.log(" whereClause",whereClause)
+      console.log(" subSequenceArray",subSequenceArray)
+      columnValuePairs = subSequenceArray.map((pair) => pair.trim());
+    } else {
+      columnValuePairs = [whereClause]
+    }
+
+    console.log(" columnValuePairs",columnValuePairs)
 
     const modifiedPairs = columnValuePairs.map((pair) => {
 

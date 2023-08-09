@@ -295,9 +295,9 @@
           return Promise.reject("Table_1 Delete4 does not return 18");
         }
         console.log(`\n`);
-        console.log('**********************************************');
-        console.log('* Test DELETE CASCADE from Table_1 succesful *');
-        console.log('**********************************************');
+        console.log('***********************************************');
+        console.log('* Test DELETE CASCADE from Table_1 successful *');
+        console.log('***********************************************');
         /****************************
          * Test DELETE from Table_2 *
          ****************************/
@@ -344,9 +344,9 @@
         }
 
         console.log(`\n`);
-        console.log('**********************************************');
-        console.log('* Test DELETE CASCADE from Table_2 succesful *');
-        console.log('**********************************************');
+        console.log('***********************************************');
+        console.log('* Test DELETE CASCADE from Table_2 successful *');
+        console.log('***********************************************');
         /****************************
          * Test DELETE from Table_3 *
          ****************************/
@@ -395,9 +395,9 @@
         }
 
         console.log(`\n`);
-        console.log('**********************************************');
-        console.log('* Test DELETE CASCADE from Table_3 succesful *');
-        console.log('**********************************************');
+        console.log('***********************************************');
+        console.log('* Test DELETE CASCADE from Table_3 successful *');
+        console.log('***********************************************');
 
       }
 
@@ -451,9 +451,9 @@
           return Promise.reject("Table_1 Delete4 does not return 18");
         }
         console.log(`\n`);
-        console.log('***********************************************');
-        console.log('* Test DELETE RESTRICT from Table_1 succesful *');
-        console.log('***********************************************');
+        console.log('************************************************');
+        console.log('* Test DELETE RESTRICT from Table_1 successful *');
+        console.log('************************************************');
 
         /****************************
          * Test DELETE from Table_2 *
@@ -470,7 +470,7 @@
           console.log('>>> cannot delete description = "my_slug_1" in RESTRICT mode');
           // Delete first related elements in Table_1
           console.log('Delete first related elements in Table_1')
-          sqlDel2 = "DELETE FROM Table_1 WHERE (result_id,result_slug) IN " +
+          let sqlDel2 = "DELETE FROM Table_1 WHERE (result_id,result_slug) IN " +
               "( VALUES ('834efdb6-6044-4b44-8fcb-560710936f37', 'slug_1')," +
               "('74dca5e8-c702-4e70-ad16-0a16a64d55fa', 'slug_1'));"
           ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
@@ -500,9 +500,9 @@
         }
 
         console.log(`\n`);
-        console.log('***********************************************');
-        console.log('* Test DELETE RESTRICT from Table_2 succesful *');
-        console.log('***********************************************');
+        console.log('************************************************');
+        console.log('* Test DELETE RESTRICT from Table_2 successful *');
+        console.log('************************************************');
 
         /****************************
          * Test DELETE from Table_3 *
@@ -543,9 +543,9 @@
           }
 
           console.log(`\n`);
-          console.log('***********************************************');
-          console.log('* Test DELETE RESTRICT from Table_3 succesful *');
-          console.log('***********************************************');
+          console.log('************************************************');
+          console.log('* Test DELETE RESTRICT from Table_3 successful *');
+          console.log('************************************************');
 
         }
       }
@@ -599,9 +599,10 @@
           return Promise.reject("Table_1 Delete4 does not return 18");
         }
         console.log(`\n`);
-        console.log('**********************************************');
-        console.log('* Test DELETE DEFAULT from Table_1 succesful *');
-        console.log('**********************************************');
+        console.log('***********************************************');
+        console.log('* Test DELETE DEFAULT from Table_1 successful *');
+        console.log('***********************************************');
+
         /****************************
          * Test DELETE from Table_2 *
          ****************************/
@@ -612,27 +613,27 @@
         let sqlDel2 = "DELETE FROM Table_2 WHERE description = 'my_slug_1';";
         ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
         console.log(`ret.changes.changes: ${ret.changes.changes}`)
-        if (ret.changes.changes != (2*2 + 2)) {
-          return Promise.reject("Table_2 Delete1 does not return 6");
+        if (ret.changes.changes != (2*2 + 2*2)) {
+          return Promise.reject("Table_2 Delete1 does not return 8");
         }
         sqlDel2 = "DELETE FROM Table_2 WHERE id = 'e8fa8d54-641a-4d7b-9422-91474d713c62' AND slug = 'slug_2';"
         ret = await jeepSqlite.execute({database: dbName, statements: sqlDel2});
         console.log(`ret.changes.changes: ${ret.changes.changes}`)
-        if (ret.changes.changes != (1*2 + 1)) {
-          return Promise.reject("Table_2 Delete2 does not return 3");
+        if (ret.changes.changes != (1*2 + 1*2)) {
+          return Promise.reject("Table_2 Delete2 does not return 4");
         }
 
         sqlDel2 = "DELETE FROM Table_2 WHERE slug IN ('slug_3','slug_4');";
         ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
         console.log(`ret.changes.changes: ${ret.changes.changes}`)
-        if (ret.changes.changes != (5*2 + 3)) {
-          return Promise.reject("Table_2 Delete3 does not return 13");
+        if (ret.changes.changes != (5*2 + 3*2)) {
+          return Promise.reject("Table_2 Delete3 does not return 16");
         }
         sqlDel2 = "DELETE  FROM Table_2 WHERE slug BETWEEN 'slug_1' AND 'slug_5' AND sql_deleted=0;";
         ret = await jeepSqlite.run({database: dbName, statement: sqlDel2});
         console.log(`ret.changes.changes: ${ret.changes.changes}`)
-        if (ret.changes.changes != (2*2 + 2)) {
-          return Promise.reject("Table_2 Delete3 does not return 6");
+        if (ret.changes.changes != (2*2 + 2*2)) {
+          return Promise.reject("Table_2 Delete3 does not return 8");
         }
 
 
@@ -649,9 +650,9 @@
         }
 
         console.log(`\n`);
-        console.log('**********************************************');
-        console.log('* Test DELETE DEFAULT from Table_2 succesful *');
-        console.log('**********************************************');
+        console.log('***********************************************');
+        console.log('* Test DELETE DEFAULT from Table_2 successful *');
+        console.log('***********************************************');
 
         /****************************
          * Test DELETE from Table_3 *
@@ -663,8 +664,8 @@
         let sqlDel3 = "DELETE FROM Table_3 WHERE id IN (2,3);";
         ret = await jeepSqlite.run({database: dbName, statement: sqlDel3});
         console.log(`ret.changes.changes: ${ret.changes.changes}`)
-        if (ret.changes.changes != (2*2 + 4)) {
-          return Promise.reject("Table_3 Delete1 does not return 8");
+        if (ret.changes.changes != (2*2 + 4*2)) {
+          return Promise.reject("Table_3 Delete1 does not return 12");
         }
         const deleteSet = [
           {
@@ -675,10 +676,10 @@
               ]
           }
         ];
-        res = await jeepSqlite.executeSet({database: dbName, set: deleteSet});
-        console.log(`>>> delete executeSet res: ${JSON.stringify(res)}`)
-        if(res.changes.changes != (2*2 + 4)) {
-            const msg = `Table_3 executeSet delete "test285" changes != 8 `;
+        ret = await jeepSqlite.executeSet({database: dbName, set: deleteSet});
+        console.log(`>>> delete executeSet res: ${JSON.stringify(ret)}`)
+        if(ret.changes.changes != (2*2 + 4*2)) {
+            const msg = `Table_3 executeSet delete "test285" changes != 12 `;
             return Promise.reject(`Error: ${msg}`);
         }
         finalCounts = await tablesCount(dbName);
@@ -696,10 +697,9 @@
         }
 
         console.log(`\n`);
-        console.log('**********************************************');
-        console.log('* Test DELETE DEFAULT from Table_3 succesful *');
-        console.log('**********************************************');
-
+        console.log('***********************************************');
+        console.log('* Test DELETE DEFAULT from Table_3 successful *');
+        console.log('***********************************************');
 
       }
       const createDB = async (dbName,action) => {
