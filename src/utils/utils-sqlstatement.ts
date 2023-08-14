@@ -25,6 +25,7 @@ export class UtilsSQLStatement {
                                 refNames: string[],
                                 prefix: string): string {
     let columnValuePairs: string[];
+// TODO "OR" and "NOT"
     if (whereClause.includes("AND")) {
       // Split the WHERE clause based on the "AND" keyword
       const subSequenceArray = whereClause.split("AND");
@@ -39,7 +40,7 @@ export class UtilsSQLStatement {
 
     const modifiedPairs = columnValuePairs.map((pair) => {
 
-      const match = pair.match(/(\w+)\s*(=|IN|BETWEEN|LIKE)\s*(.+)/);
+      const match = pair.match(/(\w+)\s*(=|<|<=|<>|>|>=|IN|BETWEEN|LIKE)\s*(.+)/);
       if (!match) {
         return pair;
       }
@@ -89,35 +90,27 @@ export class UtilsSQLStatement {
         throw new Error("extractForeignKeyInfo: No FOREIGN KEY found");
     }
   }
-
   static extractColumnNames(whereClause: string): string[] {
-    const regex = /\b(\w+)\s*(?=[=<>])|(?<=\()\s*(\w+),\s*(\w+)\s*(?=\))|(?<=\bIN\s*\(VALUES\s*\().*?(?=\))|(?<=\bIN\s*\().*?(?=\))|(?<=\bBETWEEN\s*).*?(?=\bAND\b)|(?<=\bLIKE\s*')\w+|\bAND\b/g;
-    const matches = whereClause.matchAll(regex);
-    const columnNames: string[] = [];
+    const keywords: Set<string> = new Set(["AND", "OR", "IN", "VALUES", "LIKE", "BETWEEN", "NOT"]);
+    const tokens: string[] = whereClause.split(/\s|,|\(|\)/);
 
-    let andGroup: string[] = [];
+    const columns: string[] = [];
+    let inClause = false;
+    let inValues = false;
 
-    for (const match of matches) {
-        if (match[0] === 'AND') {
-            columnNames.push(...andGroup);
-            andGroup = [];
-        } else if (match[1]) {
-            andGroup.push(match[1]);
-        } else if (match[2] && match[3]) {
-            andGroup.push(match[2]);
-            andGroup.push(match[3]);
-        } else if (match[0]) {
-            const values = match[0]
-              .replace(/[()']/g, '') // Remove parentheses and single quotes
-              .split(',')
-              .map(value => value.trim());
-            andGroup.push(...values);
+    for (const token of tokens) {
+        if (token === "IN") {
+            inClause = true;
+        } else if (inClause && token === "(") {
+            inValues = true;
+        } else if (inValues && token === ")") {
+            inValues = false;
+        } else if (token.match(/\b[a-zA-Z]\w*\b/) && !inValues && !keywords.has(token.toUpperCase())) {
+            columns.push(token);
         }
     }
 
-    columnNames.push(...andGroup);
-
-    return columnNames;
+    return Array.from(new Set(columns));
   }
 
   static flattenMultilineString(input: string): string {

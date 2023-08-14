@@ -288,6 +288,7 @@
                         `\n ******************************************* \n`;
             return Promise.reject(`${msg}`);
         }
+        await delay(2,'before updating sql_delete to 1 Table_1')
         // reset Table_1 to sql_deleted = 0
         sqlDel1 = "UPDATE Table_1 SET sql_deleted = 0 WHERE sql_deleted = 1;";
         ret = await jeepSqlite.run({database: dbName, statement: sqlDel1});
