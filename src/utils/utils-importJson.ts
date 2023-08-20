@@ -4,20 +4,21 @@ import { JsonSQLite, JsonProgressListener, JsonView } from '../interfaces/interf
 import { UtilsSQLite } from './utils-sqlite';
 import { UtilsDrop } from './utils-drop';
 import { UtilsJSON } from './utils-json';
+import { Database } from './database';
 
 export class UtilsImportJSON {
-  static async createDatabaseSchema(db: any, jsonData: JsonSQLite): Promise<number> {
+  static async createDatabaseSchema(mDB: Database, jsonData: JsonSQLite): Promise<number> {
     let changes = -1;
     const version: number = jsonData.version;
     try {
         // set User Version PRAGMA
-        await UtilsSQLite.setVersion(db, version);
+        await UtilsSQLite.setVersion(mDB.mDb, version);
         // DROP ALL when mode="full"
         if (jsonData.mode === 'full') {
-          await UtilsDrop.dropAll(db);
+          await UtilsDrop.dropAll(mDB.mDb);
         }
         // create database schema
-        changes = await UtilsImportJSON.createSchema(db, jsonData);
+        changes = await UtilsImportJSON.createSchema(mDB, jsonData);
         return Promise.resolve(changes);
 
     } catch (err) {
@@ -26,12 +27,13 @@ export class UtilsImportJSON {
       );
     }
   }
-  static async createSchema(db: any, jsonData: any): Promise<number> {
+  static async createSchema(mDB: Database, jsonData: any): Promise<number> {
     // create the database schema
     let changes = 0;
+    const db = mDB.mDb
     try {
       // start a transaction
-      await UtilsSQLite.beginTransaction(db, true);
+      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(db, true));
     } catch (err) {
       return Promise.reject(new Error(`CreateSchema: ${err.message}`));
     }
@@ -43,7 +45,7 @@ export class UtilsImportJSON {
         changes = await UtilsSQLite.execute(db, schemaStmt, true);
         if (changes < 0) {
           try {
-            await UtilsSQLite.rollbackTransaction(db, true);
+            mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
           } catch (err) {
             return Promise.reject(
               new Error('CreateSchema: changes < 0 ' + `${err.message}`),
@@ -53,7 +55,7 @@ export class UtilsImportJSON {
       } catch (err) {
         const msg = err.message;
         try {
-          await UtilsSQLite.rollbackTransaction(db, true);
+          mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
           return Promise.reject(new Error(`CreateSchema: ${msg}`));
         } catch (err) {
           return Promise.reject(
@@ -63,7 +65,7 @@ export class UtilsImportJSON {
       }
     }
     try {
-      await UtilsSQLite.commitTransaction(db, true);
+      mDB.setIsTransActive(await UtilsSQLite.commitTransaction(db, true));
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(
@@ -169,17 +171,18 @@ export class UtilsImportJSON {
       return Promise.reject(err);
     }
   }
-  static async createTablesData(db: any, jsonData: JsonSQLite,
+  static async createTablesData(mDB: Database, jsonData: JsonSQLite,
                                 importProgress: EventEmitter<JsonProgressListener>): Promise<number> {
     let changes = 0;
     let isValue = false;
     let lastId = -1;
     let msg = '';
     let initChanges = -1;
+    const db = mDB.mDb;
     try {
       initChanges = await UtilsSQLite.dbChanges(db);
       // start a transaction
-      await UtilsSQLite.beginTransaction(db, true);
+      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(db, true));
     } catch (err) {
       return Promise.reject(new Error(`createTablesData: ${err.message}`));
     }
@@ -201,7 +204,7 @@ export class UtilsImportJSON {
     }
     if (isValue) {
       try {
-        await UtilsSQLite.commitTransaction(db, true);
+        mDB.setIsTransActive(await UtilsSQLite.commitTransaction(db, true));
         changes = (await UtilsSQLite.dbChanges(db)) - initChanges;
         return Promise.resolve(changes);
       } catch (err) {
@@ -212,7 +215,7 @@ export class UtilsImportJSON {
     } else {
       if(msg.length > 0) {
         try {
-          await UtilsSQLite.rollbackTransaction(db, true);
+          mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
           return Promise.reject(new Error(`CreateTablesData: ${msg}`));
         } catch (err) {
           return Promise.reject(
@@ -449,10 +452,10 @@ export class UtilsImportJSON {
     }
   }
 
-  static async createView(mDB: any, view: JsonView): Promise<void> {
+  static async createView(db: any, view: JsonView): Promise<void> {
     const stmt = `CREATE VIEW IF NOT EXISTS ${view.name} AS ${view.value};`;
     try {
-      const changes = await UtilsSQLite.execute(mDB, stmt, true);
+      const changes = await UtilsSQLite.execute(db, stmt, true);
       if (changes < 0) {
         return Promise.reject(new Error(`CreateView: ${view.name} failed`));
       }
@@ -461,15 +464,16 @@ export class UtilsImportJSON {
       return Promise.reject(new Error(`CreateView: ${err.message}`));
     }
   }
-  static async createViews(mDB: any, jsonData: JsonSQLite): Promise<number> {
+  static async createViews(mDB: Database, jsonData: JsonSQLite): Promise<number> {
+    const db = mDB.mDb;
     let isView = false;
     let msg = '';
     let initChanges = -1;
     let changes = -1;
     try {
-      initChanges = await UtilsSQLite.dbChanges(mDB);
+      initChanges = await UtilsSQLite.dbChanges(db);
       // start a transaction
-      await UtilsSQLite.beginTransaction(mDB, true);
+      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(db, true));
     } catch (err) {
       return Promise.reject(new Error(`createViews: ${err.message}`));
     }
@@ -477,7 +481,7 @@ export class UtilsImportJSON {
       if (jView.value != null) {
         // Create the view
         try {
-          await UtilsImportJSON.createView(mDB, jView);
+          await UtilsImportJSON.createView(db, jView);
           isView = true;
         } catch (err) {
           msg = err.message;
@@ -488,8 +492,8 @@ export class UtilsImportJSON {
     }
     if (isView) {
       try {
-        await UtilsSQLite.commitTransaction(mDB, true);
-        changes = (await UtilsSQLite.dbChanges(mDB)) - initChanges;
+        mDB.setIsTransActive(await UtilsSQLite.commitTransaction(db, true));
+        changes = (await UtilsSQLite.dbChanges(db)) - initChanges;
         return Promise.resolve(changes);
       } catch (err) {
         return Promise.reject(new Error('createViews: ' + `${err.message}`));
@@ -497,7 +501,7 @@ export class UtilsImportJSON {
     } else {
       if (msg.length > 0) {
         try {
-          await UtilsSQLite.rollbackTransaction(mDB, true);
+          mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
           return Promise.reject(new Error(`createViews: ${msg}`));
         } catch (err) {
           return Promise.reject(

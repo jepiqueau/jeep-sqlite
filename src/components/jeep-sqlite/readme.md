@@ -741,13 +741,14 @@ Type: `Promise<void>`
 
 ## Properties
 
-| Property        | Attribute       | Description      | Type      | Default     |
-| --------------- | --------------- | ---------------- | --------- | ----------- |
-| `autoSave`      | `autosave`      | AutoSave         | `boolean` | `false`     |
-| `buttonOptions` | `buttonoptions` | Button Options   | `string`  | `undefined` |
-| `pickText`      | `picktext`      | Pick Button Text | `string`  | `undefined` |
-| `saveText`      | `savetext`      | Save Button Text | `string`  | `undefined` |
-| `wasmPath`      | `wasmpath`      | WasmPath         | `string`  | `undefined` |
+| Property        | Attribute       | Description         | Type      | Default     |
+| --------------- | --------------- | ------------------- | --------- | ----------- |
+| `autoSave`      | `autosave`      | AutoSave            | `boolean` | `false`     |
+| `buttonOptions` | `buttonoptions` | Button Options      | `string`  | `undefined` |
+| `pickText`      | `picktext`      | Pick Button Text    | `string`  | `undefined` |
+| `saveText`      | `savetext`      | Save Button Text    | `string`  | `undefined` |
+| `typeOrm`       | `typeorm`       | in use with TypeOrm | `boolean` | `false`     |
+| `wasmPath`      | `wasmpath`      | WasmPath            | `string`  | `undefined` |
 
 
 ## Events
@@ -770,6 +771,16 @@ Type: `Promise<void>`
 #### Returns
 
 Type: `Promise<void>`
+
+
+
+### `beginTransaction(options: SQLiteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
 
 
 
@@ -800,6 +811,16 @@ Type: `Promise<void>`
 #### Returns
 
 Type: `Promise<void>`
+
+
+
+### `commitTransaction(options: SQLiteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
 
 
 
@@ -1033,6 +1054,16 @@ Type: `Promise<SQLiteResult>`
 
 
 
+### `isTransactionActive(options: SQLiteOptions) => Promise<SQLiteResult>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteResult>`
+
+
+
 ### `open(options: SQLiteOptions) => Promise<void>`
 
 
@@ -1050,6 +1081,16 @@ Type: `Promise<void>`
 #### Returns
 
 Type: `Promise<SQLiteValues>`
+
+
+
+### `rollbackTransaction(options: SQLiteOptions) => Promise<SQLiteChanges>`
+
+
+
+#### Returns
+
+Type: `Promise<SQLiteChanges>`
 
 
 

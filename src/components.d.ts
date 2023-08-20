@@ -14,6 +14,7 @@ export namespace Components {
           * AutoSave
          */
         "autoSave": boolean;
+        "beginTransaction": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         /**
           * Button Options
          */
@@ -21,6 +22,7 @@ export namespace Components {
         "checkConnectionsConsistency": (options: AllConnectionsOptions) => Promise<SQLiteResult>;
         "close": (options: SQLiteOptions) => Promise<void>;
         "closeConnection": (options: SQLiteOptions) => Promise<void>;
+        "commitTransaction": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "copyFromAssets": (options: SQLiteFromAssetsOptions) => Promise<void>;
         "createConnection": (options: ConnectionOptions) => Promise<void>;
         "createSyncTable": (options: SQLiteOptions) => Promise<SQLiteChanges>;
@@ -44,12 +46,14 @@ export namespace Components {
         "isJsonValid": (options: SQLiteImportOptions) => Promise<SQLiteResult>;
         "isStoreOpen": () => Promise<boolean>;
         "isTableExists": (options: SQLiteTableOptions) => Promise<SQLiteResult>;
+        "isTransactionActive": (options: SQLiteOptions) => Promise<SQLiteResult>;
         "open": (options: SQLiteOptions) => Promise<void>;
         /**
           * Pick Button Text
          */
         "pickText": string;
         "query": (options: SQLiteQueryOptions) => Promise<SQLiteValues>;
+        "rollbackTransaction": (options: SQLiteOptions) => Promise<SQLiteChanges>;
         "run": (options: SQLiteRunOptions) => Promise<SQLiteChanges>;
         /**
           * Save Button Text
@@ -58,6 +62,10 @@ export namespace Components {
         "saveToLocalDisk": (options: SQLiteOptions) => Promise<void>;
         "saveToStore": (options: SQLiteOptions) => Promise<void>;
         "setSyncDate": (options: SQLiteSyncDateOptions) => Promise<void>;
+        /**
+          * in use with TypeOrm
+         */
+        "typeOrm": boolean;
         /**
           * WasmPath
          */
@@ -102,6 +110,10 @@ declare namespace LocalJSX {
           * Save Button Text
          */
         "saveText"?: string;
+        /**
+          * in use with TypeOrm
+         */
+        "typeOrm"?: boolean;
         /**
           * WasmPath
          */

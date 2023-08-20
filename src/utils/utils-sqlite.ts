@@ -3,7 +3,7 @@ import { UtilsJSON } from '../utils/utils-json';
 import { UtilsDelete } from './utils-delete';
 import { UtilsSQLStatement } from './utils-sqlstatement';
 export class UtilsSQLite {
-  static async beginTransaction(db: any, isOpen: boolean): Promise<void> {
+  static async beginTransaction(db: any, isOpen: boolean): Promise<boolean> {
       const msg = 'BeginTransaction: ';
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
@@ -11,35 +11,35 @@ export class UtilsSQLite {
       const sql = 'BEGIN TRANSACTION;';
       try {
         db.exec(sql);
-        return Promise.resolve();
+        return Promise.resolve(true);
       } catch (err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
       }
   }
-  static async rollbackTransaction(db: any, isOpen: boolean): Promise<void>
+  static async rollbackTransaction(db: any, isOpen: boolean): Promise<boolean>
    {
       const msg = 'RollbackTransaction: ';
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
-      const sql = 'ROLLBACK TRANSACTION;';
+      const sql = 'ROLLBACK;';
       try {
 
         db.exec(sql);
-        return Promise.resolve();
+        return Promise.resolve(false);
       } catch(err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
       }
   }
-  static async commitTransaction(db: any, isOpen: boolean): Promise<void> {
+  static async commitTransaction(db: any, isOpen: boolean): Promise<boolean> {
       const msg = 'CommitTransaction: ';
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
-      const sql = 'COMMIT TRANSACTION;';
+      const sql = 'COMMIT;';
       try {
         db.exec(sql);
-        return Promise.resolve();
+        return Promise.resolve(false);
       } catch(err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
       }
@@ -172,7 +172,6 @@ export class UtilsSQLite {
     return Promise.resolve(retObj);
   }
   static async queryAll(db: any, sql: string, values: any[]): Promise<any[]> {
-    const result: any[] = [];
     try {
       let retArr: any[] = [];
       if(values != null && values.length > 0) {
@@ -181,13 +180,14 @@ export class UtilsSQLite {
         retArr = db.exec(sql);
       }
       if(retArr.length == 0) return Promise.resolve([]);
-      for( const valRow of retArr[0].values) {
-        const row: any = {};
-        for (let i = 0; i < retArr[0].columns.length; i++) {
-          row[retArr[0].columns[i]] = valRow[i];
-        }
-        result.push(row);
-      }
+      const result = retArr[0].values.map(entry => {
+        const obj = {};
+        retArr[0].columns.forEach((column: string, index: number) => {
+          obj[column] = entry[index];
+        });
+        return obj;
+      });
+
       return Promise.resolve(result);
     } catch (err) {
       return Promise.reject(new Error(`queryAll: ${err.message}`));

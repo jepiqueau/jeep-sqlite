@@ -102,6 +102,7 @@
           <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
           <a href="index_returning.html">DB Test RETURNING</a>
           <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
         </div>
       </div>
     </div>
@@ -136,6 +137,7 @@
             // open db testNew
             await jeepSqlite.open({database: "testNew"});
             const isDB = await jeepSqlite.isDBOpen({database: "testNew"})
+
             let sql = `-- Redefine Table users
               CREATE TABLE IF NOT EXISTS users (
                 /*
@@ -1122,6 +1124,39 @@
               await jeepSqlite.deleteDatabase({database:"db-from-json71"});
             }
             await jeepSqlite.closeConnection({database:"db-from-json71"});
+
+            // test issue #448
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"db-issue448", version: 1});
+            // open db db-from-json71
+            await jeepSqlite.open({database: "db-issue448"});
+            const isDB448 = await jeepSqlite.isDBOpen({database: "db-issue448"})
+            if(!isDB448) {
+              throw new Error("Issue448 open DB failed");
+            }
+            let sql448 = `
+              CREATE VIRTUAL TABLE if not exists docToolTextSearch USING fts3(body, id, page);
+              INSERT INTO docToolTextSearch (body,id,page) VALUES('FLIGHT MANUAL EC 135 T1 CDS   Emergency and Malfunction Procedures   CAUTION INDICATIONS   ENG MANUAL   or   SYSTEM I   SYSTEM II   Conditions/Indications   Engine MANUAL mode has been selected by setting ENG MODE SEL sw from NORM to   MAN   NOTE    If ENG MANUAL comes together with TWIST GRIP refer to TWIST GRIP cau-   tion indication   Following functions of the respective engine are inoperative       automatic acceleration deceleration during power collective changes   N   1    limiter   NORM start is impossible   Procedure   WARNING    OPERATE THE TWIST GRIP WITH GREAT CARE AND AVOID QUICK TWIST   GRIP ROTATIONS   HOLD MIN 10 TORQUE ON THE NORMAL ENGINE TO MAINTAIN   AUTOMATIC CONTROL OF N   RO      The ENG MANUAL mode may be used for training of the FADEC FAIL procedure   After training is completed return to NORM mode   Respective ENG MODE SEL selector sw   Respective TWIST GRIP   ENG MANUAL caution   TWIST GRIP caution   Wait 10 sec before any power variation   Correct operation in NORM mode   NORM   Turn gradually to NEUTRAL   position   Check off   Verify by small collective   movements   3 - 18   APPROVED   Rev 33   ', '5983270909465803','120');
+            `;
+
+            ret = await jeepSqlite.execute({database: "db-issue448", statements: sql448});
+            console.log(`Issue448 execute ret: ${JSON.stringify(ret)}`)
+            sql448 = `
+              CREATE VIRTUAL TABLE if not exists docToolTextSearch USING fts3(body, id, page);
+              INSERT INTO docToolTextSearch (body,id,page) VALUES('FLIGHT MANUAL EC 135 T1 CDS   Emergency and Malfunction Procedures   CAUTION INDICATIONS   ENG MANUAL   or   SYSTEM I   SYSTEM II   Conditions/Indications   Engine MANUAL mode has been selected by setting ENG MODE SEL sw from NORM to   MAN   NOTE    If ENG MANUAL comes together with TWIST GRIP refer to TWIST GRIP cau-   tion indication   Following functions of the respective engine are inoperative       automatic acceleration deceleration during power collective changes   N   1    limiter   NORM start is impossible   Procedure   WARNING    OPERATE THE TWIST GRIP WITH GREAT CARE AND AVOID QUICK TWIST   GRIP ROTATIONS   HOLD MIN 10 TORQUE ON THE NORMAL ENGINE TO MAINTAIN   AUTOMATIC CONTROL OF N   RO      The ENG MANUAL mode may be used for training of the FADEC FAIL procedure   After training is completed return to NORM mode   Respective ENG MODE SEL selector sw   Respective TWIST GRIP   ENG MANUAL caution   TWIST GRIP caution   Wait 10 sec before any power variation   Correct operation in NORM mode   NORM   Turn gradually to NEUTRAL   position   Check off   Verify by small collective   movements   3 - 18   APPROVED   Rev 33   ', '5983270909465803','120');
+            `;
+            const batch = [
+              { statement: "DROP TABLE docToolTextSearch;",
+                values: []},
+              { statement: "CREATE VIRTUAL TABLE if not exists docToolTextSearch USING fts3(body, id, page);",
+                values: []},
+              { statement: "INSERT INTO docToolTextSearch (body,id,page) VALUES (?,?,?);",
+                values:['FLIGHT MANUAL EC 135 T1 CDS   Emergency and Malfunction Procedures   CAUTION INDICATIONS   ENG MANUAL   or   SYSTEM I   SYSTEM II   Conditions/Indications   Engine MANUAL mode has been selected by setting ENG MODE SEL sw from NORM to   MAN   NOTE    If ENG MANUAL comes together with TWIST GRIP refer to TWIST GRIP cau-   tion indication   Following functions of the respective engine are inoperative       automatic acceleration deceleration during power collective changes   N   1    limiter   NORM start is impossible   Procedure   WARNING    OPERATE THE TWIST GRIP WITH GREAT CARE AND AVOID QUICK TWIST   GRIP ROTATIONS   HOLD MIN 10 TORQUE ON THE NORMAL ENGINE TO MAINTAIN   AUTOMATIC CONTROL OF N   RO      The ENG MANUAL mode may be used for training of the FADEC FAIL procedure   After training is completed return to NORM mode   Respective ENG MODE SEL selector sw   Respective TWIST GRIP   ENG MANUAL caution   TWIST GRIP caution   Wait 10 sec before any power variation   Correct operation in NORM mode   NORM   Turn gradually to NEUTRAL   position   Check off   Verify by small collective   movements   3 - 18   APPROVED   Rev 33   ', '5983270909465803','120']
+              },
+            ];
+            ret = await jeepSqlite.executeSet({database: "db-issue448", set: batch});
+            console.log(`Issue448 executeSet ret: ${JSON.stringify(ret)}`)
+
 
             console.log("db tests were successful");
             messageEl.innerHTML = 'db tests were successful';

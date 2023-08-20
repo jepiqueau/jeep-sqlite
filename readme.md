@@ -18,6 +18,12 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 2.5.0 ->>
+    - add methods to manage the transaction process flow :
+      `beginTransaction, commitTransaction, rollbackTransaction,
+       isActiveTransaction` see index_transaction.html
+    - upgrade to @stencil/core@4.0.5
+    
  - Release 2.3.8 ->>
     - add support for RETURNING in sqlite statement
 

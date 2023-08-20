@@ -35,6 +35,13 @@ export class JeepSqlite {
     reflect: true
   }) autoSave: boolean = false;
   /**
+   * in use with TypeOrm
+   */
+  @Prop({
+    attribute: "typeorm",
+    reflect: true
+  }) typeOrm: boolean = false;
+  /**
    * WasmPath
    */
    @Prop({
@@ -68,6 +75,7 @@ export class JeepSqlite {
   //*********************
 
   @State() innerAutoSave: boolean;
+  @State() innerTypeOrm: boolean;
   @State() innerWasmPath: string;
   @State() innerPickText: string;
   @State() innerSaveText: string;
@@ -80,6 +88,10 @@ export class JeepSqlite {
   @Watch('autoSave')
   parseAutoSave(newValue: boolean) {
     this.innerAutoSave = newValue;
+  }
+  @Watch('typeOrm')
+  parseTypeOrm(newValue: boolean) {
+    this.innerTypeOrm = newValue;
   }
   @Watch('wasmPath')
   parseWasmPath(newValue: string) {
@@ -271,6 +283,94 @@ export class JeepSqlite {
       return Promise.reject(err);
     }
   }
+  @Method()
+  async beginTransaction(options: SQLiteOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
+    if(readonly) {
+      return Promise.reject(`BeginTransaction: not allowed in read-only mode`);
+    }
+    try {
+      const changes: SQLiteChanges = await this._beginTransaction(dbName);
+      return Promise.resolve(changes);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async commitTransaction(options: SQLiteOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
+    if(readonly) {
+      return Promise.reject(`CommitTransaction: not allowed in read-only mode`);
+    }
+
+    try {
+      const changes: SQLiteChanges = await this._commitTransaction(dbName);
+      return Promise.resolve(changes);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async rollbackTransaction(options: SQLiteOptions): Promise<SQLiteChanges> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
+    if(readonly) {
+      return Promise.reject(`BeginTransaction: not allowed in read-only mode`);
+    }
+
+    try {
+      const changes: SQLiteChanges = await this._rollbackTransaction(dbName);
+      return Promise.resolve(changes);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+  @Method()
+  async isTransactionActive(options: SQLiteOptions): Promise<SQLiteResult> {
+    if(!this.isStore) {
+      return Promise.reject(`>>> jeep-sqlite StoreName: ${this.storeName} is not opened` );
+    }
+    let keys = Object.keys(options);
+    if (!keys.includes('database')) {
+      return Promise.reject('Must provide a database name');
+    }
+    const dbName: string = options.database;
+    const readonly: boolean = options.readonly ? options.readonly : false;
+    if(readonly) {
+      return Promise.reject(`isTransactionActive: not allowed in read-only mode`);
+    }
+
+    try {
+      const res: SQLiteResult = await this._isTransactionActive(dbName);
+      return Promise.resolve(res);
+    } catch(err) {
+      return Promise.reject(err);
+    }
+  }
+
   @Method()
   async execute(options: SQLiteExecuteOptions): Promise<SQLiteChanges> {
     if(!this.isStore) {
@@ -798,6 +898,7 @@ export class JeepSqlite {
   //*******************************
   connectedCallback() {
     this.parseAutoSave(this.autoSave !== undefined ? this.autoSave : false);
+    this.parseTypeOrm(this.typeOrm !== undefined ? this.typeOrm : false);
     this.parseWasmPath(this.wasmPath !== undefined ? this.wasmPath : '/assets');
     this.parseSaveText(this.saveText !== undefined ? this.saveText : 'Save');
     this.parsePickText(this.pickText !== undefined ? this.pickText : 'Pick a database');
@@ -1021,7 +1122,54 @@ export class JeepSqlite {
       return Promise.reject(`Open: ${err.message}`);
     }
   }
-
+  private async _beginTransaction(database:string):Promise<SQLiteChanges> {
+    const keys = Object.keys(this._dbDict);
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
+      return Promise.reject(`BeginTransaction: No available connection for ${database}`);
+    }
+    const mDB = this._dbDict[connName];
+    let changes: SQLiteChanges = {} as SQLiteChanges;
+    const ret: number = await mDB.beginTransaction();
+    changes = {changes: {changes: ret}};
+    return Promise.resolve(changes);
+  }
+  private async _commitTransaction(database:string):Promise<SQLiteChanges> {
+    const keys = Object.keys(this._dbDict);
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
+      return Promise.reject(`CommitTransaction: No available connection for ${database}`);
+    }
+    const mDB = this._dbDict[connName];
+    let changes: SQLiteChanges = {} as SQLiteChanges;
+    const ret: number = await mDB.commitTransaction();
+    changes = {changes: {changes: ret}};
+    return Promise.resolve(changes);
+  }
+  private async _rollbackTransaction(database:string):Promise<SQLiteChanges> {
+    const keys = Object.keys(this._dbDict);
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
+      return Promise.reject(`RollbackTransaction: No available connection for ${database}`);
+    }
+    const mDB = this._dbDict[connName];
+    let changes: SQLiteChanges = {} as SQLiteChanges;
+    const ret: number = await mDB.rollbackTransaction();
+    changes = {changes: {changes: ret}};
+    return Promise.resolve(changes);
+  }
+  private async _isTransactionActive(database:string):Promise<SQLiteResult> {
+    const keys = Object.keys(this._dbDict);
+    const connName = "RW_" + database;
+    if (!keys.includes(connName)) {
+      return Promise.reject(`IsTransactionActive: No available connection for ${database}`);
+    }
+    const mDB = this._dbDict[connName];
+    let result: SQLiteResult = {} as SQLiteResult;
+    const res: boolean = mDB.isTransActive() ;
+    result = {result: res};
+    return Promise.resolve(result);
+  }
   private async _execute(database:string, statements: string, transaction: boolean,
                          readonly: boolean): Promise<SQLiteChanges> {
     const keys = Object.keys(this._dbDict);
@@ -1034,10 +1182,10 @@ export class JeepSqlite {
       return Promise.reject(`Execute: not allowed in read-only mode`);
     }
     let changes: SQLiteChanges = {} as SQLiteChanges;
-    const command = statements[0].substring(0,6);
-    if(this.innerAutoSave && command === "COMMIT") {
+    const command = statements.substring(0,6);
+    if(this.innerAutoSave && command === "COMMIT" && this.innerTypeOrm) {
       // fix issue for typeORM with autosave
-      changes.changes.changes = 0;
+      changes = {changes: {changes: 0}};
       return Promise.resolve(changes);
     }
     try {

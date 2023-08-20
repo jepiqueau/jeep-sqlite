@@ -15,7 +15,7 @@ export class Database {
   private dbName: string;
   private store: any;
   private version: number;
-  private mDb: any;
+  public mDb: any;
   private vUpgDict: Record<number, SQLiteVersionUpgrade> = {};
   private autoSave: boolean = false;
   private wasmPath: string = '/assets';
@@ -68,7 +68,7 @@ export class Database {
 
               // execute the upgrade flow process
               const changes: number = await UtilsUpgrade.onUpgrade(
-                                      this.mDb,
+                                      this,
                                       this.vUpgDict,
                                       curVersion,
                                       this.version
@@ -208,6 +208,57 @@ export class Database {
     }
 
   }
+  public async beginTransaction(): Promise<number> {
+    if (!this._isDBOpen) {
+      let msg = `BeginTransaction: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      this.setIsTransActive(await UtilsSQLite.beginTransaction(this.mDb, true));
+      return 0;
+    } catch(err) {
+      let msg = `BeginTransaction: ${err.message}`;
+      return Promise.reject(new Error(`${msg}`));
+    }
+
+  }
+  public async commitTransaction(): Promise<number> {
+    if (!this._isDBOpen) {
+      let msg = `CommitTransaction: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      this.setIsTransActive(await UtilsSQLite.commitTransaction(this.mDb, true));
+      return 0
+    } catch(err) {
+      let msg = `CommitTransaction: ${err.message}`;
+      return Promise.reject(new Error(`${msg}`));
+    }
+
+  }
+  public async rollbackTransaction(): Promise<number> {
+    if (!this._isDBOpen) {
+      let msg = `RollbackTransaction: Database ${this.dbName} `;
+      msg += `not opened`;
+      return Promise.reject(new Error(msg));
+    }
+    try {
+      this.setIsTransActive(await UtilsSQLite.rollbackTransaction(this.mDb, true));
+      return 0
+    } catch(err) {
+      let msg = `RollbackTransaction: ${err.message}`;
+      return Promise.reject(new Error(`${msg}`));
+    }
+
+  }
+  public isTransActive(): boolean {
+    return this.isTransactionActive;
+  }
+  public setIsTransActive(value: boolean) {
+    this.isTransactionActive = value;
+  }
   public async executeSQL(sql: string, transaction: boolean = true): Promise<number> {
     if (!this._isDBOpen) {
       let msg = `ExecuteSQL: Database ${this.dbName} `;
@@ -217,9 +268,8 @@ export class Database {
     let initChanges = -1;
     try {
       initChanges = await UtilsSQLite.dbChanges(this.mDb);
-      if(transaction && !this.isTransactionActive) {
-        await UtilsSQLite.beginTransaction(this.mDb, this._isDBOpen);
-        this.isTransactionActive = true;
+      if(transaction && !this.isTransactionActive ) {
+        await this.beginTransaction();
       }
     } catch(err) {
       let msg = `executeSQL: ${err.message}`;
@@ -230,19 +280,19 @@ export class Database {
       if (mChanges < 0) {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
       }
-      if(transaction && this.isTransactionActive) await UtilsSQLite.commitTransaction(this.mDb, this._isDBOpen);
+      if(transaction && this.isTransactionActive) await this.commitTransaction();
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       return Promise.resolve(changes);
     } catch (err) {
       let msg = `ExecuteSQL: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await UtilsSQLite.rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await this.rollbackTransaction();
       } catch (err) {
         msg += ` : ${err.message}`;
       }
       return Promise.reject(new Error(`ExecuteSQL: ${msg}`));
     } finally {
-      this.isTransactionActive = false;
+      if(transaction) this.isTransactionActive = false;
       if( this.autoSave ) {
         try {
           await this.saveToStore();
@@ -264,8 +314,7 @@ export class Database {
     try {
       initChanges = await UtilsSQLite.dbChanges(this.mDb);
       if(transaction && !this.isTransactionActive) {
-        await UtilsSQLite.beginTransaction(this.mDb, this._isDBOpen);
-        this.isTransactionActive = true;
+        await this.beginTransaction();
       }
     } catch(err) {
       let msg = `ExecSet: ${err.message}`;
@@ -277,7 +326,7 @@ export class Database {
       if (lastId < 0) {
         return Promise.reject(new Error('ExecSet: changes < 0'));
       }
-      if(transaction && this.isTransactionActive) await UtilsSQLite.commitTransaction(this.mDb, this._isDBOpen);
+      if(transaction && this.isTransactionActive) await this.commitTransaction();
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
@@ -286,13 +335,13 @@ export class Database {
     } catch (err) {
       let msg = `ExecSet: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await UtilsSQLite.rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await this.rollbackTransaction();
       } catch (err) {
         msg += ` : ${err.message}`;
       }
       return Promise.reject(new Error(`ExecSet: ${msg}`));
     } finally {
-      this.isTransactionActive = false;
+      if(transaction) this.isTransactionActive = false;
       if( this.autoSave ) {
         try {
           await this.saveToStore();
@@ -330,8 +379,7 @@ export class Database {
       initChanges = await UtilsSQLite.dbChanges(this.mDb);
 
       if(transaction && !this.isTransactionActive) {
-        await UtilsSQLite.beginTransaction(this.mDb, this._isDBOpen);
-        this.isTransactionActive = true;
+        await this.beginTransaction();
       }
      } catch(err) {
       let msg = `RunSQL: ${err.message}`;
@@ -343,7 +391,7 @@ export class Database {
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
-      if(transaction && this.isTransactionActive) await UtilsSQLite.commitTransaction(this.mDb, this._isDBOpen);
+      if(transaction && this.isTransactionActive) await this.commitTransaction();
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
@@ -352,13 +400,13 @@ export class Database {
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await UtilsSQLite.rollbackTransaction(this.mDb, this._isDBOpen);
+        if(transaction && this.isTransactionActive) await this.rollbackTransaction();
       } catch (err) {
         msg += ` : ${err.message}`;
       }
       return Promise.reject(new Error(`${msg}`));
     } finally {
-      this.isTransactionActive = false;
+      if(transaction) this.setIsTransActive(false);
       if( this.autoSave ) {
         try {
           await this.saveToStore();
@@ -483,20 +531,20 @@ export class Database {
         if (jsonData.tables && jsonData.tables.length > 0) {
 
           // create the database schema
-          changes = await UtilsImportJSON.createDatabaseSchema(this.mDb, jsonData);
+          changes = await UtilsImportJSON.createDatabaseSchema(this, jsonData);
           let msg = `Schema creation completed changes: ${changes}`;
           importProgress.emit({progress:msg});
 
           if (changes != -1) {
             // create the tables data
-            changes += await UtilsImportJSON.createTablesData(this.mDb, jsonData, importProgress);
+            changes += await UtilsImportJSON.createTablesData(this, jsonData, importProgress);
             let msg = `Tables data creation completed changes: ${changes}`;
             importProgress.emit({progress:msg});
           }
         }
         if (jsonData.views && jsonData.views.length > 0) {
           // create the views
-          changes += await UtilsImportJSON.createViews(this.mDb, jsonData);
+          changes += await UtilsImportJSON.createViews(this, jsonData);
         }
         // set Foreign Keys On
         await UtilsSQLite.setForeignKeyConstraintsEnabled(this.mDb, true);

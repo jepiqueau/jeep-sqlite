@@ -1,9 +1,10 @@
 import { SQLiteVersionUpgrade } from '../interfaces/interfaces';
 import { UtilsSQLite } from '../utils/utils-sqlite';
+import { Database } from './database';
 
 export class UtilsUpgrade {
   static async onUpgrade(
-                          mDb: any,
+                          mDB: Database,
                           vUpgDict: Record<number, SQLiteVersionUpgrade>,
                           curVersion: number,
                           targetVersion: number
@@ -21,13 +22,13 @@ export class UtilsUpgrade {
         }
         try {
           // set Foreign Keys Off
-          await UtilsSQLite.setForeignKeyConstraintsEnabled(mDb, false);
-          const initChanges = await UtilsSQLite.dbChanges(mDb);
-          await UtilsUpgrade.executeStatementsProcess(mDb, statements);
-          await UtilsSQLite.setVersion(mDb, versionKey);
+          await UtilsSQLite.setForeignKeyConstraintsEnabled(mDB.mDb, false);
+          const initChanges = await UtilsSQLite.dbChanges(mDB.mDb);
+          await UtilsUpgrade.executeStatementsProcess(mDB, statements);
+          await UtilsSQLite.setVersion(mDB.mDb, versionKey);
           // set Foreign Keys On
-          await UtilsSQLite.setForeignKeyConstraintsEnabled(mDb, true);
-          changes = (await UtilsSQLite.dbChanges(mDb)) - initChanges;
+          await UtilsSQLite.setForeignKeyConstraintsEnabled(mDB.mDb, true);
+          changes = (await UtilsSQLite.dbChanges(mDB.mDb)) - initChanges;
         } catch (err) {
           return Promise.reject(new Error(`onUpgrade: ${err.message}`));
         }
@@ -37,16 +38,16 @@ export class UtilsUpgrade {
     return Promise.resolve(changes);
   };
 
-  static async executeStatementsProcess(mDb: any, statements: string[]): Promise<void> {
+  static async executeStatementsProcess(mDB: Database, statements: string[]): Promise<void> {
     try {
-      await UtilsSQLite.beginTransaction(mDb, true);
+      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(mDB.mDb, true));
       for (const statement of statements) {
-        await UtilsSQLite.execute(mDb, statement, false);
+        await UtilsSQLite.execute(mDB.mDb, statement, false);
       }
-      await UtilsSQLite.commitTransaction(mDb, true);
+      mDB.setIsTransActive(await UtilsSQLite.commitTransaction(mDB.mDb, true));
       return Promise.resolve();
     } catch (err) {
-      await UtilsSQLite.rollbackTransaction(mDb, true);
+      mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(mDB.mDb, true));
       return Promise.reject(`ExecuteStatementProcess: ${err}`);
     }
   }

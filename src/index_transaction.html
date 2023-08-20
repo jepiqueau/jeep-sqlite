@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Transactions</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
+        </div>
+      </div>
+    </div>
+    <h1>Test Transactions</h1>
+    <div class="container">
+      <h4 class="progress"></h4>
+      <h2 class="message"></h2>
+    </div>
+    <jeep-sqlite></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    const messageEl = document.querySelector('.message');
+    const progressEl = document.querySelector('.progress');
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+
+    // Test button's text
+    jeepSqlite.pickText = "Select a Database";
+
+    // Test button's style
+    jeepSqlite.buttonOptions = '{"backgroundColor":"#000000", "top":"70%","fontSize":"1.5em"}';
+
+    const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+    };
+    const endTest = async(name,msg) => {
+      if(msg.length === 0) {
+        const message = `* The set of tests ${name} was successful *`
+        console.log(`\n${message}\n`);
+        messageEl.innerHTML = message;
+      } else {
+        const message = `${msg}\n* The set of tests ${name} failed *\n`
+        console.log(`${message}`);
+        messageEl.innerHTML = message;
+      }
+    }
+    const delay = async (delay, message) => {
+      return new Promise (resolve => {
+        setTimeout(() => {
+          const s = "*".repeat(message.length)
+          console.log(`*****************${s}`);
+          console.log(`Simulate a delay ${message}`);
+          console.log(`*****************${s}`);
+          resolve();
+        }, delay * 1000);
+      });
+    }
+    const printDatabase = async(dbName) => {
+      // Select all tables,
+      try {
+        ret = await jeepSqlite.getTableList({database: dbName});
+        console.log(`\n>>> printDatabase getTableList ret: ${JSON.stringify(ret)} `)
+
+        if(ret.values.length > 0) {
+          for (const tableName of ret.values) {
+            const retQuery = await jeepSqlite.query({database: dbName, statement:`SELECT * FROM ${tableName};`});
+            console.log(`\n*** table: ${tableName} ***`);
+            console.log(`${JSON.stringify(retQuery.values)}`);
+          }
+        }
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+    }
+    const openDB = async (dbName) => {
+      try {
+        // create connection to dbName
+        await jeepSqlite.createConnection({database:dbName, version: 1});
+        // open db dbName
+        await jeepSqlite.open({database: dbName});
+        // Do some new stuff here
+        ret = await jeepSqlite.isTableExists({database: dbName, table: "users"})
+        if (!ret.result) {
+          return Promise.reject("table 'users' does not exist");
+        }
+        // Clean the table users
+        let delUsers = `DELETE FROM users;`;
+            delUsers += `VACUUM;`;
+        ret = await jeepSqlite.execute({database: dbName, statements: delUsers, transaction: false});
+        progressEl.innerHTML = "OpenDB successful<br>";
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+
+    }
+
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const initializeTest = async() => {
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+          console.log(`******** initializeTest successful ********\n`)
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const createDB = async (dbName) => {
+        console.log(`in createDB: ${dbName}`)
+        let schemaUsersTable = `
+          CREATE TABLE IF NOT EXISTS users (
+            /*
+              * Author: Jeepq
+              * Purpose: To show a comment that spans multiple lines in your SQL
+              * statement in SQLite.
+              */
+            id INTEGER PRIMARY KEY NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            name TEXT,company TEXT,
+            size REAL,
+            age INTEGER
+          );
+          CREATE INDEX IF NOT EXISTS users_index_emai ON users (email);
+        `
+        try {
+          await jeepSqlite.createConnection({database: dbName, version: 1});
+          console.log(`after create connection`);
+          // open db 'testTransaction'
+          await jeepSqlite.open({database:  dbName});
+          const isDB = await jeepSqlite.isDBOpen({database:  dbName});
+          if (!isDB) {
+            return Promise.reject(`database ${dbName} not opened`);
+          }
+          let ret = await jeepSqlite.execute({database: dbName, statements: schemaUsersTable });
+          ret = await jeepSqlite.isTableExists({database: dbName, table: "users"})
+          if (!ret.result) {
+            return Promise.reject("table 'users' does not exist");
+          }
+          // close connection
+          await jeepSqlite.closeConnection({database: dbName});
+
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const transaction230 = async(dbName) => {
+        try {
+          const sqlI230 = `CREATE TABLE IF NOT EXISTS DemoTable (name TEXT,score INTEGER);`
+            let ret230 = await jeepSqlite.execute({database: dbName, statements: sqlI230});
+            res =  await jeepSqlite.beginTransaction({database: dbName});
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+            let sql230 = `
+                INSERT INTO DemoTable (name,score) VALUES ("Alice",101);
+                INSERT INTO DemoTable (name,score) VALUES ("Betty",202);
+              `;
+              res = await jeepSqlite.execute({database: dbName, statements: sql230, transaction: false});
+          if (res.changes.changes !== 2) {
+            throw new Error("Execute & DemoTable failed");
+          }
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          res = await jeepSqlite.commitTransaction({database: dbName});
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          progressEl.innerHTML += "Transaction230 successful<br>";
+
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          res = await jeepSqlite.rollbackTransaction({database: dbName});
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          progressEl.innerHTML += "Transaction230 failed<br>";
+          return Promise.reject(msg);
+        }
+
+      }
+
+      const manageTransactions = async (dbName) => {
+        try {
+
+          // Note that transaction has been set to false
+          // in the call of the method as you are managing
+          // yourself the transaction process flow
+
+          // ####################
+          // Using Execute method
+          // ####################
+          console.log("########################");
+          console.log("# Manage Transactions  #");
+          console.log("########################");
+          console.log("# Using Execute method #");
+          console.log("########################");
+
+          let res =  await jeepSqlite.beginTransaction({database: dbName});
+          console.log("after BEGIN: ", res)
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          console.log("after BEGIN isActive: ", res.result)
+          // Insert some Users
+          const row = [["Whiteley","Whiteley.com",30,1.83],["Jones","Jones.com",44,1.75]];
+          let twoUsers = `INSERT INTO users (name,email,age,size) VALUES ("${row[0][0]}","${row[0][1]}",${row[0][2]},${row[0][3]});`;
+          twoUsers += `INSERT INTO users (name,email,age,size) VALUES ("${row[1][0]}","${row[1][1]}",${row[1][2]},${row[1][3]});`;
+          res = await jeepSqlite.execute({database: dbName, statements: twoUsers, transaction: false});
+          if (res.changes.changes !== 2) {
+            throw new Error("Execute 2 users failed");
+          }
+          const execStmt = `
+            DROP TABLE IF EXISTS contacts;
+            CREATE TABLE IF NOT EXISTS contacts (
+              id INTEGER PRIMARY KEY NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              name TEXT,
+              FirstName TEXT,
+              company TEXT,
+              size REAL,
+              age INTEGER,
+              MobileNumber TEXT
+            );
+            CREATE INDEX IF NOT EXISTS contacts_index_email ON contacts (email);
+            PRAGMA user_version = 1;
+            INSERT INTO contacts (name,FirstName,email,company,age,MobileNumber)
+              VALUES ("Simpson","Tom","Simpson@example.com",null,69,"4405060708");
+            INSERT INTO contacts (name,FirstName,email,company,age,MobileNumber)
+              VALUES ("Jones","David","Jones@example.com","TheCompany",42,"4404030201");
+          `;
+          res = await jeepSqlite.execute({database: dbName, statements: execStmt, transaction: false});
+          if (res.changes.changes !== 2) {
+            throw new Error("Execute 2 contacts failed");
+          }
+
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          res = await jeepSqlite.commitTransaction({database: dbName});
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          progressEl.innerHTML += "Manage Transaction Execute successful<br>";
+
+          // #######################
+          // Using ExecuteSet method
+          // #######################
+          const setUsers = [
+              { statement:"INSERT INTO users (name,email,age,size) VALUES (?,?,?,?);",
+                values:["Simpson","Simpson@example.com",69,1.75]
+              },
+              { statement:"INSERT INTO users (name,email,age,size) VALUES (?,?,?,?);",
+                values:[
+                  ["Kennedy","Kennedy@example.com",42,1.87],
+                  ["Dupond","Dupond@example.com",48,1.62],
+                  ["Brown","Brown@example.com",35,1.95]
+                ]
+              },
+              { statement:"UPDATE users SET age = ? WHERE id = ?;",
+                values:[45,2]
+              }
+            ];
+            console.log("###########################");
+            console.log("#  Manage Transactions    #");
+            console.log("###########################");
+            console.log("# Using ExecuteSet method #");
+            console.log("###########################");
+            res =  await jeepSqlite.beginTransaction({database: dbName});
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+            res = await jeepSqlite.executeSet({database: dbName, set: setUsers, transaction: false});
+            if (res.changes.changes !== 5) {
+              throw new Error("ExecuteSet 1 users failed");
+            }
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+            res = await jeepSqlite.commitTransaction({database: dbName});
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+            progressEl.innerHTML += "Manage Transaction ExecuteSet successful<br>";
+
+            // ################
+            // Using Run method
+            // ################
+            console.log("#######################");
+            console.log("# Manage Transactions #");
+            console.log("#######################");
+            console.log("# Using Run method    #");
+            console.log("#######################");
+
+            res =  await jeepSqlite.beginTransaction({database: dbName});
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+            const upStmt = 'UPDATE users SET age = ? WHERE id = ?';
+            res = await jeepSqlite.run({database: dbName, statement: upStmt, values: [43,3], transaction: false});
+            if (res.changes.changes !== 1) {
+              throw new Error("Run 1 users failed");
+            }
+            const insStmt = `
+              INSERT INTO users (name,email,age,size) VALUES
+              ("Jeepq","Jeepq@example.com",72,1.85),
+              ("Bush","Bush@example.com",34,1.76),
+              ("Mallow","Mallow@example.com",54,2.03)
+            `;
+            res = await jeepSqlite.run({database: dbName, statement: insStmt, values: [], transaction: false});
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+            res = await jeepSqlite.commitTransaction({database: dbName});
+            res = await jeepSqlite.isTransactionActive({database: dbName});
+
+            progressEl.innerHTML += "Manage Transaction Run successful<br>";
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          res = await jeepSqlite.rollbackTransaction({database: dbName});
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          progressEl.innerHTML += "Manage Transaction failed<br>";
+          return Promise.reject(msg);
+        }
+
+      }
+      const automaticTransactions = async (dbName) => {
+        try {
+
+          // The component manage itself the transaction
+          // for each call to a method
+          // execute, executeSet, run
+
+          // ####################
+          // Using Execute method
+          // ####################
+          console.log("##########################");
+          console.log("# Automatic Transactions #");
+          console.log("##########################");
+          console.log("# Using Execute method #");
+          console.log("########################");
+
+          // Insert some Users
+          const row = [["Whiteley","Whiteley.com",30,1.83],["Jones","Jones.com",44,1.75]];
+          let twoUsers = `INSERT INTO users (name,email,age,size) VALUES ("${row[0][0]}","${row[0][1]}",${row[0][2]},${row[0][3]});`;
+          twoUsers += `INSERT INTO users (name,email,age,size) VALUES ("${row[1][0]}","${row[1][1]}",${row[1][2]},${row[1][3]});`;
+          res = await jeepSqlite.execute({database: dbName, statements: twoUsers});
+          if (res.changes.changes !== 2) {
+            throw new Error("Execute & users failed");
+          }
+          const execStmt = `
+            DROP TABLE IF EXISTS contacts;
+            CREATE TABLE IF NOT EXISTS contacts (
+              id INTEGER PRIMARY KEY NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              name TEXT,
+              FirstName TEXT,
+              company TEXT,
+              size REAL,
+              age INTEGER,
+              MobileNumber TEXT
+            );
+            CREATE INDEX IF NOT EXISTS contacts_index_email ON contacts (email);
+            PRAGMA user_version = 1;
+            INSERT INTO contacts (name,FirstName,email,company,age,MobileNumber)
+              VALUES ("Simpson","Tom","Simpson@example.com",null,69,"4405060708");
+            INSERT INTO contacts (name,FirstName,email,company,age,MobileNumber)
+              VALUES ("Jones","David","Jones@example.com","TheCompany",42,"4404030201");
+          `;
+          res = await jeepSqlite.execute({database: dbName, statements: execStmt});
+          if (res.changes.changes !== 2) {
+            throw new Error("Execute 2 contacts failed");
+          }
+          progressEl.innerHTML += "Automatic Transaction Execute successful<br>";
+
+          // #######################
+          // Using ExecuteSet method
+          // #######################
+          const setUsers = [
+              { statement:"INSERT INTO users (name,email,age,size) VALUES (?,?,?,?);",
+                values:["Simpson","Simpson@example.com",69,1.75]
+              },
+              { statement:"INSERT INTO users (name,email,age,size) VALUES (?,?,?,?);",
+                values:[
+                  ["Kennedy","Kennedy@example.com",42,1.87],
+                  ["Dupond","Dupond@example.com",48,1.62],
+                  ["Brown","Brown@example.com",35,1.95]
+                ]
+              },
+              { statement:"UPDATE users SET age = ? WHERE id = ?;",
+                values:[45,2]
+              }
+            ];
+            console.log("###########################");
+            console.log("# Automatic Transactions  #");
+            console.log("###########################");
+            console.log("# Using ExecuteSet method #");
+            console.log("###########################");
+            res = await jeepSqlite.executeSet({database: dbName, set: setUsers});
+            if (res.changes.changes !== 5) {
+              throw new Error("ExecuteSet 1 users failed");
+            }
+            progressEl.innerHTML += "Automatic Transaction ExecuteSet successful<br>";
+
+            // ################
+            // Using Run method
+            // ################
+            console.log("##########################");
+            console.log("# Automatic Transactions #");
+            console.log("##########################");
+            console.log("# Using Run method       #");
+            console.log("##########################");
+
+            const upStmt = 'UPDATE users SET age = ? WHERE id = ?';
+            res = await jeepSqlite.run({database: dbName, statement: upStmt, values: [43,3]});
+            if (res.changes.changes !== 1) {
+              throw new Error("Run 1 users failed");
+            }
+            const insStmt = `
+              INSERT INTO users (name,email,age,size) VALUES
+              ("Jeepq","Jeepq@example.com",72,1.85),
+              ("Bush","Bush@example.com",34,1.76),
+              ("Mallow","Mallow@example.com",54,2.03)
+            `;
+            res = await jeepSqlite.run({database: dbName, statement: insStmt, values: []});
+            progressEl.innerHTML += "Automatic Transaction Run successful<br>";
+
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          progressEl.innerHTML += "Automatic Transaction failed\n";
+          return Promise.reject(msg);
+        }
+
+      }
+      const handleSaveDatabaseToDisk = async (event) => {
+        if(event.detail.db_name) {
+          const dbName = event.detail.db_name.split("SQLite.db")[0];
+          console.log(`in jeepSqliteSaveDatabaseToDisk dbName: ${dbName}`);
+          try {
+        // Close the connection
+        await jeepSqlite.closeConnection({database:dbName});
+          console.log(`******** saveDB successful ********\n`)
+          await endTest(activeTest,'');
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            await endTest(activeTest,`${event.detail.message}`);
+        }
+        } else {
+          console.log(`${event.detail.message}`);
+          await endTest(activeTest,`${event.detail.message}`);
+        }
+      };
+      jeepSqlite.addEventListener('jeepSqliteSaveDatabaseToDisk', handleSaveDatabaseToDisk);
+
+      // ********************************
+      // *** test with SQL statements ***
+      // ********************************
+      try {
+        var activeTest = 'DatabaseTestTransitions';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database
+        await initializeTest();
+        // create the Database in the Store
+        await createDB('testTransition');
+        // open database and do new stuff
+        await openDB('testTransition');
+        // Manage the transaction process flow yourself
+        await transaction230('testTransition');
+        await manageTransactions('testTransition');
+        // Clean the table users
+        let delUsers = `DELETE FROM users;`;
+            delUsers += `VACUUM;`;
+        ret = await jeepSqlite.execute({database: 'testTransition', statements: delUsers, transaction: false});
+        // Use the internal automatic transition process flow
+        await automaticTransactions('testTransition');
+
+        // Print the database
+        await printDatabase('testTransition');
+        // Save the database to disk
+        await jeepSqlite.saveToLocalDisk({database:'testTransition'});
+      } catch (err) {
+        let msg = err.message ? err.message : err;
+        await endTest(activeTest,msg);
+      }
+    }
+  })();
+</script>
+
+<!--
+
+-->
