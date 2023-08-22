@@ -3,46 +3,48 @@ import { UtilsJSON } from '../utils/utils-json';
 import { UtilsDelete } from './utils-delete';
 import { UtilsSQLStatement } from './utils-sqlstatement';
 export class UtilsSQLite {
-  static async beginTransaction(db: any, isOpen: boolean): Promise<boolean> {
+  static async beginTransaction(db: any, isOpen: boolean): Promise<void> {
       const msg = 'BeginTransaction: ';
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
-      const sql = 'BEGIN TRANSACTION;';
       try {
-        db.exec(sql);
-        return Promise.resolve(true);
+        db.exec('BEGIN');
+        return Promise.resolve();
       } catch (err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
       }
+
   }
-  static async rollbackTransaction(db: any, isOpen: boolean): Promise<boolean>
+  static async rollbackTransaction(db: any, isOpen: boolean): Promise<void>
    {
       const msg = 'RollbackTransaction: ';
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
-      const sql = 'ROLLBACK;';
       try {
 
-        db.exec(sql);
-        return Promise.resolve(false);
+        db.exec('ROLLBACK');
+        return Promise.resolve();
       } catch(err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
       }
+
   }
-  static async commitTransaction(db: any, isOpen: boolean): Promise<boolean> {
+  static commitTransaction(db: any, isOpen: boolean): Promise<void> {
       const msg = 'CommitTransaction: ';
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
-      const sql = 'COMMIT;';
+      const sql = 'COMMIT';
       try {
         db.exec(sql);
-        return Promise.resolve(false);
+        return Promise.resolve();
       } catch(err) {
-        return Promise.reject(new Error(`${msg}${err.message}`));
+        console.log(`${err.message}`)
+          return Promise.reject(new Error(`${msg}${err.message}`));
       }
+
   }
   static async dbChanges(db: any): Promise<number> {
       const SELECT_CHANGE = 'SELECT total_changes()';

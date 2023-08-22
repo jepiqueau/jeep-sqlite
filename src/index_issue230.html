@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Test Issue#230</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_issue230.html">Issue#230 Tests</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
+        </div>
+      </div>
+    </div>
+    <h1>Test Issue#230</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
+    <jeep-sqlite autoSave></jeep-sqlite>
+</body>
+</html>
+<script>
+  (async () => {
+    const messageEl = document.querySelector('.message');
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
+      console.log(`Import: ${event.detail.progress}`)
+    });
+    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
+      console.log(`Export: ${event.detail.progress}`)
+    });
+    let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
+    if(await jeepSqlite.isStoreOpen()) {
+      const printDatabase = async(dbName) => {
+        // Select all tables,
+        try {
+          ret = await jeepSqlite.getTableList({database: dbName});
+          console.log(`\n>>> printDatabase getTableList ret: ${JSON.stringify(ret)} `)
+
+          if(ret.values.length > 0) {
+            for (const tableName of ret.values) {
+              const retQuery = await jeepSqlite.query({database: dbName, statement:`SELECT * FROM ${tableName};`});
+              console.log(`\n*** table: ${tableName} ***`);
+              console.log(`${JSON.stringify(retQuery.values)}`);
+            }
+          }
+        } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+        }
+      }
+
+      const executeTransaction = async(dbName,txn) => {
+        console.log("###########################");
+        console.log("# executeTransaction test #");
+        console.log("#########################1#");
+
+        let changes = 0;
+        let isActive;
+        try {
+          const ret = await jeepSqlite.beginTransaction({database: dbName});
+          isActive = await jeepSqlite.isTransactionActive({
+            database: dbName
+          });
+          if(!isActive) {
+            return Promise.reject('After Begin Transaction, no transaction active');
+          }
+        } catch (err) {
+          const msg = err.message ? err.message : err;
+          return Promise.reject(msg);
+        }
+        try {
+          for (const task of txn) {
+            console.log(`task: ${task.statement} , ${task.values}`)
+            if (task.values && task.values.length > 0) {
+              const retMode = task.statement.toUpperCase().includes('RETURNING')
+                ? 'all'
+                : 'no';
+              const ret = await jeepSqlite.run({
+                database: dbName,
+                statement: task.statement,
+                values: task.values,
+                transaction: false,
+                readonly: false,
+                returnMode: retMode
+              });
+              if (ret.changes.changes <= 0) {
+                throw new Error('Error in transaction method run ');
+              }
+              changes += ret.changes.changes;
+            } else {
+              const ret = await jeepSqlite.execute({
+                database: dbName,
+                statements: task.statement,
+                transaction: false,
+                readonly: false,
+              });
+              if (ret.changes.changes < 0) {
+                throw new Error('Error in transaction method execute ');
+              }
+              changes += ret.changes.changes;
+            }
+          }
+          isActive = await jeepSqlite.isTransactionActive({
+            database: dbName
+          });
+          if(isActive) {
+            const retC = await jeepSqlite.commitTransaction({
+              database: dbName
+            });
+            changes += retC.changes.changes;
+          }
+          const retChanges = {changes:{changes:changes}};
+          return Promise.resolve(retChanges);
+        } catch (err) {
+          isActive = await jeepSqlite.isTransactionActive({
+            database: dbName
+          });
+          if(isActive) {
+            await jeepSqlite.rollbackTransaction({database: dbName,});
+          }
+          const msg = err.message ? err.message : err;
+          return Promise.reject(msg);
+        }
+      }
+
+
+      try {
+
+        // *** test issue#230
+
+          await jeepSqlite.createConnection({
+              database:"testIssue230",
+              version: 1
+          });
+          // open db testIssue230
+          await jeepSqlite.open({database: "testIssue230"});
+          const isDB = await jeepSqlite.isDBOpen({database: "testIssue230"})
+
+          if (isDB) {
+            const txn =  [
+              {statement: `DROP TABLE IF EXISTS DemoTable;`},
+              {statement: `CREATE TABLE IF NOT EXISTS DemoTable (
+                name TEXT, score INTEGER);`},
+              {statement: "INSERT INTO DemoTable (name, score) VALUES (?,?);",
+                values: ["James",102]},
+              {statement: "INSERT INTO DemoTable (name, score) VALUES (?,?);",
+                values: ["Betty",202]}
+            ];
+
+            const ret = await executeTransaction('testIssue230', txn);
+            console.log(`changes: ${ret.changes.changes}`);
+            await printDatabase('testIssue230');
+
+          } else {
+            const msg = `Database "testIssue230" is not opened`;
+            console.log(msg);
+            messageEl.innerHTML = `Error: ${msg}`;
+          }
+          await jeepSqlite.closeConnection({database:"testIssue230"});
+        } catch (err) {
+          console.log(`Error: ${err}`);
+          messageEl.innerHTML = `Error: ${err}`;
+        }
+      } else {
+      console.log("Error: Store creation failed")
+      messageEl.innerHTML = "Error: Store creation failed";
+    }
+  })();
+</script>

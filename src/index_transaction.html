@@ -257,18 +257,110 @@
             return Promise.reject(msg);
         }
       }
-      const transaction230 = async(dbName) => {
+
+      const executeTransaction = async(dbName,txn) => {
+        console.log("###########################");
+        console.log("# executeTransaction test #");
+        console.log("#########################1#");
+
+        let changes = 0;
+        let isActive;
         try {
-          const sqlI230 = `CREATE TABLE IF NOT EXISTS DemoTable (name TEXT,score INTEGER);`
-            let ret230 = await jeepSqlite.execute({database: dbName, statements: sqlI230});
-            res =  await jeepSqlite.beginTransaction({database: dbName});
-            res = await jeepSqlite.isTransactionActive({database: dbName});
-            let sql230 = `
-                INSERT INTO DemoTable (name,score) VALUES ("Alice",101);
-                INSERT INTO DemoTable (name,score) VALUES ("Betty",202);
-              `;
-              res = await jeepSqlite.execute({database: dbName, statements: sql230, transaction: false});
-          if (res.changes.changes !== 2) {
+          const ret = await jeepSqlite.beginTransaction({database: dbName});
+          isActive = await jeepSqlite.isTransactionActive({
+            database: dbName
+          });
+          if(!isActive) {
+            return Promise.reject('After Begin Transaction, no transaction active');
+          }
+        } catch (err) {
+          const msg = err.message ? err.message : err;
+          return Promise.reject(msg);
+        }
+        try {
+          for (const task of txn) {
+            console.log(`task: ${task.statement} , ${task.values}`)
+            if (task.values && task.values.length > 0) {
+              const retMode = task.statement.toUpperCase().includes('RETURNING')
+                ? 'all'
+                : 'no';
+              const ret = await jeepSqlite.run({
+                database: dbName,
+                statement: task.statement,
+                values: task.values,
+                transaction: false,
+                readonly: false,
+                returnMode: retMode
+              });
+              if (ret.changes.changes <= 0) {
+                throw new Error('Error in transaction method run ');
+              }
+              changes += ret.changes.changes;
+            } else {
+              const ret = await jeepSqlite.execute({
+                database: dbName,
+                statements: task.statement,
+                transaction: false,
+                readonly: false,
+              });
+              if (ret.changes.changes < 0) {
+                throw new Error('Error in transaction method execute ');
+              }
+              changes += ret.changes.changes;
+            }
+          }
+          isActive = await jeepSqlite.isTransactionActive({
+            database: dbName
+          });
+          if(isActive) {
+            const retC = await jeepSqlite.commitTransaction({
+              database: dbName
+            });
+            changes += retC.changes.changes;
+          }
+          const retChanges = {changes:{changes:changes}};
+          return Promise.resolve(retChanges);
+        } catch (err) {
+          isActive = await jeepSqlite.isTransactionActive({
+            database: dbName
+          });
+          if(isActive) {
+            await jeepSqlite.rollbackTransaction({database: dbName,});
+          }
+          const msg = err.message ? err.message : err;
+          return Promise.reject(msg);
+        }
+      }
+
+
+
+      const transaction230 = async(dbName) => {
+        console.log("#########################");
+        console.log("# Transaction issue 230 #");
+        console.log("#########################");
+        try {
+          let changes = 0;
+          res =  await jeepSqlite.beginTransaction({database: dbName});
+          res = await jeepSqlite.isTransactionActive({database: dbName});
+          sqlI230 = `
+            DROP TABLE IF EXISTS DemoTable;
+            CREATE TABLE IF NOT EXISTS DemoTable (name TEXT,score INTEGER);
+          `;
+          ret230 = await jeepSqlite.execute({database: dbName, statements: sqlI230, transaction: false});
+          changes += ret230.changes.changes;
+
+          let sql230 = `
+              INSERT INTO DemoTable VALUES ('Alice',101);
+          `;
+          ret230 = await jeepSqlite.run({database: dbName, statement: sql230, values: [], transaction: false});
+          changes += ret230.changes.changes;
+          sql230 = `
+              INSERT INTO DemoTable (name,score) VALUES ('Betty',202);
+          `;
+          ret230 = await jeepSqlite.run({database: dbName, statement: sql230, values: [], transaction: false});
+          changes += ret230.changes.changes;
+
+          if (changes !== 2) {
             throw new Error("Execute & DemoTable failed");
           }
           res = await jeepSqlite.isTransactionActive({database: dbName});
@@ -560,6 +652,15 @@
         await createDB('testTransition');
         // open database and do new stuff
         await openDB('testTransition');
+        txn =  [
+          {statement: "DROP TABLE IF EXISTS DemoTable"},
+          {statement: "CREATE TABLE IF NOT EXISTS DemoTable (name TEXT,score INTEGER);"},
+          {statement: "INSERT INTO DemoTable VALUES (?,?);",
+            values: ["Alice",101]},
+          {statement: "INSERT INTO DemoTable VALUES (?,?);",
+            values: ["Betty",202]}
+        ]
+        await executeTransaction('testTransition', txn)
         // Manage the transaction process flow yourself
         await transaction230('testTransition');
         await manageTransactions('testTransition');

@@ -33,7 +33,8 @@ export class UtilsImportJSON {
     const db = mDB.mDb
     try {
       // start a transaction
-      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(db, true));
+      await UtilsSQLite.beginTransaction(db, true);
+      mDB.setIsTransActive(true);
     } catch (err) {
       return Promise.reject(new Error(`CreateSchema: ${err.message}`));
     }
@@ -45,7 +46,8 @@ export class UtilsImportJSON {
         changes = await UtilsSQLite.execute(db, schemaStmt, true);
         if (changes < 0) {
           try {
-            mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
+            await UtilsSQLite.rollbackTransaction(db, true);
+            mDB.setIsTransActive(false);
           } catch (err) {
             return Promise.reject(
               new Error('CreateSchema: changes < 0 ' + `${err.message}`),
@@ -55,7 +57,8 @@ export class UtilsImportJSON {
       } catch (err) {
         const msg = err.message;
         try {
-          mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
+          await UtilsSQLite.rollbackTransaction(db, true);
+          mDB.setIsTransActive(false);
           return Promise.reject(new Error(`CreateSchema: ${msg}`));
         } catch (err) {
           return Promise.reject(
@@ -65,7 +68,8 @@ export class UtilsImportJSON {
       }
     }
     try {
-      mDB.setIsTransActive(await UtilsSQLite.commitTransaction(db, true));
+      await UtilsSQLite.commitTransaction(db, true);
+      mDB.setIsTransActive(false);
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(
@@ -182,7 +186,9 @@ export class UtilsImportJSON {
     try {
       initChanges = await UtilsSQLite.dbChanges(db);
       // start a transaction
-      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(db, true));
+      await UtilsSQLite.beginTransaction(db, true);
+      mDB.setIsTransActive(true);
+
     } catch (err) {
       return Promise.reject(new Error(`createTablesData: ${err.message}`));
     }
@@ -204,7 +210,8 @@ export class UtilsImportJSON {
     }
     if (isValue) {
       try {
-        mDB.setIsTransActive(await UtilsSQLite.commitTransaction(db, true));
+        await UtilsSQLite.commitTransaction(db, true);
+        mDB.setIsTransActive(false);
         changes = (await UtilsSQLite.dbChanges(db)) - initChanges;
         return Promise.resolve(changes);
       } catch (err) {
@@ -215,7 +222,8 @@ export class UtilsImportJSON {
     } else {
       if(msg.length > 0) {
         try {
-          mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
+          await UtilsSQLite.rollbackTransaction(db, true);
+          mDB.setIsTransActive(false);
           return Promise.reject(new Error(`CreateTablesData: ${msg}`));
         } catch (err) {
           return Promise.reject(
@@ -473,7 +481,8 @@ export class UtilsImportJSON {
     try {
       initChanges = await UtilsSQLite.dbChanges(db);
       // start a transaction
-      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(db, true));
+      await UtilsSQLite.beginTransaction(db, true);
+      mDB.setIsTransActive(true);
     } catch (err) {
       return Promise.reject(new Error(`createViews: ${err.message}`));
     }
@@ -492,7 +501,8 @@ export class UtilsImportJSON {
     }
     if (isView) {
       try {
-        mDB.setIsTransActive(await UtilsSQLite.commitTransaction(db, true));
+        await UtilsSQLite.commitTransaction(db, true);
+        mDB.setIsTransActive(false);
         changes = (await UtilsSQLite.dbChanges(db)) - initChanges;
         return Promise.resolve(changes);
       } catch (err) {
@@ -501,7 +511,8 @@ export class UtilsImportJSON {
     } else {
       if (msg.length > 0) {
         try {
-          mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(db, true));
+          await UtilsSQLite.rollbackTransaction(db, true);
+          mDB.setIsTransActive(false);
           return Promise.reject(new Error(`createViews: ${msg}`));
         } catch (err) {
           return Promise.reject(

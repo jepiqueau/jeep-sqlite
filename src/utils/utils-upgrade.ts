@@ -40,14 +40,18 @@ export class UtilsUpgrade {
 
   static async executeStatementsProcess(mDB: Database, statements: string[]): Promise<void> {
     try {
-      mDB.setIsTransActive(await UtilsSQLite.beginTransaction(mDB.mDb, true));
+      await UtilsSQLite.beginTransaction(mDB.mDb, true);
+      mDB.setIsTransActive(true);
+
       for (const statement of statements) {
         await UtilsSQLite.execute(mDB.mDb, statement, false);
       }
-      mDB.setIsTransActive(await UtilsSQLite.commitTransaction(mDB.mDb, true));
+      await UtilsSQLite.commitTransaction(mDB.mDb, true);
+      mDB.setIsTransActive(false);
       return Promise.resolve();
     } catch (err) {
-      mDB.setIsTransActive(await UtilsSQLite.rollbackTransaction(mDB.mDb, true));
+      await UtilsSQLite.rollbackTransaction(mDB.mDb, true);
+      mDB.setIsTransActive(false);
       return Promise.reject(`ExecuteStatementProcess: ${err}`);
     }
   }

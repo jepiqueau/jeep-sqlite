@@ -215,10 +215,15 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      this.setIsTransActive(await UtilsSQLite.beginTransaction(this.mDb, true));
+      console.log(`&&&&& in jeep database before beginTransaction: ${this.isTransActive()}`)
+      await UtilsSQLite.beginTransaction(this.mDb, true);
+      this.setIsTransActive(true);
+      console.log(`&&&&& in jeep database after beginTransaction: ${this.isTransActive()}`)
+
       return 0;
     } catch(err) {
       let msg = `BeginTransaction: ${err.message}`;
+      console.log(`&&&&& in jeep database begin Transaction Error: ${err.message}`)
       return Promise.reject(new Error(`${msg}`));
     }
 
@@ -230,10 +235,14 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      this.setIsTransActive(await UtilsSQLite.commitTransaction(this.mDb, true));
+      console.log(`&&&&& in jeep database before commitTransaction: ${this.isTransActive()}`)
+      await UtilsSQLite.commitTransaction(this.mDb, true);
+      this.setIsTransActive(false);
+      console.log(`&&&&& in jeep database after commitTransaction: ${this.isTransActive()}`)
       return 0
     } catch(err) {
       let msg = `CommitTransaction: ${err.message}`;
+      console.log(`&&&&& in jeep database commitTransaction Error: ${err.message}`)
       return Promise.reject(new Error(`${msg}`));
     }
 
@@ -245,10 +254,14 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     try {
-      this.setIsTransActive(await UtilsSQLite.rollbackTransaction(this.mDb, true));
+      console.log(`&&&&& in jeep database before rollbackTransaction: ${this.isTransActive()}`)
+      await UtilsSQLite.rollbackTransaction(this.mDb, true);
+      this.setIsTransActive(false);
+      console.log(`&&&&& in jeep database after rollbackTransaction: ${this.isTransActive()}`)
       return 0
     } catch(err) {
       let msg = `RollbackTransaction: ${err.message}`;
+      console.log(`&&&&& in jeep database rollbackTransaction Error: ${err.message}`)
       return Promise.reject(new Error(`${msg}`));
     }
 
@@ -266,6 +279,7 @@ export class Database {
       return Promise.reject(new Error(msg));
     }
     let initChanges = -1;
+    console.log(`>>>> in executeSQL: ${sql}, ${transaction} , ${this.isTransactionActive}`)
     try {
       initChanges = await UtilsSQLite.dbChanges(this.mDb);
       if(transaction && !this.isTransactionActive ) {
@@ -280,7 +294,12 @@ export class Database {
       if (mChanges < 0) {
         return Promise.reject(new Error('ExecuteSQL: changes < 0'));
       }
-      if(transaction && this.isTransactionActive) await this.commitTransaction();
+      console.log(`>>>> in executeSQL before commit : ${sql}, ${transaction} , ${this.isTransactionActive}`)
+      if(transaction && this.isTransactionActive) {
+        console.log(`>>>> in executeSQL going to commit`);
+        await this.commitTransaction();
+        console.log(`>>>> in executeSQL after commit : ${sql}, ${transaction} , ${this.isTransactionActive}`)
+      }
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       return Promise.resolve(changes);
     } catch (err) {
@@ -301,6 +320,8 @@ export class Database {
           return Promise.reject(`ExecuteSQL: ${err}`);
         }
       }
+      console.log(`>>>> in executeSQL end :  ${transaction} , ${this.isTransactionActive}`)
+
     }
   }
   public async execSet(set: SQLiteSet[], transaction: boolean = true, returnMode ='no'): Promise<any> {
@@ -373,12 +394,15 @@ export class Database {
       msg += `not opened`;
       return Promise.reject(new Error(msg));
     }
+    console.log(`>>>> in runSQL: ${statement}, ${transaction} , ${this.isTransactionActive}`)
+    console.log(`>>>> in runSQL: ${values}, ${transaction} , ${this.isTransactionActive}`)
     const retRes: any = { changes: -1, lastId: -1 };
     let initChanges = -1;
     try {
       initChanges = await UtilsSQLite.dbChanges(this.mDb);
 
       if(transaction && !this.isTransactionActive) {
+        console.log(`>>>> in runSQL going to beginTransaction`)
         await this.beginTransaction();
       }
      } catch(err) {
@@ -391,7 +415,11 @@ export class Database {
       if (lastId < 0) {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
-      if(transaction && this.isTransactionActive) await this.commitTransaction();
+      if(transaction && this.isTransactionActive) {
+        console.log(`>>>> in runSQL going to commitTransaction`)
+        await this.commitTransaction();
+        console.log(`>>>> in runSQL after commit : ${statement}, ${transaction} , ${this.isTransactionActive}`)
+      }
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;
       retRes.lastId = lastId;
@@ -400,7 +428,10 @@ export class Database {
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;
       try {
-        if(transaction && this.isTransactionActive) await this.rollbackTransaction();
+        if(transaction && this.isTransactionActive) {
+          console.log(`>>>> in runSQL going to rollbackTransaction`)
+          await this.rollbackTransaction();
+        }
       } catch (err) {
         msg += ` : ${err.message}`;
       }
