@@ -41,8 +41,7 @@ export class UtilsSQLite {
         db.exec(sql);
         return Promise.resolve();
       } catch(err) {
-        console.log(`${err.message}`)
-          return Promise.reject(new Error(`${msg}${err.message}`));
+        return Promise.reject(new Error(`${msg}${err.message}`));
       }
 
   }
