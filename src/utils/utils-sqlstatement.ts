@@ -88,26 +88,30 @@ export class UtilsSQLStatement {
     }
   }
   static extractColumnNames(whereClause: string): string[] {
-    const keywords: Set<string> = new Set(["AND", "OR", "IN", "VALUES", "LIKE", "BETWEEN", "NOT"]);
-    const tokens: string[] = whereClause.split(/\s|,|\(|\)/);
+    const keywords: Set<string> = new Set([
+      "AND", "OR", "IN", "VALUES", "LIKE", "BETWEEN", "NOT"
+    ]);
 
+    const regex = /\b[a-zA-Z]\w*\b(?=\s*(?:<=?|>=?|<>?|=|AND|OR|BETWEEN|NOT|IN|LIKE))|\b[a-zA-Z]\w*\b\s+BETWEEN\s+'[^']+'\s+AND\s+'[^']+'|\(([^)]+)\)\s+IN\s+\(?\s*VALUES\s*\(/g;
+    let match;
     const columns: string[] = [];
-    let inClause = false;
-    let inValues = false;
 
-    for (const token of tokens) {
-        if (token === "IN") {
-            inClause = true;
-        } else if (inClause && token === "(") {
-            inValues = true;
-        } else if (inValues && token === ")") {
-            inValues = false;
-        } else if (token.match(/\b[a-zA-Z]\w*\b/) && !inValues && !keywords.has(token.toUpperCase())) {
-            columns.push(token);
+    while ((match = regex.exec(whereClause)) !== null) {
+      const columnList = match[1];
+      if (columnList) {
+        const columnNamesArray = columnList.split(',');
+        for (const columnName of columnNamesArray) {
+          columns.push(columnName.trim());
         }
+      } else {
+        const matchedText = match[0];
+        if (!keywords.has(matchedText.trim().toUpperCase())) {
+          columns.push(matchedText.trim());
+        }
+      }
     }
 
-    return Array.from(new Set(columns));
+    return columns;
   }
 
   static flattenMultilineString(input: string): string {
