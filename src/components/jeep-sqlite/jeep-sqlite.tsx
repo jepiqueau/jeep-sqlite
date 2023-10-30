@@ -1515,7 +1515,7 @@ export class JeepSqlite {
   }
 
   async _copyFromAssets(overwrite: boolean): Promise<void> {
-    const res = await this.loadJSON('assets/databases/databases.json');
+    const res = await this.loadJSON('/assets/databases/databases.json');
     if(res != null) {
       this.databaseList = JSON.parse(res);
       const keys = Object.keys(this.databaseList);
@@ -1523,10 +1523,10 @@ export class JeepSqlite {
         try {
           for( const dbName of this.databaseList.databaseList) {
             if( dbName.substring(dbName.length - 3) === ".db") {
-              await this.copyDatabase(`assets/databases/${dbName}`, overwrite);
+              await this.copyDatabase(`/assets/databases/${dbName}`, overwrite);
             }
             if( dbName.substring(dbName.length - 4) === ".zip") {
-              await this.unzipDatabase(`assets/databases/${dbName}`, overwrite);
+              await this.unzipDatabase(`/assets/databases/${dbName}`, overwrite);
             }
           }
           return Promise.resolve();
@@ -1537,7 +1537,7 @@ export class JeepSqlite {
         return Promise.reject(`CopyFromAssets: no key databaseList in databases.json`);
       }
     } else {
-      return Promise.reject(`CopyFromAssets: no databases.json file in assets/databases folder`);
+      return Promise.reject(`CopyFromAssets: no databases.json file in /assets/databases folder`);
     }
   }
   async _getFromHTTPRequest(url: string, overwrite: boolean): Promise<void> {
