@@ -329,7 +329,13 @@ export class UtilsImportJSON {
         }
         if(isUpdate) {
           // Update
-          const setString: string = await UtilsImportJSON.setNameForUpdate(tColNames);
+
+          /*
+           * fix issue #30, but can't be THE fix for all use case.
+           * I suggest to always escape all column names in generated SQL statments
+           */
+          const setString: string = await UtilsImportJSON.setNameForUpdate(tColNames.map(colName=>`"${colName}"`));
+
           if (setString.length === 0) {
             return Promise.reject(
               new Error(
