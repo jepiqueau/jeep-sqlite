@@ -768,6 +768,12 @@ Type: `Promise<void>`
 
 
 
+#### Parameters
+
+| Name      | Type                   | Description |
+| --------- | ---------------------- | ----------- |
+| `options` | `SQLiteUpgradeOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -777,6 +783,12 @@ Type: `Promise<void>`
 ### `beginTransaction(options: SQLiteOptions) => Promise<SQLiteChanges>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -788,6 +800,12 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+#### Parameters
+
+| Name      | Type                    | Description |
+| --------- | ----------------------- | ----------- |
+| `options` | `AllConnectionsOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteResult>`
@@ -797,6 +815,12 @@ Type: `Promise<SQLiteResult>`
 ### `close(options: SQLiteOptions) => Promise<void>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -808,6 +832,12 @@ Type: `Promise<void>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -817,6 +847,12 @@ Type: `Promise<void>`
 ### `commitTransaction(options: SQLiteOptions) => Promise<SQLiteChanges>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -828,6 +864,12 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+#### Parameters
+
+| Name      | Type                      | Description |
+| --------- | ------------------------- | ----------- |
+| `options` | `SQLiteFromAssetsOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -837,6 +879,12 @@ Type: `Promise<void>`
 ### `createConnection(options: ConnectionOptions) => Promise<void>`
 
 
+
+#### Parameters
+
+| Name      | Type                | Description |
+| --------- | ------------------- | ----------- |
+| `options` | `ConnectionOptions` |             |
 
 #### Returns
 
@@ -848,6 +896,12 @@ Type: `Promise<void>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
@@ -857,6 +911,12 @@ Type: `Promise<SQLiteChanges>`
 ### `deleteDatabase(options: SQLiteOptions) => Promise<void>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -868,6 +928,12 @@ Type: `Promise<void>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -877,6 +943,12 @@ Type: `Promise<void>`
 ### `echo(options: EchoOptions) => Promise<EchoResult>`
 
 
+
+#### Parameters
+
+| Name      | Type          | Description |
+| --------- | ------------- | ----------- |
+| `options` | `EchoOptions` |             |
 
 #### Returns
 
@@ -888,6 +960,12 @@ Type: `Promise<EchoResult>`
 
 
 
+#### Parameters
+
+| Name      | Type                   | Description |
+| --------- | ---------------------- | ----------- |
+| `options` | `SQLiteExecuteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
@@ -898,6 +976,12 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+#### Parameters
+
+| Name      | Type               | Description |
+| --------- | ------------------ | ----------- |
+| `options` | `SQLiteSetOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
@@ -907,6 +991,12 @@ Type: `Promise<SQLiteChanges>`
 ### `exportToJson(options: SQLiteExportOptions) => Promise<SQLiteJson>`
 
 
+
+#### Parameters
+
+| Name      | Type                  | Description |
+| --------- | --------------------- | ----------- |
+| `options` | `SQLiteExportOptions` |             |
 
 #### Returns
 
@@ -928,6 +1018,12 @@ Type: `Promise<SQLiteValues>`
 
 
 
+#### Parameters
+
+| Name      | Type                | Description |
+| --------- | ------------------- | ----------- |
+| `options` | `SQLiteHTTPOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -937,6 +1033,12 @@ Type: `Promise<void>`
 ### `getFromLocalDiskToStore(options: SQLiteLocalDiskOptions) => Promise<void>`
 
 
+
+#### Parameters
+
+| Name      | Type                     | Description |
+| --------- | ------------------------ | ----------- |
+| `options` | `SQLiteLocalDiskOptions` |             |
 
 #### Returns
 
@@ -948,6 +1050,12 @@ Type: `Promise<void>`
 
 
 
+#### Parameters
+
+| Name      | Type                    | Description |
+| --------- | ----------------------- | ----------- |
+| `options` | `SQLiteSyncDateOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteSyncDate>`
@@ -957,6 +1065,12 @@ Type: `Promise<SQLiteSyncDate>`
 ### `getTableList(options: SQLiteOptions) => Promise<SQLiteValues>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -968,6 +1082,12 @@ Type: `Promise<SQLiteValues>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteVersion>`
@@ -977,6 +1097,12 @@ Type: `Promise<SQLiteVersion>`
 ### `importFromJson(options: SQLiteImportOptions) => Promise<SQLiteChanges>`
 
 
+
+#### Parameters
+
+| Name      | Type                  | Description |
+| --------- | --------------------- | ----------- |
+| `options` | `SQLiteImportOptions` |             |
 
 #### Returns
 
@@ -988,6 +1114,12 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteResult>`
@@ -997,6 +1129,12 @@ Type: `Promise<SQLiteResult>`
 ### `isDBExists(options: SQLiteOptions) => Promise<SQLiteResult>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -1008,6 +1146,12 @@ Type: `Promise<SQLiteResult>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteResult>`
@@ -1018,6 +1162,12 @@ Type: `Promise<SQLiteResult>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteResult>`
@@ -1027,6 +1177,12 @@ Type: `Promise<SQLiteResult>`
 ### `isJsonValid(options: SQLiteImportOptions) => Promise<SQLiteResult>`
 
 
+
+#### Parameters
+
+| Name      | Type                  | Description |
+| --------- | --------------------- | ----------- |
+| `options` | `SQLiteImportOptions` |             |
 
 #### Returns
 
@@ -1048,6 +1204,12 @@ Type: `Promise<boolean>`
 
 
 
+#### Parameters
+
+| Name      | Type                 | Description |
+| --------- | -------------------- | ----------- |
+| `options` | `SQLiteTableOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteResult>`
@@ -1057,6 +1219,12 @@ Type: `Promise<SQLiteResult>`
 ### `isTransactionActive(options: SQLiteOptions) => Promise<SQLiteResult>`
 
 
+
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
 
 #### Returns
 
@@ -1068,6 +1236,12 @@ Type: `Promise<SQLiteResult>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -1077,6 +1251,12 @@ Type: `Promise<void>`
 ### `query(options: SQLiteQueryOptions) => Promise<SQLiteValues>`
 
 
+
+#### Parameters
+
+| Name      | Type                 | Description |
+| --------- | -------------------- | ----------- |
+| `options` | `SQLiteQueryOptions` |             |
 
 #### Returns
 
@@ -1088,6 +1268,12 @@ Type: `Promise<SQLiteValues>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<SQLiteChanges>`
@@ -1097,6 +1283,12 @@ Type: `Promise<SQLiteChanges>`
 ### `run(options: SQLiteRunOptions) => Promise<SQLiteChanges>`
 
 
+
+#### Parameters
+
+| Name      | Type               | Description |
+| --------- | ------------------ | ----------- |
+| `options` | `SQLiteRunOptions` |             |
 
 #### Returns
 
@@ -1108,6 +1300,12 @@ Type: `Promise<SQLiteChanges>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -1118,6 +1316,12 @@ Type: `Promise<void>`
 
 
 
+#### Parameters
+
+| Name      | Type            | Description |
+| --------- | --------------- | ----------- |
+| `options` | `SQLiteOptions` |             |
+
 #### Returns
 
 Type: `Promise<void>`
@@ -1127,6 +1331,12 @@ Type: `Promise<void>`
 ### `setSyncDate(options: SQLiteSyncDateOptions) => Promise<void>`
 
 
+
+#### Parameters
+
+| Name      | Type                    | Description |
+| --------- | ----------------------- | ----------- |
+| `options` | `SQLiteSyncDateOptions` |             |
 
 #### Returns
 
