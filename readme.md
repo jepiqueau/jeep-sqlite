@@ -18,6 +18,9 @@ Stencil is also great for building entire apps. For that, use the [stencil-app-s
 
 ## Notes
 
+ - Release 2.5.6 ->>
+    Step back to sql.js@1.8.0  as sql.js@1.9.0  give an `Error: out of memory` see issue #33.
+
  - Release 2.5.0 ->>
     - add methods to manage the transaction process flow :
       `beginTransaction, commitTransaction, rollbackTransaction,
