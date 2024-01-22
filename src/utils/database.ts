@@ -405,6 +405,7 @@ export class Database {
       retRes.changes = changes;
       retRes.lastId = lastId;
       retRes.values = retObj["values"] ? retObj["values"] : []
+
       return Promise.resolve(retRes);
     } catch (err) {
       let msg = `RunSQL: ${err.message}`;
@@ -582,6 +583,8 @@ export class Database {
         if(isTable) {
           await UtilsExportJSON
                   .setLastExportDate(this.mDb, (new Date()).toISOString());
+        } else {
+          return Promise.reject(new Error(`No sync_table available`));
         }
         const retJson: JsonSQLite = await UtilsExportJSON
                       .createExportObject(this.mDb, inJson, exportProgress);

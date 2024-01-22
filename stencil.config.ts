@@ -39,6 +39,7 @@ export const config: Config = {
         { src: 'index_returning.html', dest: 'index_returning.html' },
         { src: 'index_issue445.html', dest: 'index_issue445.html' },
         { src: 'index_transaction.html', dest: 'index_transaction.html' },
+        { src: 'index_issue498.html', dest: 'index_issue498.html' },
       ]
     },
   ],

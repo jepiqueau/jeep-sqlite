@@ -201,31 +201,24 @@ export class UtilsSQLite {
     let retValues : any[] = [];
     let retObj: any = {};
     try {
+
       if (!fromJson && stmtType === "DELETE") {
         sqlStmt = await UtilsSQLite.deleteSQL(db, statement, values);
       }
       const mValues = values ? values : [];
+      let res: any;
       if(mValues.length > 0) {
         const mVal: any[] = await UtilsSQLite.replaceUndefinedByNull(mValues);
-        const res = db.exec(sqlStmt, mVal);
-        if(returnMode === "all" || returnMode === "one") {
-          if(res && res.length > 0) {
-            retValues = UtilsSQLite.getReturnedValues(res[0], returnMode);
-          } else {
-            return Promise.reject(new Error(`run: ${sqlStmt} does not returned any change`));
-          }
-        }
+        res = db.exec(sqlStmt, mVal);
       } else {
-        const res = db.exec(sqlStmt);
-        if(returnMode === "all" || returnMode === "one") {
-          if(res && res.length > 0) {
-            retValues = UtilsSQLite.getReturnedValues(res[0], returnMode);
-          } else {
-            return Promise.reject(new Error(`run: ${sqlStmt} does not returned any change`));
-          }
+        res = db.exec(sqlStmt);
+      }
+      if(returnMode === "all" || returnMode === "one") {
+        if(res && res.length > 0) {
+          retValues = UtilsSQLite.getReturnedValues(res[0], returnMode);
         }
       }
-      const lastId = await UtilsSQLite.getLastId(db);
+      let lastId = await UtilsSQLite.getLastId(db);
       retObj["lastId"] = lastId;
       if(retValues != null && retValues.length > 0) retObj["values"] = retValues;
       return Promise.resolve(retObj);

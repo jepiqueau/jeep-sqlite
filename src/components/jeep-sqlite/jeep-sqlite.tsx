@@ -1246,6 +1246,7 @@ export class JeepSqlite {
     try {
       const ret: any = await mDB.runSQL(statement, values, transaction, returnMode);
       changes = {changes: {changes: ret.changes, lastId: ret.lastId, values: ret.values}};
+
       return Promise.resolve(changes);
     } catch (err) {
       return Promise.reject(`Run: ${err.message}`);

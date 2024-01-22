@@ -202,15 +202,34 @@
       }
       const totalUsers = async (message)  => {
         try {
-          const res = await jeepSqlite.query({database: 'test-returning',statement: 'SELECT * FROM users',
-                                        readonly: true});
-          console.log(`>>> total Users: ${res.values.length}`);
+          const res = await jeepSqlite.query({database: 'test-returning',statement: 'SELECT COUNT(*) as total FROM users'});
+          console.log(`>>> total Users: ${res.values[0].total}`);
 
         } catch(err) {
             return Promise.reject(err);
         }
       }
+      const showMessages = async (message) => {
+        try {
+          let res = await jeepSqlite.query({database: 'test-returning',statement: 'SELECT * FROM messages'});
+          console.log(`**** Show Messages ${message} ****`)
+          for( const message of res.values) {
+            console.log(`>>> guid: ${message.guid} name: ${message.name} message: ${message.message}`);
+          }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
 
+      const totalMessages = async (message)  => {
+        try {
+          const res = await jeepSqlite.query({database: 'test-returning',statement: 'SELECT COUNT(*) as total FROM messages'});
+          console.log(`>>> total Messages: ${res.values[0].total}`);
+
+        } catch(err) {
+            return Promise.reject(err);
+        }
+      }
 
       // ********************************
       // *** test with SQL statements ***
@@ -223,12 +242,27 @@
                 id INTEGER PRIMARY KEY NOT NULL,
                 email TEXT UNIQUE NOT NULL,
                 name TEXT,
-                age INTEGER
+                age INTEGER,
+                desc TEXT
             );`,
-            `INSERT INTO users (name,email,age) VALUES ('Whiteley', 'whiteley@local.host', 30);`,
-            `INSERT INTO users (name,email,age) VALUES ('Jones', 'jones@local.host', 44);`,
+            `INSERT INTO users (name,email,age,desc) VALUES ('Whiteley', 'whiteley@local.host', 30, 'blabla...');`,
+            `INSERT INTO users (name,email,age,desc) VALUES ('Jones', 'jones@local.host', 44,'test 2');`,
           ]
         },
+        {
+          toVersion: 2,
+          statements: [
+            `CREATE TABLE IF NOT EXISTS messages (
+              guid TEXT PRIMARY KEY NOT NULL,
+              name INTEGER,
+              message TEXT NOT NULL
+            );`,
+            `INSERT OR REPLACE INTO messages (guid,name,message) VALUES
+              ('94787267-f411-4132-a79e-3b479b494236', 'test1', 'This is a string including returning that we want to save'),
+              ('95787267-e511-4132-a79e-3b479b494236', 'test2', 'Hello from Jeep')
+            ;`
+          ]
+        }
       ]
       const createVersion1 = async() => {
         try {
@@ -257,11 +291,44 @@
             return Promise.reject(msg);
         }
       }
-      const insertUser = async(idx) => {
-        const stmt = `INSERT INTO users (name,email,age) VALUES ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)}) RETURNING *;`;
+      const createVersion2 = async() => {
+        try {
+
+          await jeepSqlite.addUpgradeStatement({database: "test-returning",
+                                                upgrade: [versionUpgrades[1]]});
+          // open readwrite connection on "test-returning"
+          await openConnection('test-returning', false,
+                                'no-encryption', 2, false, false);
+          ret = await jeepSqlite.isTableExists({database: "test-returning", table: "users"});
+          console.log(`Is table users exists: ${JSON.stringify(ret)}`);
+          ret = await jeepSqlite.isTableExists({database: "test-returning", table: "messages"});
+          console.log(`Is table messages exists: ${JSON.stringify(ret)}`);
+          // Select all messages
+          ret = await jeepSqlite.query({database: "test-returning",
+                                        statement: "SELECT * FROM messages;",
+                                        readonly: false});
+          if(ret.values.length !== 2 ||
+                ret.values[0].name !== "test1" ||
+                ret.values[1].name !== "test2") {
+            return Promise.reject("Query 2 Messages failed");
+          }
+          await jeepSqlite.saveToStore({database: 'test-returning'});
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+
+      const insertUser = async() => {
+        const idx = Math.floor(Math.random() * 1000);
+        const stmt = `INSERT INTO users (name,email,age,desc) VALUES ('testname${idx}','testemail${idx}',${Math.floor(Math.random() * 105 +18)},'testdesc${idx} returning') RETURNING *;`;
             try {
-              await jeepSqlite.run({database: 'test-returning', statement: stmt,
-                              transaction: false, readonly: false});
+              let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt,
+                              transaction: false, readonly: false, returnMode: 'all'});
+              console.log(`user: ${JSON.stringify(ret)}`);
+
             } catch(err) {
               const msg = err.message ? err.message : err;
               return Promise.reject(msg);
@@ -270,9 +337,9 @@
       const createUsers = async(returnColumns, returnMode) => {
         const idx = Math.floor(Math.random() * 1000);
         const idx1 = Math.floor(Math.random() * 1000);
-        const stmt = `INSERT INTO users (name,email,age) VALUES
-        ("testname${idx}","testemail${idx}",${Math.floor(Math.random() * 105 +18)}),
-        ("testname${idx1}","testemail${idx1}",${Math.floor(Math.random() * 105 +18)})
+        const stmt = `INSERT INTO users (name,email,age, desc) VALUES
+        ('testname${idx}','testemail${idx}',${Math.floor(Math.random() * 105 +18)},'testdesc${idx} returning'),
+        ('testname${idx1}','testemail${idx1}',${Math.floor(Math.random() * 105 +18)},'testdesc${idx}')
          ${returnColumns};`;
         let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt,
                               transaction: false, readonly: false, returnMode: returnMode});
@@ -280,8 +347,8 @@
       }
       const createUsersFromArray = async(returnColumns, returnMode = 'no') => {
         const idx = Math.floor(Math.random() * 1000);
-        const stmt = `INSERT INTO users (name,email,age) VALUES (?, ?, ?) ${returnColumns};`;
-        const values = [`testname${idx}`,`testemail${idx}`, Math.floor(Math.random() * 105 +18)];
+        const stmt = `INSERT INTO users (name,email,age,desc) VALUES (?, ?, ?, ?) ${returnColumns};`;
+        const values = [`testname${idx}`,`testemail${idx}`, Math.floor(Math.random() * 105 +18),`testdesc${idx} returning`];
         console.log("stmt", stmt)
         console.log("values", values)
         let ret = await jeepSqlite.run({database: 'test-returning', statement: stmt, values: values,
@@ -289,9 +356,9 @@
         console.log(`user: ${JSON.stringify(ret)}`);
         const idx1 = Math.floor(Math.random() * 1000);
         const idx2 = Math.floor(Math.random() * 1000);
-        const stmt1 = `INSERT INTO users (name,email,age) VALUES (?, ?, ?), (?, ?, ?) ${returnColumns};`;
-        const values1 = [`testname${idx1}`,`testemail${idx1}`, Math.floor(Math.random() * 105 +18),
-        `testname${idx2}`,`testemail${idx2}`, Math.floor(Math.random() * 105 +18)];
+        const stmt1 = `INSERT INTO users (name,email,age,desc) VALUES (?, ?, ?, ?), (?, ?, ?, ?) ${returnColumns};`;
+        const values1 = [`testname${idx1}`,`testemail${idx1}`, Math.floor(Math.random() * 105 +18),`testdesc${idx} returning`,
+        `testname${idx2}`,`testemail${idx2}`, Math.floor(Math.random() * 105 +18),`testdesc${idx}`];
         ret = await jeepSqlite.run({database: 'test-returning', statement: stmt1, values: values1,
                               transaction: false, readonly: false, returnMode: returnMode});
         console.log(`users: ${JSON.stringify(ret)}`);
@@ -303,16 +370,22 @@
         console.log(`delete users: ${JSON.stringify(ret)}`);
 
       }
+      const updateUser = async(id, returnColumns ='', returnMode = 'no') => {
+        const stmt = `UPDATE users SET age = ${Math.floor(Math.random() * 105 +18)} WHERE id = ${id} ${returnColumns};`
+        const ret = await jeepSqlite.run({database: 'test-returning', statement: stmt,
+                              transaction: false, readonly: false, returnMode: returnMode});
+        console.log(`update user: ${JSON.stringify(ret)}`);
+      }
       const createUsersFromSet = async(returnMode = 'no') => {
         const setUsers = [
-              { statement:"INSERT INTO users (name,email,age) VALUES ('Simpson','simpson@example.com',69), ('Brown', 'brown@example.com', 25) RETURNING *;",
+              { statement:"INSERT INTO users (name,email,age, desc) VALUES ('Simpson','simpson@example.com',69,'test desc 1'), ('Brown', 'brown@example.com', 25,'test returning desc 2') RETURNING *;",
                 values:[
                 ]
               },
-              { statement:"INSERT INTO users (name,email,age) VALUES (?,?,?) RETURNING *;",
+              { statement:"INSERT INTO users (name,email,age,desc) VALUES (?,?,?,?) RETURNING *;",
                 values:[
-                  ['Watson','watson@example.com',46],
-                  ['Johnson','johnson@example.com',35]
+                  ['Watson','watson@example.com',46,'test returning desc 3'],
+                  ['Johnson','johnson@example.com',35,'test desc 4']
                 ]
               },
               { statement:"UPDATE users SET age = 48 WHERE name = 'Watson' RETURNING *;",
@@ -331,7 +404,7 @@
       }
       const createUsersFromSet1 = async(returnMode = 'no') => {
         const setUsers = [
-              { statement:"INSERT INTO users (name,email,age) VALUES ('Dupond','dupond@example.com',39), ('Durand', 'Durand@example.com', 26) RETURNING name,age;",
+              { statement:"INSERT INTO users (name,email,age,desc) VALUES ('Dupond','dupond@example.com',39,'test returning desc 5'), ('Durand', 'Durand@example.com', 26,'test desc 6') RETURNING name,age,desc;",
                 values:[
                 ]
               }
@@ -343,7 +416,7 @@
       }
       const createUsersFromSet2 = async(returnMode = 'no') => {
         const setUsers = [
-              { statement:"INSERT INTO users (name,email,age) VALUES ('Ackerman','ackerman@example.com',28), ('Summerfield', 'summerfield@example.com', 32) RETURNING *;",
+              { statement:"INSERT INTO users (name,email,age,desc) VALUES ('Ackerman','ackerman@example.com',28,'test desc 7'), ('Summerfield', 'summerfield@example.com', 32,'test returning desc 8') RETURNING *;",
                 values:[
                 ]
               }
@@ -362,6 +435,9 @@
         await showUsers('after Version 1');
 
         console.log(`******** version 1 successful ********\n`)
+
+        console.log(`***** insertUser('RETURNING *', 'all') ***** `)
+        await insertUser()
         console.log(`***** createUsers('RETURNING *', 'all') ***** `)
         await createUsers('RETURNING *', 'all');
         console.log(`********************************************* `)
@@ -397,7 +473,13 @@
         console.log(`************************************* `)
         await showUsers('after createUsersFromSet');
 
-//        await showUsers('after createUsers ');
+        await updateUser(1,'RETURNING *', 'one');
+        await updateUser(11,'RETURNING id,age', 'all');
+        await updateUser(12,'RETURNING *', 'no');
+        await updateUser(13);
+
+        await showUsers('after updateUser ');
+        await totalUsers('after updateUser ')
 
         console.log(`******** create users successful ********\n`)
         // Close Connection ReadWrite for "test-returning"
@@ -406,7 +488,104 @@
           let msg = `> closeConnection readwrite "test-returning" successful\n`;
           console.log(msg);
         }
-        console.log(`******** close connections successful ********\n`)
+        console.log(`******** close connection successful ********\n`)
+
+        // create version 2
+        await createVersion2();
+        let msg = `> createVersion2 "test-returning" successful\n`;
+        console.log(msg);
+        await showMessages('after createVersion2');
+        console.log(`>> isConnection: ${(await jeepSqlite.isConnection({database: 'test-returning', readonly: false})).result}`);
+
+        // create others messages
+
+        var inStmt = `INSERT INTO messages (guid,name,message) VALUES
+          ('94787267-c385-4132-a79e-3b479b494512', 'test3', 'This is a string including returning that we want to save') RETURNING *;`;
+        ret = await jeepSqlite.run({database: 'test-returning', statement: inStmt,
+                              transaction: false, readonly: false, returnMode: 'all'});
+        console.log(`ret run 1: ${JSON.stringify(ret)}`);
+
+        inStmt = `INSERT INTO messages (guid,name,message) VALUES
+          ('03127267-d416-4132-a80b-3b479b495213', 'test4 returning', 'This is a string including returning that we want to save'),
+          ('45137267-d398-4132-a80b-3b479b495726', 'test5', 'Not have it')
+          RETURNING *;`;
+        ret = await jeepSqlite.run({database: 'test-returning', statement: inStmt,
+                              transaction: false, readonly: false, returnMode: 'one'});
+        console.log(`ret Run2: ${JSON.stringify(ret)}`);
+
+        inStmt = `INSERT INTO messages (guid,name,message) VALUES
+          ('03127267-z512-4132-a80b-3b479b496813', 'test6', 'This is a string including returning that we want to save')
+          ;`;
+        ret = await jeepSqlite.run({database: 'test-returning', statement: inStmt,
+                              transaction: false});
+        console.log(`ret Run3: ${JSON.stringify(ret)}`);
+
+        inStmt = "UPDATE messages SET message = 'involve returning' WHERE guid = '45137267-d398-4132-a80b-3b479b495726' RETURNING *;";
+        ret = await jeepSqlite.run({database: 'test-returning', statement: inStmt,
+                              transaction: false, readonly: false, returnMode: 'all'});
+        console.log(`ret update 1: ${JSON.stringify(ret)}`);
+        inStmt = "UPDATE messages SET message = 'not have it' WHERE name = 'test4 returning' RETURNING *;";
+        ret = await jeepSqlite.run({database: 'test-returning', statement: inStmt,
+                              transaction: false, readonly: false, returnMode: 'all'});
+        console.log(`ret update 2: ${JSON.stringify(ret)}`);
+        inStmt = "DELETE FROM messages WHERE guid = '03127267-z512-4132-a80b-3b479b496813' RETURNING *;";
+        ret = await jeepSqlite.run({database: 'test-returning', statement: inStmt,
+                              transaction: false, readonly: false, returnMode: 'all'});
+        console.log(`ret delete 1: ${JSON.stringify(ret)}`);
+
+        const setSQL = [
+          { statement:`INSERT INTO messages (guid,name,message) VALUES
+          ('13127267-k857-4132-a80b-3b479b496813','returning7','This is a string including returning that we want to save'),
+          ('25127267-j612-4132-a80b-3b479b496953', 'test8', 'Hello from world') RETURNING *;`,
+          values:[
+            ]
+          },
+          { statement:`INSERT INTO messages (guid,name,message) VALUES
+           ('35127267-j612-4132-a80b-3b479b496953','test9', 'Hello from Jeepq'),
+           ('45127267-j612-4132-a80b-3b479b496953', 'test10', 'This is a string including returning that we want to save')
+           RETURNING name;`,
+            values:[
+            ]
+          },
+          { statement:"INSERT INTO messages (guid,name,message) VALUES (?,?,?) RETURNING *;",
+            values:[
+              ['35127267-c612-4132-a80b-3b479b496954','test11', 'Hello from World'],
+              ['55127267-d612-4132-a80b-3b479b496955', 'test12', 'This is a string including returning that we want to save']
+            ]
+          },
+          { statement:"INSERT INTO messages (guid,name,message) VALUES (?,?,?);",
+            values:[
+              ['35127267-c612-4132-a80b-3b479b496956','test13', 'Hello from World'],
+              ['55127267-d612-4132-a80b-3b479b496957', 'test14', 'This is a string including returning that we want to save']
+            ]
+          },
+          { statement:"UPDATE messages SET message = 'involve returning' WHERE guid = '35127267-c612-4132-a80b-3b479b496954' RETURNING *;",
+            values:[
+            ]
+          },
+          { statement:"DELETE FROM messages WHERE guid IN ('35127267-j612-4132-a80b-3b479b496953','45127267-j612-4132-a80b-3b479b496953') RETURNING *;",
+            values:[
+            ]
+          }
+        ];
+        ret = await jeepSqlite.executeSet({database: 'test-returning', set: setSQL , transaction: false,
+                                               readonly: false, returnMode: 'all'});
+        console.log(`ret executeSet: ${JSON.stringify(ret)}`);
+
+        await showUsers('before closing the database');
+        await totalUsers('before closing the database');
+
+        await totalMessages('before closing the database');
+        await showMessages('before closing the database');
+
+        // Close Connection ReadWrite for "test-returning"
+        if ((await jeepSqlite.isConnection({database: 'test-returning', readonly: false})).result) {
+          await jeepSqlite.closeConnection({database: 'test-returning', readonly: false});
+          let msg = `> closeConnection readwrite "test-returning" successful\n`;
+          console.log(msg);
+        }
+        console.log(`******** close connection successful ********\n`)
+
 
         await endTest(activeTest,'');
       } catch (err) {
