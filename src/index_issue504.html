@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Issue#504</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <body>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
+      console.log(`Import: ${event.detail.progress}`)
+    });
+    jeepSqlite.addEventListener('jeepSqliteExportProgress', event => {
+      console.log(`Export: ${event.detail.progress}`)
+    });
+    let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
+    if(await jeepSqlite.isStoreOpen()) {
+        try {
+          // *** test Import from Json
+          const dataToImport504 = {
+            database : "db-from-json504",
+            version : 1,
+            encrypted : false,
+            mode : "full",
+            tables :[
+                {
+                    name: "table1",
+                    schema: [
+                        {column:"one_id", value: "INTEGER NOT NULL"},
+                        {column:"two_id", value: "INTEGER NOT NULL"},
+                        {column:"three_status", value: "INTEGER NOT NULL"},
+                        {column:"four_id", value: "INTEGER NOT NULL"},
+                        {column:"date", value: "TIMESTAMP DEFAULT CURRENT_TIMESTAMP"},
+                        {column:"five", value:"INTEGER DEFAULT 0"},
+                        {column:"six", value:"INTEGER NOT NULL DEFAULT 0"},
+                        {constraint:"PK_id_one_id_two_id_three_status_four_id", value:"PRIMARY KEY (one_id, two_id, three_status, four_id)"}
+                    ],
+                },
+              ]
+          };
+          // test Json object validity
+          let result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImportFull504)});
+          if(!result.result) {
+            throw new Error("IsJsonValid dataToImportFull71 failed");
+          }
+          // full import
+          result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImportFull504)});
+          if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImportFull504 failed");
+          // *** test Export to JSON
+          // create the connection to the database
+          await jeepSqlite.createConnection({database:"db-from-json504", version: 1});
+          // open db db-from-json71
+          await jeepSqlite.open({database: "db-from-json504"});
+          // test full export
+          let jsonObj = await jeepSqlite.exportToJson({database: "db-from-json504",jsonexportmode: 'full'});
+          // test Json object validity
+          result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+          if(!result.result) {
+            throw new Error("IsJsonValid 'full' export 1 failed");
+          }
+          let sqlcmd = "INSERT INTO table1 (one_id,two_id,three_status,four_id,six) VALUES (?,?,?,?,?)";
+          let values = [1,2,100,4,6];
+          result = await jeepSqlite.run({database: "db-from-json504",
+                                        statement: sqlcmd,
+                                        values: values});
+          if(result.changes.lastId !== 1) {
+            throw new Error("Run 1 table1 failed");
+          }
+          // Select all table1
+          ret = await jeepSqlite.query({database: "db-from-json504",
+                                        statement: "SELECT * FROM table1;"});
+          if(ret.values.length != 1) {
+            throw new Error("Query 1 table1 failed");
+          }
+
+          await jeepSqlite.closeConnection({database:"db-from-json504"});
+
+
+          console.log("db success");
+        } catch (err) {
+          console.log(`Error ${err}`);
+        }
+    } else {
+      console.log("store creation failed")
+    }
+  })();
+</script>

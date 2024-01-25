@@ -584,7 +584,10 @@ export class Database {
           await UtilsExportJSON
                   .setLastExportDate(this.mDb, (new Date()).toISOString());
         } else {
-          return Promise.reject(new Error(`No sync_table available`));
+          if(inJson.mode !== 'full') {
+            const msg = `No sync_table available for partial mode`;
+            return Promise.reject(new Error(msg));
+          }
         }
         const retJson: JsonSQLite = await UtilsExportJSON
                       .createExportObject(this.mDb, inJson, exportProgress);

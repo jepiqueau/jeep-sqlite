@@ -1,6 +1,6 @@
 {
   "name": "jeep-sqlite",
-  "version": "2.5.7",
+  "version": "2.5.8",
   "description": "Browser SQLite Stencil Component",
   "main": "dist/index.cjs.js",
   "module": "dist/index.js",
@@ -15,23 +15,25 @@
     "loader/"
   ],
   "scripts": {
-    "build": "stencil build --docs",
-    "start": "stencil build --dev --watch --serve",
+    "copy:sql:wasm": "copyfiles -u 3 node_modules/sql.js/dist/sql-wasm.wasm www/assets",
+    "build": "npm run copy:sql:wasm && stencil build --docs",
+    "start": "npm run copy:sql:wasm && stencil build --dev --watch --serve",
     "test": "stencil test --spec --e2e",
     "test.watch": "stencil test --spec --e2e --watchAll",
     "generate": "stencil generate"
   },
   "dependencies": {
-    "@stencil/core": "^4.9.0",
+    "@stencil/core": "^4.11.0",
     "browser-fs-access": "^0.33.0",
     "jszip": "^3.10.1",
     "localforage": "^1.10.0",
-    "sql.js": "1.8.0"
+    "sql.js": "^1.10.2"
   },
   "devDependencies": {
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.11",
     "@types/sql.js": "^1.4.9",
+    "copyfiles": "^2.4.1",
     "jest": "^27.5.1",
     "jest-cli": "^27.5.1",
     "puppeteer": "^21.0.3",
