@@ -1047,7 +1047,7 @@ export class JeepSqlite {
       const uint: Uint8Array = await mDb.exportDB();
       this._blob = await this.uint2blob(uint);
       const dbName: string = `${database}SQLite.db`;
-      this._opts = {fileName: dbName, extensions:['.db']};
+      this._opts = {fileName: dbName, extensions:['.db'], startIn: 'documents',};
       this._buttonSaveEl = document.createElement('button');
       this._buttonSaveEl.setAttribute("id","saveButton");
       this._buttonSaveEl.innerHTML = `${this.innerSaveText} ${dbName}`;
