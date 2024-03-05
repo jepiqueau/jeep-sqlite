@@ -8,12 +8,117 @@
     <script type="module" src="/build/jeep-sqlite.esm.js"></script>
     <script nomodule src="/build/jeep-sqlite.js"></script>
   </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+  </style>
   <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
+          <a href="index_issue498.html">DB Test Issue498</a>
+          <a href="index_issue504.html">DB Test Issue504</a>
+          <a href="index_issue37.html">DB Test Issue37</a>
+        </div>
+      </div>
+    </div>
+    <h1>Issue#504 Tests Page</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
     <jeep-sqlite autoSave="true"></jeep-sqlite>
   </body>
 </html>
 <script>
   (async () => {
+    const messageEl = document.querySelector('.message');
     await customElements.whenDefined('jeep-sqlite');
     const jeepSqlite = document.querySelector('jeep-sqlite');
     jeepSqlite.addEventListener('jeepSqliteImportProgress', (event) => {
@@ -23,10 +128,42 @@
       console.log(`Export: ${event.detail.progress}`)
     });
     let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
+    const openConnection = async (dbName, encrypted, mode, version, readonly,
+                                    isDelete) => {
+        try {
+          const openMode = readonly ? "RO" : "RW";
+          const retCC  = (await jeepSqlite.checkConnectionsConsistency({dbNames:[dbName],openModes:[openMode]})).result;
+          const isConn = (await jeepSqlite.isConnection({database: dbName, readonly: readonly})).result;
+          if(!retCC || !isConn) {
+              await jeepSqlite.createConnection({database: dbName, encrypted: encrypted, mode: mode,
+                                                 version: version, readonly: readonly});
+          }
+          if (isDelete && !readonly) {
+                await deleteDatabase(dbName);
+          }
+          await jeepSqlite.open({database: dbName, readonly: readonly});
+          return Promise.resolve();
+        } catch (err) {
+            return Promise.reject(err);
+        }
+    }
+    const deleteDatabase = async (dbName) => {
+        try {
+            const ret = (await jeepSqlite.isDBExists({database: dbName})).result;
+            if(ret) {
+                await jeepSqlite.deleteDatabase({database: dbName});
+                return Promise.resolve();
+            } else {
+                return Promise.resolve();
+            }
+        } catch(err) {
+            return Promise.reject(err);
+        }
+    }
     if(await jeepSqlite.isStoreOpen()) {
         try {
           // *** test Import from Json
-          const dataToImport504 = {
+          const dataToImportFull504 = {
             database : "db-from-json504",
             version : 1,
             encrypted : false,
@@ -47,25 +184,41 @@
                 },
               ]
           };
+          const databaseExists = (await jeepSqlite.isDatabase({database:'db-from-json504'})).result;
+          if(databaseExists) {
+            // Open connection
+            await openConnection('db-from-json504', false,
+                                'no-encryption', 1, false, true);
+            await jeepSqlite.closeConnection({database:'db-from-json504'});
+          }
+
           // test Json object validity
           let result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(dataToImportFull504)});
           if(!result.result) {
-            throw new Error("IsJsonValid dataToImportFull71 failed");
+            throw new Error("IsJsonValid dataToImportFull504 failed");
           }
           // full import
           result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(dataToImportFull504)});
           if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImportFull504 failed");
+          // Open connection
+          await openConnection('db-from-json504', false,
+                                'no-encryption', 1, false, false);
+
+          const isDB = (await jeepSqlite.isDBOpen({database: 'db-from-json504'})).result;
+          if(!isDB) {
+            const msg = "db-from-json504 not opened";
+            messageEl.innerHTML = msg;
+            throw new Error(msg);
+          }
           // *** test Export to JSON
-          // create the connection to the database
-          await jeepSqlite.createConnection({database:"db-from-json504", version: 1});
-          // open db db-from-json71
-          await jeepSqlite.open({database: "db-from-json504"});
           // test full export
           let jsonObj = await jeepSqlite.exportToJson({database: "db-from-json504",jsonexportmode: 'full'});
           // test Json object validity
           result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
           if(!result.result) {
-            throw new Error("IsJsonValid 'full' export 1 failed");
+            const msg = "IsJsonValid 'full' export 1 failed";
+            messageEl.innerHTML = msg;
+            throw new Error(msg);
           }
           let sqlcmd = "INSERT INTO table1 (one_id,two_id,three_status,four_id,six) VALUES (?,?,?,?,?)";
           let values = [1,2,100,4,6];
@@ -73,23 +226,33 @@
                                         statement: sqlcmd,
                                         values: values});
           if(result.changes.lastId !== 1) {
-            throw new Error("Run 1 table1 failed");
+            const msg = "Run 1 table1 failed";
+            messageEl.innerHTML = msg;
+            throw new Error(msg);
           }
           // Select all table1
           ret = await jeepSqlite.query({database: "db-from-json504",
                                         statement: "SELECT * FROM table1;"});
           if(ret.values.length != 1) {
-            throw new Error("Query 1 table1 failed");
+            const msg = "test issue#504 query failed";
+            messageEl.innerHTML = msg;
+            throw new Error(msg);
           }
 
           await jeepSqlite.closeConnection({database:"db-from-json504"});
 
 
           console.log("db success");
+          messageEl.innerHTML = "test issue#504 successfull";
         } catch (err) {
-          console.log(`Error ${err}`);
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          messageEl.innerHTML = msg;
         }
     } else {
+      let msg = "store creation failed";
+      messageEl.innerHTML = msg;
+
       console.log("store creation failed")
     }
   })();

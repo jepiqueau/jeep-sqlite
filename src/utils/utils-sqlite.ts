@@ -9,7 +9,7 @@ export class UtilsSQLite {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
       try {
-        db.exec('BEGIN');
+        db.exec('BEGIN TRANSACTION');
         return Promise.resolve();
       } catch (err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
@@ -24,7 +24,7 @@ export class UtilsSQLite {
       }
       try {
 
-        db.exec('ROLLBACK');
+        db.exec('ROLLBACK TRANSACTION');
         return Promise.resolve();
       } catch(err) {
         return Promise.reject(new Error(`${msg}${err.message}`));
@@ -36,7 +36,7 @@ export class UtilsSQLite {
       if (!isOpen) {
         return Promise.reject(new Error(`${msg}database not opened`));
       }
-      const sql = 'COMMIT';
+      const sql = 'COMMIT TRANSACTION';
       try {
         db.exec(sql);
         return Promise.resolve();

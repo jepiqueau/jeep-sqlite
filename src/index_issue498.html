@@ -92,6 +92,7 @@
         <div class="dropdown-content">
           <a href="index_delete.html">Delete Tests Page</a>
           <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_issue230.html">Issue#230 Tests</a>
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
           <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
           <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
@@ -103,10 +104,13 @@
           <a href="index_returning.html">DB Test RETURNING</a>
           <a href="index_issue445.html">DB Test issue445</a>
           <a href="index_transaction.html">DB Test Transactions</a>
+          <a href="index_issue498.html">DB Test Issue498</a>
+          <a href="index_issue504.html">DB Test Issue504</a>
+          <a href="index_issue37.html">DB Test Issue37</a>
         </div>
       </div>
     </div>
-    <h1>Issue#385 Tests Page</h1>
+    <h1>Issue#498 Tests Page</h1>
     <div class="container">
       <h2 class="message"></h2>
     </div>
@@ -222,7 +226,7 @@
       await openConnection('doublenote-db', false,
                                 'no-encryption', 1, false, false);
 
-      const isDB = await jeepSqlite.isDBOpen({database: 'doublenote-db'});
+      const isDB = (await jeepSqlite.isDBOpen({database: 'doublenote-db'})).result;
       if(!isDB) {
         console.log('### Database "doublenote-db" not opened');
       } else {

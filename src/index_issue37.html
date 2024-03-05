@@ -109,7 +109,7 @@
         </div>
       </div>
     </div>
-    <h1>Issue11 Page 2</h1>
+    <h1>Issue37</h1>
     <div class="container">
       <h2 class="message"></h2>
     </div>
@@ -123,90 +123,39 @@
     const jeepSqlite = document.querySelector('jeep-sqlite');
     let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
     if(await jeepSqlite.isStoreOpen()) {
-      const randomIntFromInterval = (min, max) => {
-        return Math.floor(Math.random() * (max - min + 1) + min)
-      }
-      const initIssue11Connection = async (withConn) => {
+      const initIssue37 = async () => {
         try {
           await jeepSqlite.createConnection({
-                  database:"testIssue11",
+                  database:"testIssue37",
                   version: 1
               });
-          // open db testIssue11
-          await jeepSqlite.open({database: "testIssue11"});
-          const isDB = await jeepSqlite.isDBOpen({database: "testIssue11"})
-          if(!isDB) {
-            throw new Error(`in initIssue11Connection: TestIssue11 not opened`);
-          }
-          ret = (await jeepSqlite.isTableExists({database: "testIssue11", table: "users"})).result;
-          if(!ret) {
-            throw new Error(`in initIssue11Connection: run Issue11 Page 1 first`);
-          }
-          if (withConn) {
-            // close Connection
-            await jeepSqlite.closeConnection({database:"testIssue11"});
-          }
+          await jeepSqlite.saveToLocalDisk({
+                  database:"testIssue37"});
+
         } catch (err) {
           console.log(`Error ${err}`);
-          throw new Error(`in initIssue11Connection: ${err}`);
+          throw new Error(`in initIssue37: ${err}`);
         }
-      }
-      const queryAllUsers = async (nUser, withConn) => {
-        try {
-          if (withConn) {
-            await jeepSqlite.createConnection({
-                  database:"testIssue11",
-                  version: 1
-              });
-            // open db testIssue11
-            await jeepSqlite.open({database: "testIssue11"});
-            const isDB = await jeepSqlite.isDBOpen({database: "testIssue11"})
-            if(!isDB) {
-              throw new Error(`in queryAllUsers: TestIssue11 not opened`);
-            }
-          }
-          const ret = await jeepSqlite.query({database: "testIssue11",
-                                          statement: "SELECT * FROM users;"});
-          if (withConn) {
-            // close Connection
-            await jeepSqlite.closeConnection({database:"testIssue11"});
-
-          }
-         if(ret.values.length !== nUser) {
-            throw new Error(`in queryAllUsers: returned users not equal ${nUser}`);
-          }
-        } catch (err) {
-          console.log(`Error ${err}`);
-          throw new Error(`in queryAllUsers: ${err}`);
-        }
-
       }
       // Main test
       try {
-        const nUser = 1000; // number of users to fill
-        const withConn = false // true open/close connection at each transaction
-                              // open and close only once
         // *** Initialize testIssue11 database
-        await initIssue11Connection(withConn);
-
-        // *** Query the Users
-
-        await queryAllUsers(nUser, withConn)
+        await initIssue37();
 
         // *** Close connection if required
 
-        const isConn = (await jeepSqlite.isConnection({database: "testIssue11"})).result;
+        const isConn = (await jeepSqlite.isConnection({database: "testIssue37"})).result;
         if (isConn) {
-          await jeepSqlite.closeConnection({database:"testIssue11"});
+          await jeepSqlite.closeConnection({database:"testIssue37"});
         }
-        console.log(`Test issue11 Page 2 successful`)
-        messageEl.innerHTML = `Test issue11 Page 2 successful`;
+        console.log(`Test issue37 successful`)
+        messageEl.innerHTML = `Test issue37 successful`;
       } catch (err) {
-        console.log(`Error ${err}`);
+        console.log(`Error: ${err}`);
         messageEl.innerHTML = `Error: ${err}`;
       }
     } else {
-      console.log("store creation failed")
+      console.log("Error: Store creation failed")
       messageEl.innerHTML = `Error: Store creation failed`;
     }
   })();

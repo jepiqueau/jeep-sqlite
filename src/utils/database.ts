@@ -217,7 +217,6 @@ export class Database {
     try {
       await UtilsSQLite.beginTransaction(this.mDb, true);
       this.setIsTransActive(true);
-
       return 0;
     } catch(err) {
       let msg = `BeginTransaction: ${err.message}`;
@@ -399,7 +398,7 @@ export class Database {
         return Promise.reject(new Error('RunSQL: lastId < 0'));
       }
       if(transaction && this.isTransactionActive) {
-        await this.commitTransaction();
+         await this.commitTransaction();
       }
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       retRes.changes = changes;

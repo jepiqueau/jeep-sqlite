@@ -972,13 +972,7 @@ export class JeepSqlite {
     const mDB = this._dbDict[connName];
     try {
       if (mDB.isDBOpen()) {
-        // close the database
-        try {
-          await mDB.close();
-        } catch (err) {
-          return Promise.reject(
-            `CloseConnection: close ${database} failed ${err}`);
-        }
+        await mDB.close();
       }
       // remove the connection from dictionary
       delete this._dbDict[connName];
@@ -1011,6 +1005,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `Close: ${database} database not opened`);
+    }
     try {
       await mDB.close();
       return Promise.resolve();
@@ -1026,6 +1024,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `SaveToStore: ${database} database not opened`);
+    }
     try {
       await mDB.saveToStore();
       return Promise.resolve();
@@ -1033,18 +1035,22 @@ export class JeepSqlite {
       return Promise.reject(`SaveToStore: ${err.message}`);
     }
   }
-  async _saveToLocalDisk(database: string):Promise<void> {
+  private async _saveToLocalDisk(database: string):Promise<void> {
     try {
 
       const keys = Object.keys(this._dbDict);
       const connName = "RW_" + database;
       if (!keys.includes(connName)) {
         return Promise.reject(
-          '_saveToLocalDisk: No available connection for ' + `${database}`,
+          'SaveToLocalDisk: No available connection for ' + `${database}`,
         );
       }
-      const mDb = this._dbDict[connName];
-      const uint: Uint8Array = await mDb.exportDB();
+      const mDB = this._dbDict[connName];
+      if (!mDB.isDBOpen()) {
+        return Promise.reject(
+          `SaveToLocalDisk: ${database} database not opened`);
+      }
+      const uint: Uint8Array = await mDB.exportDB();
       this._blob = await this.uint2blob(uint);
       const dbName: string = `${database}SQLite.db`;
       this._opts = {fileName: dbName, extensions:['.db'], startIn: 'documents',};
@@ -1055,7 +1061,7 @@ export class JeepSqlite {
       this._buttonSaveEl.addEventListener("click", this.saveFile.bind(this));
       return Promise.resolve();
     } catch (err) {
-      return Promise.reject(`_saveToLocalDisk: ${err.message}`);
+      return Promise.reject(`SaveToLocalDisk: ${err.message}`);
     }
   }
   async _getFromLocalDiskToStore(overwrite: boolean): Promise<void> {
@@ -1113,6 +1119,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `GetVersion: ${database} database not opened`);
+    }
     try {
       const version: number = await mDB.getVersion();
       const ret: SQLiteVersion = {} as SQLiteVersion;
@@ -1129,6 +1139,10 @@ export class JeepSqlite {
       return Promise.reject(`BeginTransaction: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `BeginTransaction: ${database} database not opened`);
+    }
     let changes: SQLiteChanges = {} as SQLiteChanges;
     const ret: number = await mDB.beginTransaction();
     changes = {changes: {changes: ret}};
@@ -1141,6 +1155,10 @@ export class JeepSqlite {
       return Promise.reject(`CommitTransaction: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `CommitTransaction: ${database} database not opened`);
+    }
     let changes: SQLiteChanges = {} as SQLiteChanges;
     const ret: number = await mDB.commitTransaction();
     changes = {changes: {changes: ret}};
@@ -1153,6 +1171,10 @@ export class JeepSqlite {
       return Promise.reject(`RollbackTransaction: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `RollbackTransaction: ${database} database not opened`);
+    }
     let changes: SQLiteChanges = {} as SQLiteChanges;
     const ret: number = await mDB.rollbackTransaction();
     changes = {changes: {changes: ret}};
@@ -1165,6 +1187,10 @@ export class JeepSqlite {
       return Promise.reject(`IsTransactionActive: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `IsTransactionActive: ${database} database not opened`);
+    }
     let result: SQLiteResult = {} as SQLiteResult;
     const res: boolean = mDB.isTransActive() ;
     result = {result: res};
@@ -1178,6 +1204,10 @@ export class JeepSqlite {
       return Promise.reject(`Execute: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `Execute: ${database} database not opened`);
+    }
     if(readonly) {
       return Promise.reject(`Execute: not allowed in read-only mode`);
     }
@@ -1205,6 +1235,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `ExecuteSet: ${database} database not opened`);
+    }
     if(readonly) {
       return Promise.reject(`ExecuteSet: not allowed in read-only mode`);
     }
@@ -1233,6 +1267,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `Run: ${database} database not opened`);
+    }
     if(readonly) {
       return Promise.reject(`Run: not allowed in read-only mode`);
     }
@@ -1260,6 +1298,10 @@ export class JeepSqlite {
       return Promise.reject(`Query: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `Query: ${database} database not opened`);
+    }
     let ret: any[] = [];
     const command = statement.substring(0,6);
     if(this.innerAutoSave && command === "COMMIT") {
@@ -1280,6 +1322,10 @@ export class JeepSqlite {
       return Promise.reject(`GetTableList: No available connection for ${database}`);
     }
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `GetTableList: ${database} database not opened`);
+    }
     let ret: any[] = [];
     try {
       ret = await mDB.getTableNames();
@@ -1296,6 +1342,11 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+/*    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `IsDBExists: ${database} database not opened`);
+    }
+    */
     try {
       const ret: boolean = await mDB.isDBExists(database + 'SQLite.db');
       const result: SQLiteResult = {result: ret};
@@ -1313,6 +1364,11 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      const result = {result: false};
+      return Promise.resolve(result);
+    }
+
     try {
       const ret: boolean = await mDB.isDBOpen(database + 'SQLite.db');
       const result = {result: ret};
@@ -1348,6 +1404,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `IsTableExists: ${database} database not opened`);
+    }
     try {
       const ret: boolean = await mDB.isTable(table);
       const result = {result: ret};
@@ -1366,6 +1426,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `CreateSyncTable: ${database} database not opened`);
+    }
     if(readonly) {
       return Promise.reject(`CreateSyncTable: not allowed in read-only mode`);
     }
@@ -1387,6 +1451,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `GetSyncDate: ${database} database not opened`);
+    }
     try {
       const ret: number = await mDB.getSyncDate();
       return Promise.resolve({syncDate:ret});
@@ -1406,6 +1474,10 @@ export class JeepSqlite {
     }
 
     const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `SetSyncDate: ${database} database not opened`);
+    }
     if(readonly) {
       return Promise.reject(`SetSyncDate: not allowed in read-only mode`);
     }
@@ -1482,9 +1554,13 @@ export class JeepSqlite {
         'ExportToJson: No available connection for ' + `${database}`,
       );
     }
-    const mDb = this._dbDict[connName];
+    const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `ExportToJson: ${database} database not opened`);
+    }
     try {
-      const ret: any = await mDb.exportJson(exportMode, this.exportProgress);
+      const ret: any = await mDB.exportJson(exportMode, this.exportProgress);
       const keys = Object.keys(ret);
       if (keys.includes('message')) {
         return Promise.reject(`ExportToJson: ${ret.message}`);
@@ -1501,15 +1577,19 @@ export class JeepSqlite {
     const connName = "RW_" + database;
     if (!keys.includes(connName)) {
       return Promise.reject(
-        'ExportToJson: No available connection for ' + `${database}`,
+        'DeleteExportedRows: No available connection for ' + `${database}`,
       );
     }
-    const mDb = this._dbDict[connName];
+    const mDB = this._dbDict[connName];
+    if (!mDB.isDBOpen()) {
+      return Promise.reject(
+        `DeleteExportedRows: ${database} database not opened`);
+    }
     if(readonly) {
-      return Promise.reject(`SetSyncDate: not allowed in read-only mode`);
+      return Promise.reject(`DeleteExportedRows: not allowed in read-only mode`);
     }
     try {
-      await mDb.deleteExportedRows();
+      await mDB.deleteExportedRows();
     } catch (err) {
       return Promise.reject(`DeleteExportedRows: ${err.message}`);
     }
