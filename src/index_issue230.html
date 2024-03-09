@@ -90,6 +90,7 @@
           <i class="fa fa-caret-down"></i>
         </button>
         <div class="dropdown-content">
+          <a href="index_issue230.html">Issue#230 Test</a>
           <a href="index_delete.html">Delete Tests Page</a>
           <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
@@ -113,7 +114,7 @@
     <div class="container">
       <h2 class="message"></h2>
     </div>
-    <jeep-sqlite autoSave></jeep-sqlite>
+    <jeep-sqlite></jeep-sqlite>
 </body>
 </html>
 <script>
@@ -156,17 +157,12 @@
 
         let changes = 0;
         let isActive;
-        try {
-          const ret = await jeepSqlite.beginTransaction({database: dbName});
-          isActive = await jeepSqlite.isTransactionActive({
-            database: dbName
-          });
-          if(!isActive) {
-            return Promise.reject('After Begin Transaction, no transaction active');
-          }
-        } catch (err) {
-          const msg = err.message ? err.message : err;
-          return Promise.reject(msg);
+        const ret = await jeepSqlite.beginTransaction({database: dbName});
+        isActive = await jeepSqlite.isTransactionActive({
+          database: dbName
+        });
+        if(!isActive) {
+          return Promise.reject('After Begin Transaction, no transaction active');
         }
         try {
           for (const task of txn) {
@@ -200,26 +196,19 @@
               changes += ret.changes.changes;
             }
           }
-          isActive = await jeepSqlite.isTransactionActive({
+          await printDatabase(dbName);
+          const retC = await jeepSqlite.commitTransaction({
             database: dbName
           });
-          if(isActive) {
-            const retC = await jeepSqlite.commitTransaction({
-              database: dbName
-            });
-            changes += retC.changes.changes;
-          }
+          changes += retC.changes.changes;
           const retChanges = {changes:{changes:changes}};
           return Promise.resolve(retChanges);
         } catch (err) {
-          isActive = await jeepSqlite.isTransactionActive({
-            database: dbName
-          });
-          if(isActive) {
-            await jeepSqlite.rollbackTransaction({database: dbName,});
-          }
+          await jeepSqlite.rollbackTransaction({database: dbName,});
           const msg = err.message ? err.message : err;
           return Promise.reject(msg);
+        } finally {
+          await printDatabase(dbName);
         }
       }
 
@@ -234,22 +223,35 @@
           });
           // open db testIssue230
           await jeepSqlite.open({database: "testIssue230"});
-          const isDB = await jeepSqlite.isDBOpen({database: "testIssue230"})
-
+          const isDB = (await jeepSqlite.isDBOpen({database: "testIssue230"})).result;
+          console.log(`#### isDB: ${isDB}`)
           if (isDB) {
+            const isTable = (await jeepSqlite.isTableExists({database: "testIssue230",
+                                                          table: 'DemoTable'})).result;
+            console.log(`#### isTable: ${isTable}`)
+            if (isTable) {
+              const ret = await jeepSqlite.execute({
+                database: "testIssue230",
+                statements: "DROP TABLE IF EXISTS DemoTable;",
+                transaction: false,
+                readonly: false,
+              });
+            }
             const txn =  [
-              {statement: `DROP TABLE IF EXISTS DemoTable;`},
               {statement: `CREATE TABLE IF NOT EXISTS DemoTable (
                 name TEXT, score INTEGER);`},
               {statement: "INSERT INTO DemoTable (name, score) VALUES (?,?);",
-                values: ["James",102]},
+                values: ['James',102]},
               {statement: "INSERT INTO DemoTable (name, score) VALUES (?,?);",
-                values: ["Betty",202]}
+                values: ['Betty',202]}
             ];
 
-            const ret = await executeTransaction('testIssue230', txn);
+            ret = await executeTransaction('testIssue230', txn);
             console.log(`changes: ${ret.changes.changes}`);
             await printDatabase('testIssue230');
+            const message = `* Test Issue230 was successful *`
+            console.log(`\n${message}\n`);
+            messageEl.innerHTML = message;
 
           } else {
             const msg = `Database "testIssue230" is not opened`;

@@ -81,6 +81,9 @@
     .container {
       margin-left: 25px;
     }
+    .message {
+      white-space: pre-line;
+    }
   </style>
   <body>
     <div class="navbar">
@@ -90,6 +93,7 @@
           <i class="fa fa-caret-down"></i>
         </button>
         <div class="dropdown-content">
+          <a href="index_issue230.html">Issue#230 Test</a>
           <a href="index_delete.html">Delete Tests Page</a>
           <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
           <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
@@ -152,7 +156,7 @@
         messageEl.innerHTML = `Test issue37 successful`;
       } catch (err) {
         console.log(`Error: ${err}`);
-        messageEl.innerHTML = `Error: ${err}`;
+        messageEl.textContent = `Error: ${err}\nwhich is correct\nTest issue37 successful`;
       }
     } else {
       console.log("Error: Store creation failed")

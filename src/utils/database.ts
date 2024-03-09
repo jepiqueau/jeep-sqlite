@@ -79,8 +79,9 @@ export class Database {
                   if(this.isBackup) {
                     await UtilsStore.restoreDBFromStore(this.dbName, 'backup',this.store);
                   }
-                } catch (err) {
-                  return reject(new Error(`Open: ${err.message}`));
+                } catch (err:any) {
+                  const msg = err.message ? err.message : err;
+                  return reject(new Error(`Open: ${msg}`));
                 }
               }
               // delete the backup database
@@ -95,8 +96,9 @@ export class Database {
                 if(this.isBackup) {
                   await UtilsStore.restoreDBFromStore(this.dbName, 'backup',this.store);
                 }
-              } catch (err) {
-                return reject(new Error(`Open: ${err.message}`));
+              } catch (err: any) {
+                const msg = err.message ? err.message : err;
+                return reject(new Error(`Open: ${msg}`));
               }
             }
 
@@ -104,9 +106,10 @@ export class Database {
           if( this.autoSave ) {
             try {
               await this.saveToStore();
-            } catch (err) {
+            } catch (err: any) {
               this._isDBOpen = false;
-              return reject(`Open: ${err}`);
+              const msg = err.message ? err.message : err;
+              return reject(new Error(`Open: ${msg}`));
             }
           }
           // set Foreign Keys On
@@ -114,9 +117,10 @@ export class Database {
 
           return resolve();
         });
-      } catch (err) {
+      } catch (err: any) {
         this._isDBOpen = false;
-        return reject(`in open ${err}`);
+        const msg = err.message ? err.message : err;
+        return reject(new Error(`Open: ${msg}`));
       }
 
     });
@@ -134,9 +138,10 @@ export class Database {
         this._isDBOpen = false;
 
 
-      } catch (err) {
+      } catch (err: any) {
         this._isDBOpen = false;
-        return Promise.reject(`in close ${err}`);
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`in close ${msg}`));
       }
     }
     return Promise.resolve();
@@ -150,8 +155,9 @@ export class Database {
           // set Foreign Keys On
           await UtilsSQLite.setForeignKeyConstraintsEnabled(this.mDb, true);
         }
-      } catch (err) {
-        return Promise.reject(`in saveToStore ${err}`);
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`in saveToStore ${msg}`));
       }
     }
     return Promise.resolve();
@@ -161,9 +167,9 @@ export class Database {
     try {
       const data: Uint8Array = this.mDb.export();
       return data;
-    } catch (err) {
+    } catch (err: any) {
       const msg = err.message ? err.message : err;
-      return Promise.reject(`exportDB: ${msg}`);
+      return Promise.reject(new Error(`exportDB: ${msg}`));
     }
 
   }
@@ -173,9 +179,10 @@ export class Database {
         // save the database to store
         const curVersion: number = await UtilsSQLite.getVersion(this.mDb)
         return Promise.resolve(curVersion);
-      } catch (err) {
+      } catch (err: any) {
         this._isDBOpen = false;
-        return Promise.reject(`in getVersion ${err}`);
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`in getVersion ${msg}`));
       }
     }
   }
@@ -184,8 +191,9 @@ export class Database {
     try {
       const isExists: boolean = await UtilsStore.isDBInStore(database, this.store);
       return Promise.resolve(isExists);
-    } catch (err) {
-      return Promise.reject(`in isDBExists ${err}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`in isDBExists ${msg}`));
     }
   }
   public async deleteDB(database: string): Promise<void> {
@@ -203,8 +211,9 @@ export class Database {
         await UtilsStore.removeDBFromStore(database, this.store);
       }
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(new Error(`DeleteDB: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`DeleteDB: ${msg}`));
     }
 
   }
@@ -218,8 +227,8 @@ export class Database {
       await UtilsSQLite.beginTransaction(this.mDb, true);
       this.setIsTransActive(true);
       return 0;
-    } catch(err) {
-      let msg = `BeginTransaction: ${err.message}`;
+    } catch(err: any) {
+      let msg = `BeginTransaction: ${err.message ? err.message : err}`;
       return Promise.reject(new Error(`${msg}`));
     }
 
@@ -234,8 +243,8 @@ export class Database {
       await UtilsSQLite.commitTransaction(this.mDb, true);
       this.setIsTransActive(false);
       return 0
-    } catch(err) {
-      let msg = `CommitTransaction: ${err.message}`;
+    } catch(err: any) {
+      let msg = `CommitTransaction: ${err.message ? err.message : err}`;
       return Promise.reject(new Error(`${msg}`));
     }
 
@@ -250,8 +259,8 @@ export class Database {
       await UtilsSQLite.rollbackTransaction(this.mDb, true);
       this.setIsTransActive(false);
       return 0
-    } catch(err) {
-      let msg = `RollbackTransaction: ${err.message}`;
+    } catch(err: any) {
+      let msg = `RollbackTransaction: ${err.message ? err.message : err}`;
       return Promise.reject(new Error(`${msg}`));
     }
 
@@ -274,8 +283,8 @@ export class Database {
       if(transaction && !this.isTransactionActive ) {
         await this.beginTransaction();
       }
-    } catch(err) {
-      let msg = `executeSQL: ${err.message}`;
+    } catch(err: any) {
+      let msg = `executeSQL: ${err.message ? err.message : err}`;
       return Promise.reject(new Error(`${msg}`));
     }
     try {
@@ -288,12 +297,12 @@ export class Database {
       }
       const changes = (await UtilsSQLite.dbChanges(this.mDb)) - initChanges;
       return Promise.resolve(changes);
-    } catch (err) {
-      let msg = `ExecuteSQL: ${err.message}`;
+    } catch (err: any) {
+      let msg = `ExecuteSQL: ${err.message ? err.message : err}`;
       try {
         if(transaction && this.isTransactionActive) await this.rollbackTransaction();
-      } catch (err) {
-        msg += ` : ${err.message}`;
+      } catch (err: any) {
+        msg += ` : ${err.message ? err.message : err}`;
       }
       return Promise.reject(new Error(`ExecuteSQL: ${msg}`));
     } finally {
@@ -301,9 +310,10 @@ export class Database {
       if( this.autoSave ) {
         try {
           await this.saveToStore();
-        } catch (err) {
+        } catch (err: any) {
           this._isDBOpen = false;
-          return Promise.reject(`ExecuteSQL: ${err}`);
+          const msg = err.message ? err.message : err;
+          return Promise.reject(`ExecuteSQL: ${msg}`);
         }
       }
 
@@ -322,8 +332,9 @@ export class Database {
       if(transaction && !this.isTransactionActive) {
         await this.beginTransaction();
       }
-    } catch(err) {
-      let msg = `ExecSet: ${err.message}`;
+    } catch(err: any) {
+      const msge = err.message ? err.message : err;
+      let msg = `ExecSet: ${msge}`;
       return Promise.reject(new Error(`${msg}`));
     }
     try {
@@ -338,12 +349,13 @@ export class Database {
       retRes.lastId = lastId;
       retRes.values = retObj["values"] ? retObj["values"] : []
       return Promise.resolve(retRes);
-    } catch (err) {
-      let msg = `ExecSet: ${err.message}`;
+    } catch (err: any) {
+      const msge = err.message ? err.message : err;
+      let msg = `ExecSet: ${msge}`;
       try {
         if(transaction && this.isTransactionActive) await this.rollbackTransaction();
-      } catch (err) {
-        msg += ` : ${err.message}`;
+      } catch (err: any) {
+        msg += ` : ${err.message ? err.message : err}`;
       }
       return Promise.reject(new Error(`ExecSet: ${msg}`));
     } finally {
@@ -351,9 +363,10 @@ export class Database {
       if( this.autoSave ) {
         try {
           await this.saveToStore();
-        } catch (err) {
+        } catch (err: any) {
+          const msg = err.message ? err.message : err;
           this._isDBOpen = false;
-          return Promise.reject(`ExecSet: ${err}`);
+          return Promise.reject(`ExecSet: ${msg}`);
         }
       }
     }
@@ -367,8 +380,9 @@ export class Database {
     try {
       let retArr: any[] = await UtilsSQLite.queryAll(this.mDb, sql, values);
       return Promise.resolve(retArr);
-    } catch (err) {
-      return Promise.reject(new Error(`SelectSQL: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`SelectSQL: ${msg}`));
     }
   }
   public async runSQL(statement: string, values: any[], transaction: boolean = true,
@@ -387,8 +401,9 @@ export class Database {
       if(transaction && !this.isTransactionActive) {
         await this.beginTransaction();
       }
-     } catch(err) {
-      let msg = `RunSQL: ${err.message}`;
+     } catch(err: any) {
+      const msge = err.message ? err.message : err;
+      let msg = `RunSQL: ${msge}`;
       return Promise.reject(new Error(`${msg}`));
     }
     try {
@@ -406,14 +421,15 @@ export class Database {
       retRes.values = retObj["values"] ? retObj["values"] : []
 
       return Promise.resolve(retRes);
-    } catch (err) {
-      let msg = `RunSQL: ${err.message}`;
+    } catch (err: any) {
+      const msge = err.message ? err.message : err;
+      let msg = `RunSQL: ${msge}`;
       try {
         if(transaction && this.isTransactionActive) {
           await this.rollbackTransaction();
         }
-      } catch (err) {
-        msg += ` : ${err.message}`;
+      } catch (err: any) {
+        msg += ` : ${err.message ? err.message : err}`;
       }
       return Promise.reject(new Error(`${msg}`));
     } finally {
@@ -421,9 +437,10 @@ export class Database {
       if( this.autoSave ) {
         try {
           await this.saveToStore();
-        } catch (err) {
+        } catch (err: any) {
           this._isDBOpen = false;
-          return Promise.reject(`ExecSet: ${err}`);
+          const msg = err.message ? err.message : err;
+          return Promise.reject(`ExecSet: ${msg}`);
         }
       }
     }
@@ -437,8 +454,9 @@ export class Database {
     try {
       let retArr: any[] = await UtilsSQLite.getTableList(this.mDb);
       return Promise.resolve(retArr);
-    } catch (err) {
-      return Promise.reject(new Error(`GetTableNames: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`GetTableNames: ${msg}`));
     }
 
   }
@@ -451,8 +469,8 @@ export class Database {
     try {
       const retB = await UtilsSQLite.isTableExists(this.mDb, tableName);
       return Promise.resolve(retB);
-    } catch (err) {
-      const msg = `IsTable: ${err.message}`;
+    } catch (err: any) {
+      const msg = `IsTable: ${err.message ? err.message : err}`;
       return Promise.reject(new Error(msg));
     }
   }
@@ -485,8 +503,9 @@ export class Database {
       } else {
         return Promise.resolve(0);
       }
-    } catch (err) {
-      const msg = `CreateSyncTable: ${err.message}`;
+    } catch (err: any) {
+      const msge = err.message ? err.message : err;
+      const msg = `CreateSyncTable: ${msge}`;
       return Promise.reject(new Error(msg));
     }
   }
@@ -503,8 +522,9 @@ export class Database {
       }
       const res = await UtilsExportJSON.getSynchroDate(this.mDb);
       return Promise.resolve(res);
-    } catch (err) {
-      const msg = `getSyncDate: ${err.message}`;
+    } catch (err: any) {
+      const msge = err.message ? err.message : err;
+      const msg = `getSyncDate: ${msge}`;
       return Promise.reject(new Error(msg));
     }
   }
@@ -528,8 +548,9 @@ export class Database {
       } else {
         return { result: true };
       }
-    } catch (err) {
-      return { result: false, message: `setSyncDate failed: ${err.message}` };
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return { result: false, message: `setSyncDate failed: ${msg}` };
     }
   }
   async importJson(jsonData: JsonSQLite, importProgress: EventEmitter<JsonProgressListener>): Promise<any> {
@@ -563,8 +584,9 @@ export class Database {
         await this.saveToStore();
 
         return Promise.resolve(changes);
-      } catch (err) {
-        return Promise.reject(new Error(`ImportJson: ${err.message}`));
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`ImportJson: ${msg}`));
       }
     } else {
       return Promise.reject(new Error(`ImportJson: database is closed`));
@@ -602,8 +624,9 @@ export class Database {
         } else {
           return Promise.reject(new Error(`ExportJson: retJson not valid`));
         }
-      } catch (err) {
-        return Promise.reject(new Error(`ExportJson: ${err.message}`));
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`ExportJson: ${msg}`));
       }
     } else {
       return Promise.reject(new Error(`ExportJson: database is closed`));
@@ -614,8 +637,9 @@ export class Database {
       try {
         await UtilsExportJSON.delExportedRows(this.mDb);
         return Promise.resolve();
-      } catch (err) {
-        return Promise.reject(new Error(`deleteExportedRows: ${err.message}`));
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`deleteExportedRows: ${msg}`));
       }
     } else {
       return Promise.reject(new Error(`deleteExportedRows: database is closed`));

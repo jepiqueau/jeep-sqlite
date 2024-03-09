@@ -949,8 +949,9 @@ export class JeepSqlite {
       const connName = readonly ? "RO_" + database : "RW_" + database;
       this._dbDict[connName] = mDB;
       return Promise.resolve();
-    } catch(err) {
-      return Promise.reject(err.message);
+    } catch(err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(msg);
     }
   }
   private async _isConnection(database: string, readonly: boolean): Promise<SQLiteResult> {
@@ -977,8 +978,9 @@ export class JeepSqlite {
       // remove the connection from dictionary
       delete this._dbDict[connName];
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`CloseConnection: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`CloseConnection: ${msg}`);
     }
   }
 
@@ -993,8 +995,9 @@ export class JeepSqlite {
     try {
       await mDB.open();
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`Open: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`Open: ${msg}`);
     }
   }
   private async _close(database: string, readonly: boolean): Promise<void> {
@@ -1012,8 +1015,9 @@ export class JeepSqlite {
     try {
       await mDB.close();
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`Close: ${err.message}`);
+    } catch (err:any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`Close: ${msg}`);
     }
   }
   private async _saveToStore(database: string, readonly: boolean): Promise<void> {
@@ -1031,8 +1035,9 @@ export class JeepSqlite {
     try {
       await mDB.saveToStore();
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`SaveToStore: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`SaveToStore: ${msg}`);
     }
   }
   private async _saveToLocalDisk(database: string):Promise<void> {
@@ -1060,8 +1065,9 @@ export class JeepSqlite {
       this._element.appendChild(this._buttonSaveEl);
       this._buttonSaveEl.addEventListener("click", this.saveFile.bind(this));
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`SaveToLocalDisk: ${err.message}`);
+    } catch (err:any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`SaveToLocalDisk: ${msg}`);
     }
   }
   async _getFromLocalDiskToStore(overwrite: boolean): Promise<void> {
@@ -1094,7 +1100,7 @@ export class JeepSqlite {
       }
       this._element.removeChild(this._buttonPickEl);
       this.PickDatabaseEnded.emit({db_name: databaseName});
-    } catch (err) {
+    } catch (err: any) {
       const msg = err.message ? err.message : err;
       this.PickDatabaseEnded.emit({message:msg});
     }
@@ -1106,7 +1112,7 @@ export class JeepSqlite {
       const databaseName = this._opts.fileName;
       this._element.removeChild(this._buttonSaveEl);
       this.SaveDatabaseEnded.emit({db_name: databaseName});
-    } catch (err) {
+    } catch (err: any) {
       const msg = err.message ? err.message : err;
       this.SaveDatabaseEnded.emit({message:msg});
     }
@@ -1128,8 +1134,9 @@ export class JeepSqlite {
       const ret: SQLiteVersion = {} as SQLiteVersion;
       ret.version = version;
       return Promise.resolve(ret);
-    } catch (err) {
-      return Promise.reject(`Open: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`Open: ${msg}`);
     }
   }
   private async _beginTransaction(database:string):Promise<SQLiteChanges> {
@@ -1222,8 +1229,9 @@ export class JeepSqlite {
       const ret: number = await mDB.executeSQL(statements, transaction);
       changes = {changes: {changes: ret}};
       return Promise.resolve(changes);
-    } catch (err) {
-      return Promise.reject(`Execute: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`Execute: ${msg}`);
     }
   }
   private async _executeSet(database:string, setOfStatements: SQLiteSet[], transaction: boolean,
@@ -1254,8 +1262,9 @@ export class JeepSqlite {
       const changes: SQLiteChanges = {changes: {changes: ret.changes, lastId: ret.lastId,
                                       values: ret.values}};
       return Promise.resolve(changes);
-    } catch (err) {
-      return Promise.reject(`ExecuteSet: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`ExecuteSet: ${msg}`);
     }
   }
   private async _run(database: string, statement: string, values: any[], transaction: boolean,
@@ -1286,8 +1295,9 @@ export class JeepSqlite {
       changes = {changes: {changes: ret.changes, lastId: ret.lastId, values: ret.values}};
 
       return Promise.resolve(changes);
-    } catch (err) {
-      return Promise.reject(`Run: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`Run: ${msg}`);
     }
   }
   private async _query(database: string, statement: string, values: any[],
@@ -1311,8 +1321,9 @@ export class JeepSqlite {
     try {
       ret = await mDB.selectSQL(statement, values);
       return Promise.resolve({ values: ret });
-    } catch (err) {
-      return Promise.reject(`Query failed: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`Query failed: ${msg}`);
     }
   }
   private async _getTableList(database: string, readonly: boolean): Promise<SQLiteValues> {
@@ -1330,8 +1341,9 @@ export class JeepSqlite {
     try {
       ret = await mDB.getTableNames();
       return Promise.resolve({ values: ret });
-    } catch (err) {
-      return Promise.reject(`GetTableList failed: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`GetTableList failed: ${msg}`);
     }
   }
   private async _isDBExists(database:string, readonly: boolean): Promise<SQLiteResult> {
@@ -1351,8 +1363,9 @@ export class JeepSqlite {
       const ret: boolean = await mDB.isDBExists(database + 'SQLite.db');
       const result: SQLiteResult = {result: ret};
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(`IsDBExists: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`IsDBExists: ${msg}`);
     }
 
   }
@@ -1373,8 +1386,9 @@ export class JeepSqlite {
       const ret: boolean = await mDB.isDBOpen(database + 'SQLite.db');
       const result = {result: ret};
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(`IsDBOpen: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`IsDBOpen: ${msg}`);
     }
   }
   private async _deleteDatabase(database: string, readonly: boolean): Promise<void> {
@@ -1391,8 +1405,9 @@ export class JeepSqlite {
     try {
       await mDB.deleteDB(database + 'SQLite.db');
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`DeleteDatabase: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`DeleteDatabase: ${msg}`);
     }
   }
   private async _isTableExists(database: string, table: string,
@@ -1412,8 +1427,9 @@ export class JeepSqlite {
       const ret: boolean = await mDB.isTable(table);
       const result = {result: ret};
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(`IsTableExists: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`IsTableExists: ${msg}`);
     }
   }
   private async _createSyncTable(database: string, readonly: boolean): Promise<SQLiteChanges> {
@@ -1437,8 +1453,9 @@ export class JeepSqlite {
     try {
       const ret: number = await mDB.createSyncTable();
       return Promise.resolve({ changes: { changes: ret } });
-    } catch (err) {
-      return Promise.reject(`CreateSyncTable: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`CreateSyncTable: ${msg}`);
     }
   }
   private async _getSyncDate(database: string, readonly: boolean): Promise<SQLiteSyncDate>  {
@@ -1458,8 +1475,9 @@ export class JeepSqlite {
     try {
       const ret: number = await mDB.getSyncDate();
       return Promise.resolve({syncDate:ret});
-    } catch (err) {
-      return Promise.reject(`GetSyncDate: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`GetSyncDate: ${msg}`);
     }
 
   }
@@ -1488,8 +1506,9 @@ export class JeepSqlite {
       } else {
         return Promise.reject(`SetSyncDate: ${ret.message}`);
       }
-    } catch (err) {
-      return Promise.reject(`SetSyncDate: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`SetSyncDate: ${msg}`);
     }
 
   }
@@ -1541,8 +1560,9 @@ export class JeepSqlite {
       // Close the database
       await mDb.close();
       return Promise.resolve({ changes: { changes: changes } });
-    } catch (err) {
-      return Promise.reject(`ImportFromJson: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`ImportFromJson: ${msg}`);
     }
   }
   async _exportToJson(database: string, exportMode: string,
@@ -1567,8 +1587,9 @@ export class JeepSqlite {
       } else {
         return Promise.resolve({ export: ret });
       }
-    } catch (err) {
-      return Promise.reject(`ExportToJson: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`ExportToJson: ${msg}`);
     }
 
   }
@@ -1590,8 +1611,9 @@ export class JeepSqlite {
     }
     try {
       await mDB.deleteExportedRows();
-    } catch (err) {
-      return Promise.reject(`DeleteExportedRows: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`DeleteExportedRows: ${msg}`);
     }
   }
 
@@ -1611,8 +1633,9 @@ export class JeepSqlite {
             }
           }
           return Promise.resolve();
-        } catch (err) {
-          return Promise.reject(`CopyFromAssets: ${err.message}`);
+        } catch (err: any) {
+          const msg = err.message ? err.message : err;
+          return Promise.reject(`CopyFromAssets: ${msg}`);
         }
       } else {
         return Promise.reject(`CopyFromAssets: no key databaseList in databases.json`);
@@ -1634,8 +1657,9 @@ export class JeepSqlite {
       }
       this.HTTPRequestEnded.emit({message:message});
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(`GetFromHTTPRequest: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`GetFromHTTPRequest: ${msg}`);
     }
 
   }
@@ -1645,8 +1669,9 @@ export class JeepSqlite {
                                                         this.store);
       const result: SQLiteResult = {result: ret};
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(`IsDatabase: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`IsDatabase: ${msg}`);
     }
 
   }
@@ -1655,8 +1680,9 @@ export class JeepSqlite {
       const ret: string[] = await UtilsStore.getDBListFromStore(this.store);
       const result: SQLiteValues = {values: ret};
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(`GetDatabaseList: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`GetDatabaseList: ${msg}`);
     }
   }
   async _checkConnectionsConsistency(dbNames: string[], openModes: string[]): Promise<SQLiteResult> {
@@ -1705,8 +1731,9 @@ export class JeepSqlite {
         await this._resetDbDict(Object.keys(this._dbDict));
         return Promise.resolve(ret);
       }
-    } catch (err) {
-      return Promise.reject(`CheckConnectionsConsistency: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`CheckConnectionsConsistency: ${msg}`);
     }
   }
   private async _resetDbDict(keys: string[]): Promise<void> {
@@ -1721,8 +1748,9 @@ export class JeepSqlite {
         opt.readonly = readonly;
         await this._closeConnection(opt.database, opt.readonly);
       }
-    } catch (err) {
-      return Promise.reject(`ResetDbDict: ${err.message}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(`ResetDbDict: ${msg}`);
     }
 
   }
@@ -1762,8 +1790,9 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
             await this.retrieveDBFromZip(zip.files,filename,overwrite);
           }
           resolve();
-        } catch (err) {
-          reject(new Error(`unzipDatabase Error: ${err.message}`));
+        } catch (err: any) {
+          const msg = err.message ? err.message : err;
+          reject(new Error(`unzipDatabase Error: ${msg}`));
         }
       });
     };
@@ -1789,8 +1818,9 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
             }
           }
           resolve();
-        } catch (err) {
-          reject(new Error(`retrieveDBFromZip:: ${err.message}`));
+        } catch (err: any) {
+          const msg = err.message ? err.message : err;
+          reject(new Error(`retrieveDBFromZip:: ${msg}`));
         }
       });
     });

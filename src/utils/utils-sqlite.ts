@@ -11,8 +11,9 @@ export class UtilsSQLite {
       try {
         db.exec('BEGIN TRANSACTION');
         return Promise.resolve();
-      } catch (err) {
-        return Promise.reject(new Error(`${msg}${err.message}`));
+      } catch (err: any) {
+        const msge = err.message ? err.message : err;
+        return Promise.reject(new Error(`${msg}${msge}`));
       }
 
   }
@@ -26,8 +27,9 @@ export class UtilsSQLite {
 
         db.exec('ROLLBACK TRANSACTION');
         return Promise.resolve();
-      } catch(err) {
-        return Promise.reject(new Error(`${msg}${err.message}`));
+      } catch(err: any) {
+        const msge = err.message ? err.message : err;
+        return Promise.reject(new Error(`${msg}${msge}`));
       }
 
   }
@@ -40,8 +42,9 @@ export class UtilsSQLite {
       try {
         db.exec(sql);
         return Promise.resolve();
-      } catch(err) {
-        return Promise.reject(new Error(`${msg}${err.message}`));
+      } catch(err: any) {
+        const msge = err.message ? err.message : err;
+        return Promise.reject(new Error(`${msg}${msge}`));
       }
 
   }
@@ -53,8 +56,9 @@ export class UtilsSQLite {
         // process the row here
         changes = res[0].values[0][0];
         return Promise.resolve(changes);
-      } catch (err) {
-        return Promise.reject(new Error(`DbChanges failed: ${err.message}`));
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`DbChanges failed: ${msg}`));
       }
   }
   static async getLastId(db: any): Promise<number> {
@@ -65,8 +69,9 @@ export class UtilsSQLite {
         // process the row here
         lastId = res[0].values[0][0];
         return Promise.resolve(lastId);
-      } catch (err) {
-        return Promise.reject(new Error(`GetLastId failed: ${err.message}`));
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`GetLastId failed: ${msg}`));
       }
 
   }
@@ -78,7 +83,7 @@ export class UtilsSQLite {
     try {
       db.run(stmt);
       return Promise.resolve();
-    } catch (err) {
+    } catch (err: any) {
       const msg = err.message ? err.message : err;
       return Promise.reject(new Error(`SetForeignKey: ${msg}`));
     }
@@ -89,16 +94,18 @@ export class UtilsSQLite {
       const res = db.exec('PRAGMA user_version;');
       version = res[0].values[0][0];
       return Promise.resolve(version);
-    } catch (err) {
-      return Promise.reject(new Error(`GetVersion: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`GetVersion: ${msg}`));
     }
   }
   static async  setVersion(db: any, version: number): Promise<void> {
     try {
       db.exec(`PRAGMA user_version = ${version}`);
       return Promise.resolve();
-    } catch (err) {
-      return Promise.reject(new Error(`SetVersion: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`SetVersion: ${msg}`));
     }
   }
 
@@ -126,8 +133,9 @@ export class UtilsSQLite {
       db.exec(sqlStmt);
       const changes = await UtilsSQLite.dbChanges(db);
       return Promise.resolve(changes);
-    } catch (err) {
-      return Promise.reject(new Error(`Execute: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`Execute: ${msg}`));
     }
   }
   static async executeSet(db: any, set: any, fromJson: boolean,
@@ -163,8 +171,9 @@ export class UtilsSQLite {
             retValues.push(retObj["values"]);
           }
         }
-      } catch (err) {
-        return Promise.reject(new Error(`ExecuteSet: ${err.message}`));
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`ExecuteSet: ${msg}`));
       }
     }
     retObj["lastId"] = lastId;
@@ -190,8 +199,9 @@ export class UtilsSQLite {
       });
 
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(new Error(`queryAll: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`queryAll: ${msg}`));
     }
   }
   static async run(db: any, statement: string, values: any[], fromJson: boolean,
@@ -223,8 +233,9 @@ export class UtilsSQLite {
       if(retValues != null && retValues.length > 0) retObj["values"] = retValues;
       return Promise.resolve(retObj);
 
-    } catch (err) {
-      return Promise.reject(new Error(`run: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`run: ${msg}`));
     }
   }
   static getReturnedValues(result : any, returnMode: string) : any[] {
@@ -285,7 +296,7 @@ export class UtilsSQLite {
           sqlStmt = '';
         }
         return Promise.resolve(sqlStmt);
-    } catch (err) {
+    } catch (err: any) {
       let msg = err.message ? err.message : err;
       return Promise.reject(new Error(`deleteSQL: ${msg}`));
     }
@@ -295,8 +306,9 @@ export class UtilsSQLite {
     try {
       const result = await UtilsDrop.getTablesNames(db)
       return Promise.resolve(result);
-    } catch (err) {
-      return Promise.reject(new Error(`getTableList: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`getTableList: ${msg}`));
     }
   }
   static async isTableExists(db: any, tableName: string): Promise<boolean> {
@@ -306,8 +318,9 @@ export class UtilsSQLite {
       const res = await UtilsSQLite.queryAll(db,statement,[]);
       const ret: boolean = res.length > 0 ? true : false;
       return Promise.resolve(ret);
-    } catch (err) {
-      return Promise.reject(new Error(`isTableExists: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`isTableExists: ${msg}`));
     }
   }
   /**
@@ -329,8 +342,9 @@ export class UtilsSQLite {
             return Promise.resolve(true);
           }
         }
-      } catch (err) {
-        return Promise.reject(`isLastModified: ${err}`);
+      } catch (err: any) {
+        const msg = err.message ? err.message : err;
+        return Promise.reject(new Error(`isLastModified: ${msg}`));
       }
   }
   /**
@@ -352,8 +366,9 @@ export class UtilsSQLite {
           return Promise.resolve(true);
         }
       }
-    } catch (err) {
-      return Promise.reject(`isSqlDeleted: ${err}`);
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`isSqlDeleted: ${msg}`));
     }
   }
   static async  replaceUndefinedByNull(values: any[]): Promise<any[]> {
@@ -375,14 +390,16 @@ export class UtilsSQLite {
           const colNames: string[] = await UtilsSQLite.backupTable(db, table);
           alterTables[`${table}`] = colNames;
         } catch (err) {
+          const msge = err.message ? err.message : err;
           return Promise.reject(
-            new Error(`${msg}table ${table}: ` + `${err.message}`),
+            new Error(`${msg}table ${table}: ` + `${msge}`),
           );
         }
       }
       return Promise.resolve(alterTables);
-    } catch (err) {
-      return Promise.reject(new Error(`BackupTables: ${err.message}`));
+    } catch (err: any) {
+      const msge = err.message ? err.message : err;
+      return Promise.reject(new Error(`BackupTables: ${msge}`));
     }
   }
   static async  backupTable(db: any, table: string): Promise<string[]> {
@@ -403,20 +420,22 @@ export class UtilsSQLite {
         let msg = 'BackupTable: lastId < 0';
         try {
           await UtilsSQLite.rollbackTransaction(db, true);
-        } catch (err) {
-          msg += `: ${err.message}`;
+        } catch (err: any) {
+          msg += `: ${err.message ? err.message : err}`;
         }
         return Promise.reject(new Error(`${msg}`));
       } else {
         try {
           await UtilsSQLite.commitTransaction(db, true);
           return Promise.resolve(colNames);
-        } catch (err) {
-          return Promise.reject(new Error('BackupTable: ' + `${err.message}`));
+        } catch (err: any) {
+          const msge = err.message ? err.message : err;
+          return Promise.reject(new Error('BackupTable: ' + `${msge}`));
         }
       }
-    } catch (err) {
-      return Promise.reject(new Error(`BackupTable: ${err.message}`));
+    } catch (err: any) {
+      const msge = err.message ? err.message : err;
+      return Promise.reject(new Error(`BackupTable: ${msge}`));
     }
   }
   static async  getTableColumnNames(db: any, tableName: string): Promise<string[]> {
@@ -431,9 +450,10 @@ export class UtilsSQLite {
         }
       }
       return Promise.resolve(retNames);
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
       return Promise.reject(
-        new Error('GetTableColumnNames: ' + `${err.message}`),
+        new Error('GetTableColumnNames: ' + `${msg}`),
       );
     }
   }
@@ -458,8 +478,9 @@ export class UtilsSQLite {
         }
       }
       return Promise.resolve(commonColumns);
-    } catch (err) {
-      return Promise.reject(new Error(`FindCommonColumns: ${err.message}`));
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
+      return Promise.reject(new Error(`FindCommonColumns: ${msg}`));
     }
   }
   static arraysIntersection(a1: any[], a2: any[]): any[] {
@@ -491,23 +512,25 @@ export class UtilsSQLite {
         let msg: string = 'updateNewTablesData: ' + 'changes < 0';
         try {
           await UtilsSQLite.rollbackTransaction(db, true);
-        } catch (err) {
-          msg += `: ${err.message}`;
+        } catch (err: any) {
+          msg += `: ${err.message ? err.message: err}`;
         }
         return Promise.reject(new Error(`${msg}`));
       } else {
         try {
           await UtilsSQLite.commitTransaction(db, true);
           return Promise.resolve();
-        } catch (err) {
+        } catch (err: any) {
+          const msg = err.message ? err.message : err;
           return Promise.reject(
-            new Error('updateNewTablesData: ' + `${err.message}`),
+            new Error('updateNewTablesData: ' + `${msg}`),
           );
         }
       }
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err.message ? err.message : err;
       return Promise.reject(
-        new Error('updateNewTablesData: ' + `${err.message}`),
+        new Error('updateNewTablesData: ' + `${msg}`),
       );
     }
   }

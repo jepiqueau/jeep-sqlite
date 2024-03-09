@@ -90,6 +90,7 @@
           <i class="fa fa-caret-down"></i>
         </button>
         <div class="dropdown-content">
+          <a href="index_issue230.html">Issue#230 Test</a>
           <a href="index_delete.html">Delete Tests Page</a>
           <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
           <a href="index_issue230.html">Issue#230 Tests</a>
@@ -235,14 +236,23 @@
         console.log('### ret ', ret)
         if(ret.values.length !== 4) {
           console.log('### Number of tables != 4');
+          const message = `${msg}\n* The test issue498 failed *\n`
+          console.log(`${message}`);
+          messageEl.innerHTML = message;
         } else {
           console.log('### Test successful');
+          const message = `${msg}\n* The test issue498 was successful *\n`
+          console.log(`${message}`);
+          messageEl.innerHTML = message;
         }
 
       }
     } catch (err) {
         let msg = err.message ? err.message : err;
         console.log(`Error: ${msg}`);
+        const message = `${msg}\n* The test issue498 failed *\n`
+        console.log(`${message}`);
+        messageEl.innerHTML = message;
         return Promise.reject(msg);
     }
   })();
