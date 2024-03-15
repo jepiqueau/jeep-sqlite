@@ -307,7 +307,7 @@ export class Database {
       return Promise.reject(new Error(`ExecuteSQL: ${msg}`));
     } finally {
       if(transaction) this.isTransactionActive = false;
-      if( this.autoSave ) {
+      if( this.autoSave && ! this.isTransactionActive) {
         try {
           await this.saveToStore();
         } catch (err: any) {
@@ -360,7 +360,7 @@ export class Database {
       return Promise.reject(new Error(`ExecSet: ${msg}`));
     } finally {
       if(transaction) this.isTransactionActive = false;
-      if( this.autoSave ) {
+      if( this.autoSave  && ! this.isTransactionActive) {
         try {
           await this.saveToStore();
         } catch (err: any) {
@@ -434,7 +434,7 @@ export class Database {
       return Promise.reject(new Error(`${msg}`));
     } finally {
       if(transaction) this.setIsTransActive(false);
-      if( this.autoSave ) {
+      if( this.autoSave  && ! this.isTransactionActive) {
         try {
           await this.saveToStore();
         } catch (err: any) {

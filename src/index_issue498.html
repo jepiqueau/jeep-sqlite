@@ -236,12 +236,12 @@
         console.log('### ret ', ret)
         if(ret.values.length !== 4) {
           console.log('### Number of tables != 4');
-          const message = `${msg}\n* The test issue498 failed *\n`
+          const message = `\n* The test issue498 failed *\n`
           console.log(`${message}`);
           messageEl.innerHTML = message;
         } else {
           console.log('### Test successful');
-          const message = `${msg}\n* The test issue498 was successful *\n`
+          const message = `\n* The test issue498 was successful *\n`
           console.log(`${message}`);
           messageEl.innerHTML = message;
         }

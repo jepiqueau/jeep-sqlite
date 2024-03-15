@@ -115,7 +115,7 @@
       <h4 class="progress"></h4>
       <h2 class="message"></h2>
     </div>
-    <jeep-sqlite></jeep-sqlite>
+    <jeep-sqlite active></jeep-sqlite>
   </body>
 </html>
 <script>
@@ -647,15 +647,15 @@
       // *** test with SQL statements ***
       // ********************************
       try {
-        var activeTest = 'DatabaseTestTransitions';
+        var activeTest = 'DatabaseTestTransactions';
         // test standard SQL statements
         await startTest(activeTest);
         // initialize the database
         await initializeTest();
         // create the Database in the Store
-        await createDB('testTransition');
+        await createDB('testTransaction');
         // open database and do new stuff
-        await openDB('testTransition');
+        await openDB('testTransaction');
         txn =  [
           {statement: "DROP TABLE IF EXISTS DemoTable"},
           {statement: "CREATE TABLE IF NOT EXISTS DemoTable (name TEXT,score INTEGER);"},
@@ -664,21 +664,21 @@
           {statement: "INSERT INTO DemoTable VALUES (?,?);",
             values: ["Betty",202]}
         ]
-        await executeTransaction('testTransition', txn)
+        await executeTransaction('testTransaction', txn)
         // Manage the transaction process flow yourself
-        await transaction230('testTransition');
-        await manageTransactions('testTransition');
+        await transaction230('testTransaction');
+        await manageTransactions('testTransaction');
         // Clean the table users
         let delUsers = `DELETE FROM users;`;
             delUsers += `VACUUM;`;
-        ret = await jeepSqlite.execute({database: 'testTransition', statements: delUsers, transaction: false});
-        // Use the internal automatic transition process flow
-        await automaticTransactions('testTransition');
+        ret = await jeepSqlite.execute({database: 'testTransaction', statements: delUsers, transaction: false});
+        // Use the internal automatic transaction process flow
+        await automaticTransactions('testTransaction');
 
         // Print the database
-        await printDatabase('testTransition');
+        await printDatabase('testTransaction');
         // Save the database to disk
-        await jeepSqlite.saveToLocalDisk({database:'testTransition'});
+        await jeepSqlite.saveToLocalDisk({database:'testTransaction'});
       } catch (err) {
         let msg = err.message ? err.message : err;
         await endTest(activeTest,msg);
