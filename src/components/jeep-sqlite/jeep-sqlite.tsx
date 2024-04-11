@@ -1646,14 +1646,20 @@ export class JeepSqlite {
   }
   async _getFromHTTPRequest(url: string, overwrite: boolean): Promise<void> {
     try {
+      const extension = this.getFileExtensionInUrl(url);
       let message: string;
-      if( url.substring(url.length - 3) === ".db") {
-        await this.copyDatabase(url, overwrite);
-        message = "db";
-      }
-      if( url.substring(url.length - 4) === ".zip") {
-        await this.unzipDatabase(url, overwrite);
-        message = "zip";
+
+      switch(extension) {
+        case 'db':
+            await this.copyDatabase(url, overwrite);
+            message = "db";
+            break;
+        case 'zip':
+            await this.unzipDatabase(url, overwrite);
+            message = "zip";
+            break;
+        default:
+            message = "Unknown file type in url.";
       }
       this.HTTPRequestEnded.emit({message:message});
       return Promise.resolve();
@@ -1922,6 +1928,13 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     const blob: Blob = new Blob([uint.buffer]);
 
     return Promise.resolve(blob);
+  }
+  private getFileExtensionInUrl(url:string): string {
+    const matches = url.match(/\.(db|zip)$/i);
+    if (matches) {
+      return matches[1]; // returns "db" or "zip"
+    }
+    return null; // no extension found
   }
 
   render() {

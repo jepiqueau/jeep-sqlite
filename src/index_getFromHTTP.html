@@ -255,15 +255,19 @@
     }
 
     jeepSqlite.addEventListener('jeepSqliteHTTPRequestEnded', async (event) => {
-      if(event.detail.message === "db") {
-        await openMyDB();
-        console.log(`******** readDB successful ********\n`)
-        await endTest(activeTest,'');
-      }
-      if(event.detail.message === "zip") {
-        await openDbZip1();
-        await openDbZip2();
-        console.log(`******** readZipped successful ********\n`)
+      switch(event.detail.message) {
+        case 'db':
+            await openMyDB();
+            console.log(`******** readDB successful ********\n`);
+            await endTest(activeTest,'');
+            break;
+        case 'zip':
+            await openDbZip1();
+            await openDbZip2();
+            console.log(`******** readZipped successful ********\n`);
+            break;
+        default:
+            console.log(`******** ${event.detail.message} ********\n`);
       }
     });
     if(await jeepSqlite.isStoreOpen()) {
