@@ -179,6 +179,30 @@
       }
 
     }
+    const openFNVI = async () => {
+      try {
+        // create connection to NVI
+        await jeepSqlite.createConnection({database:"NVI",version: 1});
+        // open db NVI
+        await jeepSqlite.open({database: "NVI"});
+        // Select all tables,
+        ret = await jeepSqlite.getTableList({database: "NVI"});
+        console.log(`>>> openNVI getTableList ret: ${JSON.stringify(ret)} `)
+        if(ret.values.length !== 4 ||
+            !ret.values.includes("book") ||
+            !ret.values.includes("metadata") ||
+            !ret.values.includes("testament") ||
+            !ret.values.includes("verse")
+        ) {
+          return Promise.reject("GetTableList NVI Tables failed");
+        }
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+
+    }
     const openDbZip1 = async () => {
       try {
         // create connection to dbZip1
@@ -344,6 +368,7 @@
         }
       }
 
+
       // ********************************
       // *** test with SQL statements ***
       // ********************************
@@ -354,7 +379,7 @@
         // Run readZipped in background (not working on Safari)
         if ("requestIdleCallback" in window) {
           console.log("Hey, I'm Processng my low priority job now 🦄!");
-          readZipped();
+          await readZipped();
         }
         // initialize the database testNew and fill some data
         await initializeTest();

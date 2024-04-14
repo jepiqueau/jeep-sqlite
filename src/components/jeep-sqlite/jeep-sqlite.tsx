@@ -1930,10 +1930,11 @@ private async unzipDatabase(dbZipName: string, overwrite: boolean): Promise<void
     return Promise.resolve(blob);
   }
   private getFileExtensionInUrl(url:string): string {
-    const matches = url.match(/\.(db|zip)$/i);
+    const matches = url.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
     if (matches) {
-      return matches[1]; // returns "db" or "zip"
+        return matches[1].toLowerCase(); // returns the matched extension in lowercase
     }
+
     return null; // no extension found
   }
 
