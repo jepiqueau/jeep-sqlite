@@ -32,6 +32,7 @@ export class UtilsStore {
   }
   static async saveDBToStore(dbName: string, data: Uint8Array, store: LocalForage): Promise<void> {
     try {
+      await store.removeItem(dbName);
       // store the database
       await store.setItem(dbName, data);
       return Promise.resolve();

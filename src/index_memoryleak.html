@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Test Transactions</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_issue230.html">Issue#230 Test</a>
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
+          <a href="index_issue498.html">DB Test Issue498</a>
+          <a href="index_issue504.html">DB Test Issue504</a>
+          <a href="index_issue37.html">DB Test Issue37</a>
+          <a href="index_memoryleak.html">DB Test Memory Leak</a>
+        </div>
+      </div>
+    </div>
+    <h1>Test Memory Leak</h1>
+    <div class="container">
+      <h4 class="progress"></h4>
+      <h2 class="message"></h2>
+    </div>
+    <jeep-sqlite active></jeep-sqlite>
+  </body>
+</html>
+<script>
+  (async () => {
+    const messageEl = document.querySelector('.message');
+    const progressEl = document.querySelector('.progress');
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+
+    // Test button's text
+    jeepSqlite.pickText = "Select a Database";
+
+    // Test button's style
+    jeepSqlite.buttonOptions = '{"backgroundColor":"#000000", "top":"70%","fontSize":"1.5em"}';
+
+    const startTest = async (name)  => {
+        console.log(`************************************`);
+        console.log(`* Starting ${name} *`);
+        console.log(`************************************\n\n`);
+    };
+    const endTest = async(name,msg) => {
+      if(msg.length === 0) {
+        const message = `* The set of tests ${name} was successful *`
+        console.log(`\n${message}\n`);
+        messageEl.innerHTML = message;
+      } else {
+        const message = `${msg}\n* The set of tests ${name} failed *\n`
+        console.log(`${message}`);
+        messageEl.innerHTML = message;
+      }
+    }
+    const delay = async (delay, message) => {
+      return new Promise (resolve => {
+        setTimeout(() => {
+          const s = "*".repeat(message.length)
+          console.log(`*****************${s}`);
+          console.log(`Simulate a delay ${message}`);
+          console.log(`*****************${s}`);
+          resolve();
+        }, delay * 1000);
+      });
+    }
+    const printDatabase = async(dbName) => {
+      // Select all tables,
+      try {
+        ret = await jeepSqlite.getTableList({database: dbName});
+        console.log(`\n>>> printDatabase getTableList ret: ${JSON.stringify(ret)} `)
+
+        if(ret.values.length > 0) {
+          for (const tableName of ret.values) {
+            const retQuery = await jeepSqlite.query({database: dbName, statement:`SELECT * FROM ${tableName};`});
+            console.log(`\n*** table: ${tableName} ***`);
+            console.log(`${JSON.stringify(retQuery.values)}`);
+          }
+        }
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+    }
+    // Function to generate a random two-word string
+    const  generateRandomTwoWords = () => {
+      // Common English words
+      const commonWords = [
+        "apple", "banana", "orange", "grape", "strawberry",
+        "car", "bike", "bus", "train", "plane",
+        "house", "apartment", "villa", "cabin", "mansion",
+        // Add more common words as needed
+      ];
+
+      // Generate two random indices
+      const index1 = Math.floor(Math.random() * commonWords.length);
+      let index2 = Math.floor(Math.random() * commonWords.length);
+
+      // Make sure index2 is different from index1
+      while (index2 === index1) {
+        index2 = Math.floor(Math.random() * commonWords.length);
+      }
+
+      // Combine the words at the selected indices
+      return `${commonWords[index1]} ${commonWords[index2]}`;
+    }
+    const humanReadableSize = (bytes) => {
+      var thresh = 1024;
+      if(Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+      }
+      var units = ['KB','MB','GB','TB','PB','EB','ZB','YB'];
+      var u = -1;
+      do {
+        bytes /= thresh;
+        ++u;
+      } while(Math.abs(bytes) >= thresh && u < units.length - 1);
+      return bytes.toFixed(1)+' '+units[u];
+    }
+    const  getTotalJeepSqliteStoreSize = async () => {
+      return new Promise((resolve, reject) => {
+        const dbName = "jeepSqliteStore"
+        const request = window.indexedDB.open(dbName);
+
+        request.onerror = () => {
+            reject("Failed to open the database");
+        };
+
+        request.onsuccess = async () => {
+            const db = request.result;
+            const transaction = db.transaction(db.objectStoreNames, "readonly");
+            let totalStringifySize = 0;
+            let totalByteSize = 0;
+
+            transaction.oncomplete = () => {
+                // Estimate the overhead
+                const overhead = 50; // Example overhead (adjust as needed)
+                totalStringifySize += overhead;
+
+                resolve({totalStringifySize:totalStringifySize, totalByteSize: totalByteSize});
+            };
+
+            transaction.onerror = () => {
+                reject("Failed to open transaction");
+            };
+
+            for (let i = 0; i < db.objectStoreNames.length; i++) {
+                const objectStoreName = db.objectStoreNames[i];
+                console.log(`@@@@ objectStoreName: ${objectStoreName} @@@@`)
+                const objectStore = transaction.objectStore(objectStoreName);
+                const size = await getObjectStoreSize(objectStore);
+                console.log(`@@@ byteSize : ${humanReadableSize(size.totalByteSize)} stringifySize: ${humanReadableSize(size.totalStringifySize)}`)
+                totalStringifySize += size.totalStringifySize;
+                totalByteSize += size.totalByteSize;
+            }
+        };
+      });
+    }
+
+    const getObjectStoreSize= (objectStore) => {
+      return new Promise((resolve, reject) => {
+        const request = objectStore.getAll();
+
+        request.onerror = () => {
+            reject("Failed to retrieve data from object store");
+        };
+
+        request.onsuccess = () => {
+            const data = request.result;
+            let totalSize = 0;
+            let totalByteSize = 0;
+
+            data.forEach(item => {
+                // Calculate the size of each item in the object store
+                const size = JSON.stringify(item).length;
+                totalSize += size;
+                totalByteSize += item.byteLength;
+            });
+
+            resolve({totalStringifySize: totalSize, totalByteSize: totalByteSize});
+        };
+      });
+    }
+    const convertUint8ArrayToBytes = (uint8Array) => {
+        return uint8Array.length * Uint8Array.BYTES_PER_ELEMENT;
+    }
+    const getDatabaseSize = (IDBName, StoreName, key) => {
+      return new Promise((resolve, reject) => {
+        // Open a connection to the IndexedDB database
+        const request = indexedDB.open(IDBName);
+
+        request.onerror = function(event) {
+          // Reject the promise if there is an error opening the database
+          reject(new Error("Database error: " + event.target.errorCode));
+        };
+
+        request.onsuccess = function(event) {
+          // Get a reference to the database
+          const db = event.target.result;
+
+          // Start a transaction to read from the object store
+          const transaction = db.transaction([StoreName], 'readonly');
+          const objectStore = transaction.objectStore(StoreName);
+
+          // Retrieve the value associated with the given key
+          const dbKey = `${key}SQLite.db`;
+          const getKeyRequest = objectStore.get(dbKey);
+
+          getKeyRequest.onsuccess = function(event) {
+            // Get the value (UInt8Array buffer)
+            const value = event.target.result;
+
+            if (value) {
+              // Get the size of the buffer and resolve the promise
+              const bufferSize = value.byteLength;
+              const byteSize = JSON.stringify(value).length;
+
+              resolve({byteSize:bufferSize, stringifySize: byteSize});
+            } else {
+              // Reject the promise if no value found for the given key
+              reject(new Error('No value found for the given key'));
+            }
+          };
+
+          getKeyRequest.onerror = function(event) {
+            // Reject the promise if there is an error retrieving the value
+            reject(new Error('Error retrieving value: ' + event.target.error));
+          };
+        };
+      });
+    }
+    const printDBSize = async (dbName, message) => {
+      const dbSize = await getDatabaseSize('jeepSqliteStore','databases',dbName);
+      console.log(`#### database: ${dbName} ${message}`);
+      console.log(`#### db byteSize: ${humanReadableSize(dbSize.byteSize)} stringifySize: ${humanReadableSize(dbSize.stringifySize)} ####`);
+    }
+    const printJeepSqliteStoreSize = async () => {
+      const dbSize = await getTotalJeepSqliteStoreSize();
+      console.log(`##########################################################`);
+      console.log(`#### Total jeepSqliteStore byteSize: ${humanReadableSize(dbSize.totalByteSize)}`);
+      console.log(`#### Total jeepSqliteStore stringifySize: ${humanReadableSize(dbSize.totalStringifySize)}`);
+      console.log(`##########################################################`);
+    }
+    const generateValuesPlaceholders = (count) => {
+      // Create an array with the desired length and fill it with undefined values
+      const placeholdersArray = Array.from({ length: count }, () => "(?)");
+      // Join the array elements with commas to form the final string
+      return placeholdersArray.join(",");
+    }
+    const insertNewAreas = async (message) => {
+      nInsert = 1000;
+      const areaList = [];
+      for (let i = 0; i < nInsert; i++) {
+        const area = generateRandomTwoWords();
+        areaList.push(`'${area}'`);
+
+      }
+      const stmt = `INSERT INTO areas (name) VALUES ${generateValuesPlaceholders(nInsert)};`;
+          try {
+            let ret = await jeepSqlite.run({database: 'dbForCopy', statement: stmt,
+                          values: areaList, transaction: false});
+            // Close the connection
+            await jeepSqlite.closeConnection({database:'dbForCopy'});
+            // print DB Size
+            await printDBSize('dbForCopy', message);
+
+          } catch(err) {
+            const msg = err.message ? err.message : err;
+            return Promise.reject(msg);
+          }
+    }
+    const openDB = async (dbName) => {
+      try {
+        // create connection to dbName
+        await jeepSqlite.createConnection({database:dbName, version: 1});
+        // open db dbName
+        await jeepSqlite.open({database: dbName});
+        progressEl.innerHTML = "OpenDB successful<br>";
+        return Promise.resolve();
+      } catch (err) {
+          let msg = err.message ? err.message : err;
+          console.log(`Error: ${msg}`);
+          return Promise.reject(msg);
+      }
+
+    }
+
+    if(await jeepSqlite.isStoreOpen()) {
+
+      const initializeTest = async() => {
+        try {
+          // test the plugin with echo
+          let res = await jeepSqlite.echo({value:"Hello from echo"});
+          if(res.value !== "Hello from echo"){
+              const msg = `Error: Echo not returning "Hello from echo"\n`;
+              return Promise.reject(msg);
+          }
+          console.log("> Echo successful\n");
+          console.log(`******** initializeTest successful ********\n`)
+          return Promise.resolve();
+        } catch (err) {
+            let msg = err.message ? err.message : err;
+            console.log(`Error: ${msg}`);
+            return Promise.reject(msg);
+        }
+      }
+      const handleSaveDatabaseToDisk = async (event) => {
+        if(event.detail.db_name) {
+          const dbName = event.detail.db_name.split("SQLite.db")[0];
+          console.log(`in jeepSqliteSaveDatabaseToDisk dbName: ${dbName}`);
+          try {
+            // Close the connection
+            await jeepSqlite.closeConnection({database:dbName});
+            console.log(`******** saveDB successful ********\n`)
+            await endTest(activeTest,'');
+          } catch (err) {
+              let msg = err.message ? err.message : err;
+              await endTest(activeTest,`${event.detail.message}`);
+          }
+        } else {
+          console.log(`${event.detail.message}`);
+          await endTest(activeTest,`${event.detail.message}`);
+        }
+      };
+      jeepSqlite.addEventListener('jeepSqliteSaveDatabaseToDisk', handleSaveDatabaseToDisk);
+
+      // ********************************
+      // *** test with SQL statements ***
+      // ********************************
+      try {
+        var activeTest = 'DatabaseTestMemoryLeak';
+        // test standard SQL statements
+        await startTest(activeTest);
+        // initialize the database
+        await initializeTest();
+        // print jeepSqliteStore Size
+        await printJeepSqliteStoreSize();
+        // print DB Size
+        await printDBSize('dbForCopy', 'initial');
+        // open database and do new stuff
+        await openDB('dbForCopy');
+        // add new areas
+        await insertNewAreas('first insert');
+        // open database and do new stuff
+        await openDB('dbForCopy');
+        // add new areas
+        await insertNewAreas('second insert');
+
+        // open database and do new stuff
+        await openDB('dbForCopy');
+        // print DB Size
+        await printDBSize('dbForCopy', 'final');
+        // Print the database
+        await printDatabase('dbForCopy');
+        // print jeepSqliteStore Size
+        await printJeepSqliteStoreSize();
+
+        // Save the database to disk
+        await jeepSqlite.saveToLocalDisk({database:'dbForCopy'});
+      } catch (err) {
+        let msg = err.message ? err.message : err;
+        await endTest(activeTest,msg);
+      }
+    }
+  })();
+</script>
+
+<!--
+
+-->
