@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Starter</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+    .message {
+      white-space: pre-line;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_issue230.html">Issue#230 Test</a>
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
+          <a href="index_issue498.html">DB Test Issue498</a>
+          <a href="index_issue504.html">DB Test Issue504</a>
+          <a href="index_issue37.html">DB Test Issue37</a>
+          <a href="index_issue547.html">DB Test Issue547</a>
+          <a href="index_issue561&562.html">DB Test Issue561&562</a>
+        </div>
+      </div>
+    </div>
+    <h1>Issue561&562</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+</body>
+</html>
+<script>
+  (async () => {
+    const messageEl = document.querySelector('.message');
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
+    if(await jeepSqlite.isStoreOpen()) {
+      const initIssue561 = async () => {
+        try {
+          await jeepSqlite.createConnection({
+                  database:"testIssue561",
+                  version: 1
+              });
+          await jeepSqlite.open({database: "testIssue561"});
+
+          const schemaStmt = `
+            CREATE TABLE IF NOT EXISTS users (
+              id INTEGER PRIMARY KEY NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              first_name TEXT NOT NULL,
+              last_name TEXT NOT NULL,
+              sql_deleted BOOLEAN DEFAULT 0 CHECK (sql_deleted IN (0, 1)),
+              last_modified INTEGER DEFAULT (strftime('%s', 'now')),
+              UNIQUE (last_name, first_name)
+            );
+            CREATE TRIGGER IF NOT EXISTS users_trigger_last_modified
+            AFTER UPDATE ON users
+            FOR EACH ROW
+            BEGIN
+                UPDATE users
+                SET last_modified = strftime('%s', 'now')
+                WHERE id = OLD.id;
+            END;
+          `;
+
+          let ret = await jeepSqlite.execute({database:"testIssue561",statements:schemaStmt});
+          ret = await jeepSqlite.isTableExists({database: "testIssue561", table: "users"});
+          console.log(`##### result: ${JSON.stringify(ret)} `)
+
+          if (!ret.result) throw new Error(`table "users" does not exists`);
+            // create synchronization table
+            ret = await jeepSqlite.createSyncTable({database: "testIssue561"});
+            // set the synchronization date
+            let syncDate = "2021-08-01T08:42:25.000Z";
+            await jeepSqlite.setSyncDate({database: "testIssue561", syncdate: syncDate});
+            // get the synchronization date
+            ret = await jeepSqlite.getSyncDate({database: "testIssue561"});
+            if(ret.syncDate !== 1627807345) {
+              throw new Error("Get the synchronization date failed");
+            }
+            // Insert some Users
+            const row = [["Whiteley","Dave","dave.whiteley@example.com"],["Smith","John","john.smith.@example.com"]];
+            let delUsers = `DELETE FROM users;`;
+            delUsers += `VACUUM;`;
+            ret = await jeepSqlite.execute({database: "testIssue561", statements: delUsers, transaction: false});
+            let twoUsers = `INSERT INTO users (last_name,first_name, email) VALUES ("${row[0][0]}","${row[0][1]}","${row[0][2]}");`;
+            twoUsers += `INSERT INTO users (last_name,first_name, email) VALUES ("${row[1][0]}","${row[1][1]}","${row[1][2]}");`;
+            ret = await jeepSqlite.execute({database: "testIssue561", statements: twoUsers});
+            if (ret.changes.changes !== 2) {
+              throw new Error("Execute 3 users failed");
+            }
+            // add one user with statement and values
+            let sqlcmd = "INSERT INTO users (last_name,first_name, email) VALUES (?,?,?)";
+            let values = ["Smith","Sue","sue.smith@example.com"];
+            ret = await jeepSqlite.run({database: "testIssue561",
+                                          statement: sqlcmd,
+                                          values: values});
+            if(ret.changes.lastId !== 3) {
+              throw new Error("Run 1 user failed");
+            }
+
+            // test full export
+            let jsonObj = await jeepSqlite.exportToJson({database: "testIssue561",jsonexportmode: 'full'});
+            console.log(`jsonObj: ${JSON.stringify(jsonObj.export)} `)
+            // test Json object validity
+            result = await jeepSqlite.isJsonValid({jsonstring: JSON.stringify(jsonObj.export)});
+            if(!result.result) {
+              throw new Error("IsJsonValid 'full' export failed");
+            }
+            ret = await jeepSqlite.isDBExists({database:"testIssue561"});
+            if (ret.result) {
+              console.log(`ret.result before: ${ret.result}`)
+              await jeepSqlite.deleteDatabase({database:"testIssue561"});
+            }
+            ret = await jeepSqlite.isDBExists({database:"testIssue561"});
+            console.log(`ret.result after: ${ret.result}`)
+            await jeepSqlite.closeConnection({database:"testIssue561"});
+
+            // full import
+            result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(jsonObj.export)});
+            if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' jsonObj.export failed");
+            // create the connection to the database
+            await jeepSqlite.createConnection({database:"testIssue561", version: 1});
+            // open db testNew
+            await jeepSqlite.open({database: "testIssue561"});
+            let isDBJson = await jeepSqlite.isDBOpen({database: "testIssue561"})
+            if (!isDBJson.result) throw new Error("isDBOpen 'testIssue561' failed");
+            // get Table's list
+            ret = await jeepSqlite.getTableList({database: "testIssue561"});
+            console.log(`&&&& table List: ${JSON.stringify(ret)}`)
+            // Select all users
+            ret = await jeepSqlite.query({database: "testIssue561",
+                                          statement: "SELECT * FROM users;"});
+            if(ret.values.length !== 3) throw new Error("Query 1 testIssue561 Users failed");
+            await jeepSqlite.saveToLocalDisk({
+                  database:"testIssue561"});
+
+
+
+        } catch (err) {
+          console.log(`Error ${err}`);
+          throw new Error(`in initIssue561: ${err}`);
+        }
+      }
+      const initIssue562 = async () => {
+        try {
+          await jeepSqlite.createConnection({
+                  database:"testIssue562",
+                  version: 1
+              });
+          await jeepSqlite.open({database: "testIssue562"});
+
+          const schemaStmt1 = `
+            CREATE TABLE IF NOT EXISTS test562 (
+              id TEXT PRIMARY KEY NOT NULL,
+              someColumn TEXT NOT NULL,
+              body TEXT NOT NULL
+              );
+            `;
+
+          let ret = await jeepSqlite.execute({database:"testIssue562",statements:schemaStmt1});
+          ret = await jeepSqlite.isTableExists({database: "testIssue562", table: "test562"});
+          console.log(`##### result: ${JSON.stringify(ret)} `)
+
+          if (!ret.result) throw new Error(`table "test562" does not exists`);
+          let delData = `DELETE FROM test562;`;
+          delData += `VACUUM;`;
+          ret = await jeepSqlite.execute({database: "testIssue562", statements: delData, transaction: false});
+
+          const setIssue562 = [
+              { statement: "INSERT INTO test562 (id, someColumn, body) values (?,?,?)",
+                values: [
+                  ['72b8\$2z18:gp51bp\$2h18','someData','{"someKey":"someValue"}'],
+                  ['72b8\$3z18:gp51bp\$1h18','someData1','{"someKey":"someValue1"}'],
+                ]
+              },
+          ]
+          // Create Data in test562
+            ret = await jeepSqlite.executeSet({database: "testIssue562", set: setIssue562});
+            if (ret.changes.changes !== 2) {
+              throw new Error("ExecuteSet failed");
+            }
+            await jeepSqlite.saveToLocalDisk({
+                  database:"testIssue562"});
+
+        } catch (err) {
+          console.log(`Error ${err}`);
+          throw new Error(`in initIssue562: ${err}`);
+        }
+      }
+      const handleIssue562 = async (event) => {
+        if (event.detail.db_name == "testIssue562SQLite.db") {
+          messageEl.innerHTML =  messageEl.innerHTML + `\n Tests successful`;
+          // Remove the event listener after successful tests
+          jeepSqlite.removeEventListener('jeepSqliteSaveDatabaseToDisk', handleIssue562);
+        } else {
+          try {
+            // *** Initialize testIssue562 database
+            await initIssue562();
+
+            // *** Close connection if required
+
+            isConn = (await jeepSqlite.isConnection({database: "testIssue562"})).result;
+            if (isConn) {
+              await jeepSqlite.closeConnection({database:"testIssue562"});
+            }
+            console.log(`Test issue562 successful`)
+            messageEl.innerHTML =  messageEl.innerHTML + `\n Test issue562 successful`;
+          } catch (err) {
+            console.log(`Error: ${err}`);
+            messageEl.textContent = `Error: ${err}\nTest issue562 failed`;
+          }
+        }
+      }
+      // Main test
+
+      jeepSqlite.addEventListener('jeepSqliteSaveDatabaseToDisk', handleIssue562);
+      try {
+
+        // *** Initialize testIssue561 database
+        await initIssue561();
+
+        // *** Close connection if required
+
+        let isConn = (await jeepSqlite.isConnection({database: "testIssue561"})).result;
+        if (isConn) {
+          await jeepSqlite.closeConnection({database:"testIssue561"});
+        }
+        console.log(`Test issue561 successful`)
+        messageEl.innerHTML = `Test issue561 successful`;
+
+      } catch (err) {
+          console.log(`Error: ${err}`);
+          messageEl.textContent = `Error: ${err}\nTest issue561 failed`;
+        }
+
+    } else {
+      console.log("Error: Store creation failed")
+      messageEl.innerHTML = `Error: Store creation failed`;
+    }
+  })();
+</script>

@@ -92,7 +92,13 @@ export class UtilsSQLite {
     let version = 0;
     try {
       const res = db.exec('PRAGMA user_version;');
-      version = res[0].values[0][0];
+      console.log(`#### getVersion new res: ${JSON.stringify(res)}`)
+      if (res && res.length > 0 && res[0].values && res[0].values.length > 0 && res[0].values[0].length > 0) {
+        version = res[0].values[0][0];
+      } else {
+        const msg = "Cannot return the version from the database"
+        return Promise.reject(new Error(`GetVersion: ${msg}`));
+      }
       return Promise.resolve(version);
     } catch (err: any) {
       const msg = err.message ? err.message : err;

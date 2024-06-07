@@ -108,6 +108,10 @@
           <a href="index_issue504.html">DB Test Issue504</a>
           <a href="index_issue37.html">DB Test Issue37</a>
           <a href="index_memoryleak.html">DB Test Memory Leak</a>
+          <a href="index_issue547.html">DB Test Issue547</a>
+          <a href="index_issue40.html">DB Test Issue GetVersion</a>
+          <a href="index_issue558.html">DB Test Issue558</a>
+          <a href="index_issue561&562.html">DB Test Issue561&562</a>
         </div>
       </div>
     </div>
@@ -941,6 +945,7 @@
             // Select all users
             ret = await jeepSqlite.query({database: "db-from-json231",
                                           statement: "SELECT * FROM users;"});
+            console.log(`Query1 ret: ${JSON.stringify(ret)}`)
             if(ret.values.length !== 4 ||
                   ret.values[0].name !== "Whiteley" ||
                   ret.values[1].name !== "Jones" ||
@@ -1013,11 +1018,20 @@
             result = await jeepSqlite.importFromJson({jsonstring: JSON.stringify(exObj)});
             console.log(`re-import ovewrite ${exObj.overwrite} ${JSON.stringify(result)}`);
             if(result.changes.changes === -1 ) throw new Error("ImportFromJson 'full' dataToImport231 failed");
-            stmt = `
+           stmt = `
               DROP TABLE IF EXISTS users;
               DROP TABLE IF EXISTS messages;
             `
+
             await jeepSqlite.execute({database:"db-from-json231",statements:stmt});
+/*            console.log(`####### before retQuery #######`)
+            stmt = `DROP TABLE IF EXISTS users;`
+            let retQuery = await jeepSqlite.query({database:"db-from-json231",statement:stmt});
+            console.log(`retQuery : ${JSON.stringify(retQuery)}`)
+            stmt = `DROP TABLE IF EXISTS messages;`
+            retQuery = await jeepSqlite.query({database:"db-from-json231",statement:stmt});
+            console.log(`retQuery : ${JSON.stringify(retQuery)}`)
+*/
             tableList = await jeepSqlite.getTableList({database:"db-from-json231"});
             if (tableList.values.length != 0) {
               throw new Error("Export231 drop tables failed");

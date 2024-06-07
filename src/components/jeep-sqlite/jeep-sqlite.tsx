@@ -1060,7 +1060,8 @@ export class JeepSqlite {
       const dbName: string = `${database}SQLite.db`;
       this._opts = {fileName: dbName, extensions:['.db'], startIn: 'documents',};
       this._buttonSaveEl = document.createElement('button');
-      this._buttonSaveEl.setAttribute("id","saveButton");
+//      const baseName = this._opts.fileName.split('.db')[0];
+      this._buttonSaveEl.setAttribute("id",`saveButton`);
       this._buttonSaveEl.innerHTML = `${this.innerSaveText} ${dbName}`;
       this._element.appendChild(this._buttonSaveEl);
       this._buttonSaveEl.addEventListener("click", this.saveFile.bind(this));

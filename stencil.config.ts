@@ -43,6 +43,11 @@ export const config: Config = {
         { src: 'index_issue504.html', dest: 'index_issue504.html' },
         { src: 'index_issue37.html', dest: 'index_issue37.html' },
         { src: 'index_memoryleak.html', dest: 'index_memoryleak.html' },
+        { src: 'index_issue547.html', dest: 'index_issue547.html' },
+        { src: 'index_issue40.html', dest: 'index_issue40.html' },
+        { src: 'index_issue558.html', dest: 'index_issue558.html' },
+        { src: 'index_issue561&562.html', dest: 'index_issue561&562.html' },
+
       ]
     },
   ],

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0" />
+    <title>Stencil Component Starter</title>
+
+    <script type="module" src="/build/jeep-sqlite.esm.js"></script>
+    <script nomodule src="/build/jeep-sqlite.js"></script>
+  </head>
+  <style>
+    /* Navbar container */
+    .navbar {
+      overflow: hidden;
+      background-color: #333;
+      font-family: Arial;
+    }
+
+    /* Links inside the navbar */
+    .navbar a {
+      float: left;
+      font-size: 16px;
+      color: white;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+    }
+
+    /* The dropdown container */
+    .dropdown {
+      float: left;
+      overflow: hidden;
+    }
+
+    /* Dropdown button */
+    .dropdown .dropbtn {
+      font-size: 16px;
+      border: none;
+      outline: none;
+      color: white;
+      padding: 14px 16px;
+      background-color: inherit;
+      font-family: inherit; /* Important for vertical align on mobile phones */
+      margin: 0; /* Important for vertical align on mobile phones */
+    }
+
+    /* Add a red background color to navbar links on hover */
+    .navbar a:hover, .dropdown:hover .dropbtn {
+      background-color: red;
+    }
+
+    /* Dropdown content (hidden by default) */
+    .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      min-width: 160px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+      float: none;
+      color: black;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: left;
+    }
+
+    /* Add a grey background color to dropdown links on hover */
+    .dropdown-content a:hover {
+      background-color: #ddd;
+    }
+
+    /* Show the dropdown menu on hover */
+    .dropdown:hover .dropdown-content {
+      display: block;
+    }
+    .container {
+      margin-left: 25px;
+    }
+    .message {
+      white-space: pre-line;
+    }
+  </style>
+  <body>
+    <div class="navbar">
+      <a href="index.html">Home</a>
+      <div class="dropdown">
+        <button class="dropbtn">Tests
+          <i class="fa fa-caret-down"></i>
+        </button>
+        <div class="dropdown-content">
+          <a href="index_issue230.html">Issue#230 Test</a>
+          <a href="index_delete.html">Delete Tests Page</a>
+          <a href="index_deleteFKC.html">Delete FKC Tests Page</a>
+          <a href="index_page1_issue11.html">Page 1 Issue11 Tests Page</a>
+          <a href="index_page2_issue11.html">Page 2 Issue11 Tests Page</a>
+          <a href="index_incremental_upgrade_version.html">New Incremental Upgrade Version</a>
+          <a href="index_readonly.html">DB Readonly</a>
+          <a href="index_getFromHTTP.html">DB Get FROM HTTP Request</a>
+          <a href="index_concurrent.html">DB Concurrent Test</a>
+          <a href="index_issue385.html">Issue#385 Test</a>
+          <a href="index_getFromLocalDiskToStore.html">DB Get FROM Local Disk to Store</a>
+          <a href="index_returning.html">DB Test RETURNING</a>
+          <a href="index_issue445.html">DB Test issue445</a>
+          <a href="index_transaction.html">DB Test Transactions</a>
+          <a href="index_issue498.html">DB Test Issue498</a>
+          <a href="index_issue504.html">DB Test Issue504</a>
+          <a href="index_issue37.html">DB Test Issue37</a>
+          <a href="index_issue547.html">DB Test Issue547</a>
+        </div>
+      </div>
+    </div>
+    <h1>Issue547</h1>
+    <div class="container">
+      <h2 class="message"></h2>
+    </div>
+    <jeep-sqlite autoSave="true"></jeep-sqlite>
+</body>
+</html>
+<script>
+  (async () => {
+    const messageEl = document.querySelector('.message');
+    await customElements.whenDefined('jeep-sqlite');
+    const jeepSqlite = document.querySelector('jeep-sqlite');
+    let echo = await jeepSqlite.echo({value:"Hello World from Jeep"});
+    if(await jeepSqlite.isStoreOpen()) {
+      const initIssue547 = async () => {
+        try {
+          await jeepSqlite.createConnection({
+                  database:"testIssue547",
+                  version: 1
+              });
+          await jeepSqlite.open({database: "testIssue547"});
+
+          const schemaStmt = `
+            CREATE TABLE projects (
+              identity INTEGER PRIMARY KEY AUTOINCREMENT,
+              _state_ TEXT NULL,
+              Id INTEGER NULL,
+              project_name TEXT NULL,
+              full_reference TEXT NULL,
+              latitude INTEGER NULL,
+              longitude INTEGER NULL,
+              number_name TEXT NULL,
+              project_open INTEGER NULL,
+              updated_at TEXT NULL,
+              deleted_at TEXT NULL );
+          `
+
+          const ret = await jeepSqlite.execute({database:"testIssue547",statements:schemaStmt});
+
+          const executeSet = [
+            {
+              statement: "INSERT INTO projects (id, project_name, full_reference, latitude, longitude, number_name, project_open, updated_at, deleted_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);",
+              values: [
+                [17026,"Test Project","218.0TEST",55.7,-2.01,"218.0TEST Test Project",1,"2024-04-19 16:22:29",null],
+                [17027,"Test Project 2","219.0TEST",55.7,-2.01,"219.0TEST Test Project 2",1,"2024-04-20 16:22:29",null]
+              ]
+            }
+          ];
+          const result = await jeepSqlite.executeSet({database: "testIssue547", set: executeSet});
+          console.log(`##### result: ${JSON.stringify(result)} `)
+
+          await jeepSqlite.saveToLocalDisk({
+                  database:"testIssue547"});
+
+        } catch (err) {
+          console.log(`Error ${err}`);
+          throw new Error(`in initIssue547: ${err}`);
+        }
+      }
+      // Main test
+      try {
+        // *** Initialize testIssue547 database
+        await initIssue547();
+
+        // *** Close connection if required
+
+        const isConn = (await jeepSqlite.isConnection({database: "testIssue547"})).result;
+        if (isConn) {
+          await jeepSqlite.closeConnection({database:"testIssue547"});
+        }
+        console.log(`Test issue547 successful`)
+        messageEl.innerHTML = `Test issue547 successful`;
+      } catch (err) {
+        console.log(`Error: ${err}`);
+        messageEl.textContent = `Error: ${err}\nTest issue547 failed`;
+      }
+    } else {
+      console.log("Error: Store creation failed")
+      messageEl.innerHTML = `Error: Store creation failed`;
+    }
+  })();
+</script>

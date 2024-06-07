@@ -192,13 +192,10 @@ export class UtilsExportJSON {
           row[1] = scht.substring(cPar + 2);
           jsonRow['foreignkey'] = row[0];
         } else if (row[0].toUpperCase() === "PRIMARY") {
-          const oPar: number = scht.indexOf("(");
-          const cPar: number = scht.indexOf(")");
-          const pk: string = scht.substring(oPar + 1, cPar);
-          const pknames: string[] = pk.split('§');
-          row[0] = "CPK_" + pknames.join('_');
-          row[0] = row[0].replace(/_ /g,"_")
-          row[1] = scht;
+          row = UtilsExportJSON.getRow(scht,"CPK")
+          jsonRow['constraint'] = row[0];
+        } else if (row[0].toUpperCase() === "UNIQUE") {
+          row = UtilsExportJSON.getRow(scht,"CUN")
           jsonRow['constraint'] = row[0];
         } else if (row[0].toUpperCase() === "CONSTRAINT") {
           let tRow: string[] = [];
@@ -218,6 +215,17 @@ export class UtilsExportJSON {
     } catch (err) {
       return Promise.reject(new Error(err.message));
     }
+  }
+  static getRow(scht: string, cName: string): string[] {
+    let row: string[] = [];
+    const oPar: number = scht.indexOf("(");
+    const cPar: number = scht.indexOf(")");
+    const values: string = scht.substring(oPar + 1, cPar);
+    const valuesnames: string[] = values.split('§');
+    row[0] = `${cName}_` + valuesnames.join('_');
+    row[0] = row[0].replace(/_ /g,"_")
+    row[1] = scht;
+    return row
   }
   static async getIndexes(db: any, tableName: string): Promise<JsonIndex[]> {
     const indexes: JsonIndex[] = [];
