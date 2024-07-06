@@ -8,6 +8,9 @@ export const config: Config = {
       nodePolyfills(),
     ]
   },
+  extras: {
+    enableImportInjection: true,
+  },
   sourceMap: true,
   outputTargets: [
     {
