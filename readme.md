@@ -16,7 +16,26 @@ Integration in other frameworks (`Vue`, `React`, `Ionic/Vue`, `Ionic/React`,`Sol
 
 Stencil is also great for building entire apps. For that, use the [stencil-app-starter](https://github.com/ionic-team/stencil-app-starter) instead.
 
+!!!!!!!!!!!!!!!!!!!!!!!!!! 
+When you get this message
+
+```
+I am getting the following error in console in ionic Application.
+Error: Uncaught (in promise): TypeError: x is not a function
+TypeError: x is not a function
+at x (jeep-sqlite.entry.js:2648:80)
+at f.onRuntimeInitialized (jeep-sqlite.entry.js:2555:318) 
+...
+``` 
+
+means that you have to copy the sql-wasm.wasm from node_modules/sql.js/dist/sql-wasm.wasm to your application assets directory
+!!!!!!!!!!!!!!!!!!!!!!!!!! 
+
 ## Notes
+ - Realease 2.8.0 ->>
+    Update @stencil/core to 4.20.0
+    Update sql.js to 1.11.0
+    Merge PR#41: Support production build for bundlers like Vite by setting Stencil extra.enableImportInjection=true  frpm thomasjahoda 
 
  - Release 2.5.6 ->>
     Step back to sql.js@1.8.0  as sql.js@1.9.0  give an `Error: out of memory` see issue #33.
