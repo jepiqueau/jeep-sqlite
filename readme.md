@@ -805,3 +805,13 @@ Standard CRUD operations can then being performed, the modifications are save to
 Before closing the connection, the database might also be saved back to the local disk for secure persistent storage (backup) and/or database visibility through the use of SQLite third party tools like DB Browser for SQLite.  
 
  - [from local disk to store](https://github.com/jepiqueau/jeep-sqlite/blob/master/src/index_getFromLocalDiskToStore.html)
+
+## Debugging (Web)
+
+On the Web platform, `jeep-sqlite` stores databases in IndexedDB under the `jeepSqliteStore`. Inspecting or debugging these databases using standard browser devtools can be difficult.
+
+For development and debugging purposes, an optional Chrome DevTools extension is available that allows browsing, querying, and exporting `jeep-sqlite` databases directly from IndexedDB:
+
+- Jeep SQLite Browser (Chrome DevTools Extension)
+  - Chrome Web Store: https://chromewebstore.google.com/detail/jeep-sqlite-browser/ocgeealadeabmhponndjebghfkbfbnch
+  - GitHub: https://github.com/pinguluk/jeep-sqlite-browser
